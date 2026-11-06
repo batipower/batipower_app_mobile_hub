@@ -46,15 +46,18 @@ l'app ne sont pas ceux de `app.config.ts`. Pour tester comme une vraie app, voir
 
 ## Scripts
 
-| Commande               | Rôle                                               |
-| ---------------------- | -------------------------------------------------- |
-| `npm start`            | Serveur Metro / Expo                               |
-| `npm run start:tunnel` | Idem, via un tunnel (réseaux différents)           |
-| `npm run ios`          | Ouvre le simulateur iOS (nécessite Xcode complet)  |
-| `npm run typecheck`    | `tsc --noEmit`                                     |
-| `npm run lint`         | ESLint (config Expo + Prettier)                    |
-| `npm run format`       | Prettier                                           |
-| `npm run doctor`       | `expo-doctor` (cohérence des dépendances / config) |
+| Commande                  | Rôle                                               |
+| ------------------------- | -------------------------------------------------- |
+| `npm start`               | Serveur Metro / Expo                               |
+| `npm run start:tunnel`    | Idem, via un tunnel (réseaux différents)           |
+| `npm run ios`             | Ouvre le simulateur iOS (nécessite Xcode complet)  |
+| `npm run typecheck`       | `tsc --noEmit`                                     |
+| `npm run lint`            | ESLint (config Expo + Prettier)                    |
+| `npm run format`          | Prettier                                           |
+| `npm run doctor`          | `expo-doctor` (cohérence des dépendances / config) |
+| `npm run build:ios`       | Build iOS de production (EAS, dans le cloud)       |
+| `npm run submit:ios`      | Envoie le dernier build à TestFlight (EAS Submit)  |
+| `npm run credentials:ios` | Gère les identifiants Apple dans EAS               |
 
 ## Structure
 
@@ -167,10 +170,16 @@ npx expo start --dev-client                         # puis ouvrir l'app install�
    `fr.batipower.hub`.
 2. `eas build --profile production --platform ios` (`autoIncrement` gère le numéro de
    build, `appVersionSource: remote`).
-3. `eas submit --platform ios` : envoi vers App Store Connect. Une **clé API App Store
-   Connect** (rôle App Manager) évite les authentifications interactives et les codes 2FA
-   Apple.
+3. `npm run submit:ios` : envoi du dernier build vers App Store Connect. Une **clé API App
+   Store Connect** (rôle App Manager) évite les authentifications interactives et les
+   codes 2FA Apple.
 4. Ajouter des testeurs internes dans TestFlight (jusqu'à 100, sans revue Apple).
+
+> **Piège : toujours passer par les scripts `submit:ios` / `credentials:ios`.**
+> `APP_VARIANT` est posé par `eas.json` uniquement pendant `eas build`. Un `eas submit` ou
+> `eas credentials` lancé « à nu » retombe sur la variante `development` et cherche les
+> identifiants pour `fr.batipower.hub.dev` au lieu de `fr.batipower.hub`. Les scripts
+> forcent `APP_VARIANT=production`.
 
 ### 5. Variables d'environnement en build EAS
 

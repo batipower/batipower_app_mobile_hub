@@ -47,7 +47,10 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.{ts,js,json}\"",
-    "doctor": "expo-doctor"
+    "doctor": "expo-doctor",
+    "build:ios": "npx eas-cli build --platform ios --profile production",
+    "submit:ios": "APP_VARIANT=production npx eas-cli submit --platform ios --profile production --latest",
+    "credentials:ios": "APP_VARIANT=production npx eas-cli credentials --platform ios"
   },
   "private": true
 }
