@@ -21,6 +21,10 @@ export default function PreparationLayout() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="[reference]" options={{ title: 'Commande' }} />
+      <Stack.Screen
+        name="scan"
+        options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }}
+      />
     </Stack>
   );
 }

@@ -23,6 +23,14 @@
       "expo-image",
       "expo-web-browser",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Batipower Pro utilise la caméra pour scanner les codes-barres des commandes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#131921",

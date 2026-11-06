@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
+import { ScanBarcode } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { canAccessHubPreparation } from '@/auth/permissions';
@@ -15,7 +18,7 @@ import { useDriversTour } from '@/features/preparation/hooks/useDriversTour';
 import { usePreparationOrders } from '@/features/preparation/hooks/usePreparationOrders';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
 import { formatTime } from '@/features/preparation/orderHelpers';
-import { fontSize, makeStyles, spacing } from '@/theme';
+import { fontSize, makeStyles, radius, spacing, useTheme } from '@/theme';
 import type { StockFilter } from '@/types/preparation';
 
 type PreparationSegment = 'orders' | 'agency';
@@ -33,6 +36,7 @@ export default function PreparationScreen() {
 
 function PreparationContent() {
   const styles = useStyles();
+  const t = useTheme();
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState<PreparationSegment>('orders');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
@@ -62,7 +66,21 @@ function PreparationContent() {
             <Text style={styles.updated}>Mis à jour à {formatTime(lastRefresh)}</Text>
           ) : null}
         </View>
-        <ModuleSwitcherButton active="HUB" />
+        <View style={styles.headerActions}>
+          <Pressable
+            style={({ pressed }) => [styles.scanButton, pressed && styles.scanButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Scanner des codes-barres pour imprimer les étiquettes"
+            hitSlop={6}
+            onPress={() => {
+              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              router.push('/hub/preparation/scan');
+            }}
+          >
+            <ScanBarcode size={20} color={t.onAccent} />
+          </Pressable>
+          <ModuleSwitcherButton active="HUB" />
+        </View>
       </View>
 
       <View style={styles.block}>
@@ -120,4 +138,14 @@ const useStyles = makeStyles((t) => ({
   updated: { fontSize: fontSize.xs, color: t.textSubtle },
   block: { paddingHorizontal: spacing.xl },
   filters: { minHeight: 36 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  scanButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.full,
+    backgroundColor: t.accent,
+  },
+  scanButtonPressed: { backgroundColor: t.accentPressed, transform: [{ scale: 0.95 }] },
 }));
