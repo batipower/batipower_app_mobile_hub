@@ -87,6 +87,27 @@ const RELATED_KIND_LABELS = {
   RESEND: 'Renvoi',
 } as const;
 
+const DEVICE_LABELS: Record<string, string> = {
+  mobile: 'Mobile',
+  tablet: 'Tablette',
+  desktop: 'Ordinateur',
+};
+
+/** Logos des origines (assets embarqués, repris de `front_externe_batipower/public`). */
+const BATIPOWER_LOGO: number = require('../../../assets/logo-batipower.png');
+const ORIGIN_LOGOS: Record<string, number> = {
+  AMAZON: require('../../../assets/origins/amazon.png'),
+  MANOMANO: require('../../../assets/origins/manomano.png'),
+  LEROY_MERLIN: require('../../../assets/origins/leroy-merlin.svg'),
+  LEROYMERLIN: require('../../../assets/origins/leroy-merlin.svg'),
+  CASTORAMA: require('../../../assets/origins/castorama.png'),
+  CDISCOUNT: require('../../../assets/origins/cdiscount.png'),
+  BRICOMAN: require('../../../assets/origins/bricoman.png'),
+  WEBSITE: BATIPOWER_LOGO,
+  BATIPOWER: BATIPOWER_LOGO,
+  SITE: BATIPOWER_LOGO,
+};
+
 function originKey(origin: string | null | undefined): string {
   return (origin ?? '').toUpperCase().replace(/[\s-]+/g, '_');
 }
@@ -101,6 +122,17 @@ export function humanizeCode(code: string | null | undefined): string {
 export function originLabel(origin: string | null | undefined): string {
   if (!origin) return '—';
   return ORIGIN_LABELS[originKey(origin)] ?? origin;
+}
+
+/** Source de l'image (`require`) du logo d'une origine ; `null` si inconnue. */
+export function originLogo(origin: string | null | undefined): number | null {
+  if (!origin) return null;
+  return ORIGIN_LOGOS[originKey(origin)] ?? null;
+}
+
+/** Libellé de l'appareil du client ; `null` si inconnu. */
+export function deviceLabel(device: string | null | undefined): string | null {
+  return device ? (DEVICE_LABELS[device] ?? null) : null;
 }
 
 export function originTone(origin: string | null | undefined): BadgeTone {

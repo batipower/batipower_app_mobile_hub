@@ -15,6 +15,7 @@ import {
   originLabel,
   originTone,
 } from '../orderDisplay';
+import { OriginLogo } from './OriginLogo';
 
 type OrderResultCardProps = {
   order: OrderSearchHit;
@@ -54,7 +55,10 @@ function OrderResultCardBase({ order, onPress }: OrderResultCardProps) {
           {order.reference}
         </Text>
         {order.origin ? (
-          <Badge label={originLabel(order.origin)} tone={originTone(order.origin)} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <OriginLogo origin={order.origin} size={20} />
+            <Badge label={originLabel(order.origin)} tone={originTone(order.origin)} />
+          </View>
         ) : null}
         <ChevronRight size={16} color={t.textFaint} />
       </View>

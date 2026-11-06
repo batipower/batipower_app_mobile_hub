@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -7,12 +8,14 @@ type ChipProps = {
   label: string;
   /** Compteur affiché à droite du libellé. */
   count?: number;
+  /** Élément avant le libellé (logo d'une origine…). */
+  icon?: ReactNode;
   active: boolean;
   onPress: () => void;
 };
 
 /** Puce de filtre (origine d'une commande, rôle d'un compte…), à sélection unique. */
-export function Chip({ label, count, active, onPress }: ChipProps) {
+export function Chip({ label, count, icon, active, onPress }: ChipProps) {
   const styles = useStyles();
   return (
     <Pressable
@@ -26,6 +29,7 @@ export function Chip({ label, count, active, onPress }: ChipProps) {
       accessibilityLabel={count !== undefined ? `${label}, ${count}` : label}
       style={[styles.chip, active && styles.chipActive]}
     >
+      {icon}
       <Text style={[styles.label, active && styles.labelActive]}>{label}</Text>
       {count !== undefined ? (
         <Text style={[styles.count, active && styles.labelActive]}>{count}</Text>

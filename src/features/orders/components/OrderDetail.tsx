@@ -17,6 +17,7 @@ import {
   paymentMethodLabel,
   paymentStatusTone,
 } from '../orderDisplay';
+import { OriginLogo } from './OriginLogo';
 import {
   CancellationSection,
   DisputesSection,
@@ -85,7 +86,10 @@ function HeaderSection({ order }: { order: HubOrder }) {
           <Badge label={order.paymentStatus} tone={paymentStatusTone(order.paymentStatus)} />
         ) : null}
         {order.origin ? (
-          <Badge label={originLabel(order.origin)} tone={originTone(order.origin)} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <OriginLogo origin={order.origin} size={20} />
+            <Badge label={originLabel(order.origin)} tone={originTone(order.origin)} />
+          </View>
         ) : null}
       </View>
 

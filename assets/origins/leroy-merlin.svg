@@ -1,0 +1,10 @@
+<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Triangle vert avec bordure -->
+  <polygon points="30,6 54,50 6,50" fill="#7FB43D" stroke="#5A8D2C" stroke-width="2"/>
+  
+  <!-- Fond blanc pour le texte -->
+  <rect x="8" y="32" width="44" height="14" fill="white" fill-opacity="0.95" rx="3"/>
+  
+  <!-- Texte LEROY MERLIN plus gros -->
+  <text x="30" y="42" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="#000" text-anchor="middle">LEROY MERLIN</text>
+</svg>

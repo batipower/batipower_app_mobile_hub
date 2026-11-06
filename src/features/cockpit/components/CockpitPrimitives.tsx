@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Eye, EyeOff, TrendingDown, TrendingUp } from 'lucide-react-native';
+import { ChevronRight, Eye, EyeOff, TrendingDown, TrendingUp } from 'lucide-react-native';
 
 import { Card } from '@/components/ui';
 import { formatPercent, percentDelta } from '@/lib/format';
@@ -56,17 +56,34 @@ type StatTileProps = {
   tone?: Tone;
   /** Élément à droite du chiffre (variation…). */
   accessory?: ReactNode;
+  /** Rend la tuile cliquable (détail des commandes…). */
+  onPress?: () => void;
+  /** Élément avant le libellé (logo d'une origine…). */
+  icon?: ReactNode;
 };
 
 /** Tuile « libellé + chiffre » en creux dans un panneau. */
-export function StatTile({ label, value, hint, tone = 'default', accessory }: StatTileProps) {
+export function StatTile({
+  label,
+  value,
+  hint,
+  tone = 'default',
+  accessory,
+  onPress,
+  icon,
+}: StatTileProps) {
   const styles = useStyles();
+  const t = useTheme();
   const toneColor = useToneColor();
-  return (
-    <View style={styles.tile} accessible accessibilityLabel={`${label} : ${value}`}>
-      <Text style={styles.tileLabel} numberOfLines={1}>
-        {label}
-      </Text>
+  const content = (
+    <>
+      <View style={styles.tileLabelRow}>
+        {icon}
+        <Text style={[styles.tileLabel, styles.tileLabelText]} numberOfLines={1}>
+          {label}
+        </Text>
+        {onPress ? <ChevronRight size={13} color={t.textFaint} /> : null}
+      </View>
       <View style={styles.tileValueRow}>
         <Text
           style={[styles.tileValue, { color: toneColor(tone) }]}
@@ -82,7 +99,25 @@ export function StatTile({ label, value, hint, tone = 'default', accessory }: St
           {hint}
         </Text>
       ) : null}
-    </View>
+    </>
+  );
+
+  if (!onPress) {
+    return (
+      <View style={styles.tile} accessible accessibilityLabel={`${label} : ${value}`}>
+        {content}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label} : ${value}. Voir les commandes`}
+      style={({ pressed }) => [styles.tile, pressed && { backgroundColor: t.surfaceStrong }]}
+    >
+      {content}
+    </Pressable>
   );
 }
 
@@ -229,6 +264,8 @@ const useStyles = makeStyles((t) => ({
     borderRadius: radius.md,
     backgroundColor: t.surface,
   },
+  tileLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tileLabelText: { flexShrink: 1 },
   tileLabel: { fontSize: 11, fontWeight: '600', color: t.textSubtle },
   tileValueRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   tileValue: { flexShrink: 1, fontSize: fontSize.xl, fontWeight: '800', color: t.text },

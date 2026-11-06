@@ -1,13 +1,15 @@
 import { useMemo } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 
-import { Badge } from '@/components/ui';
-import { originLabel, originTone } from '@/features/orders/orderDisplay';
+import { OriginLogo } from '@/features/orders/components/OriginLogo';
+import { originLabel } from '@/features/orders/orderDisplay';
 import { formatEuroWhole, formatInteger, formatPercent } from '@/lib/format';
-import { fontSize, makeStyles, spacing } from '@/theme';
+import { fontSize, makeStyles, radius, spacing, useTheme } from '@/theme';
 import type { HubDailyMargin, HubDashboardFinance } from '@/types/hubDashboard';
 
 import { parisDateKey } from '../dates';
+import { MARKETPLACES_FILTER, openDayOrders } from '../navigation';
 import { MarginToggle, Panel, StatGrid, StatTile, SubTitle } from './CockpitPrimitives';
 
 const WEBSITE = 'WEBSITE';
@@ -29,6 +31,7 @@ type CaTodayCardProps = {
  */
 export function CaTodayCard({ finance, showMargin, onToggleMargin }: CaTodayCardProps) {
   const styles = useStyles();
+  const t = useTheme();
 
   const today = useMemo<HubDailyMargin | null>(() => {
     const last = finance.caHistory?.[finance.caHistory.length - 1];
@@ -53,6 +56,11 @@ export function CaTodayCard({ finance, showMargin, onToggleMargin }: CaTodayCard
 
   const marginPct = today ? marginPercent(today.marginHT, today.caHT) : null;
 
+  // Les commandes du jour courant ; `showMargin` suit la bascule « Marge » du cockpit.
+  const dayKey = today?.date ?? parisDateKey();
+  const openOrders = (origin?: string) => () =>
+    openDayOrders(dayKey, { origin, margin: showMargin });
+
   return (
     <Panel
       title="CA HT du jour"
@@ -71,13 +79,16 @@ export function CaTodayCard({ finance, showMargin, onToggleMargin }: CaTodayCard
       <StatGrid>
         <StatTile
           label="Site"
+          icon={<OriginLogo origin={WEBSITE} size={18} />}
           value={formatEuroWhole(site?.turnoverHT ?? 0)}
           hint={plural(site?.ordersCount ?? 0)}
+          onPress={site ? openOrders(WEBSITE) : undefined}
         />
         <StatTile
           label="Marketplaces"
           value={formatEuroWhole(marketplacesCa)}
           hint={plural(marketplacesOrders)}
+          onPress={marketplaces.length > 0 ? openOrders(MARKETPLACES_FILTER) : undefined}
         />
         {today ? (
           <>
@@ -101,13 +112,26 @@ export function CaTodayCard({ finance, showMargin, onToggleMargin }: CaTodayCard
           {channels.map((row) => {
             const margin = marginByOrigin.get(row.origin);
             return (
-              <View key={row.origin} style={styles.channelRow}>
-                <Badge label={originLabel(row.origin)} tone={originTone(row.origin)} />
-                <Text style={styles.channelOrders}>{plural(row.ordersCount)}</Text>
+              <Pressable
+                key={row.origin}
+                onPress={openOrders(row.origin)}
+                accessibilityRole="button"
+                accessibilityLabel={`${originLabel(row.origin)}, ${plural(row.ordersCount)}, ${formatEuroWhole(row.turnoverHT)} HT. Voir les commandes`}
+                style={({ pressed }) => [styles.channelRow, pressed && { backgroundColor: t.cardPressed }]}
+              >
+                <OriginLogo origin={row.origin} size={32} />
+                <View style={styles.channelInfo}>
+                  <Text style={styles.channelName} numberOfLines={1}>
+                    {originLabel(row.origin)}
+                  </Text>
+                  <Text style={styles.channelOrders}>{plural(row.ordersCount)}</Text>
+                </View>
                 <View style={styles.channelAmounts}>
                   <Text style={styles.channelCa}>{formatEuroWhole(row.turnoverHT)}</Text>
                   {showMargin && margin !== undefined ? (
-                    <Text style={styles.channelMargin}>
+                    <Text
+                      style={[styles.channelMargin, margin < 0 && { color: t.danger }]}
+                    >
                       Marge {formatEuroWhole(margin)}
                       {marginPercent(margin, row.turnoverHT) !== null
                         ? ` · ${formatPercent(marginPercent(margin, row.turnoverHT))}`
@@ -115,9 +139,19 @@ export function CaTodayCard({ finance, showMargin, onToggleMargin }: CaTodayCard
                     </Text>
                   ) : null}
                 </View>
-              </View>
+                <ChevronRight size={16} color={t.textFaint} />
+              </Pressable>
             );
           })}
+          <Pressable
+            onPress={openOrders()}
+            accessibilityRole="button"
+            accessibilityLabel="Voir toutes les commandes du jour"
+            style={({ pressed }) => [styles.allOrders, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.allOrdersText}>Toutes les commandes du jour</Text>
+            <ChevronRight size={16} color={t.accentText} />
+          </Pressable>
         </View>
       ) : (
         <Text style={styles.empty}>Aucune commande réalisée pour le moment.</Text>
@@ -130,11 +164,28 @@ const useStyles = makeStyles((t) => ({
   total: { gap: 2 },
   totalValue: { fontSize: 38, fontWeight: '800', letterSpacing: -0.5, color: t.text },
   totalHint: { fontSize: fontSize.xs, color: t.textSubtle },
-  channels: { gap: spacing.md },
-  channelRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  channelOrders: { flex: 1, fontSize: fontSize.xs, color: t.textSubtle },
+  channels: { gap: spacing.sm },
+  channelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.sm,
+    marginHorizontal: -spacing.sm,
+    borderRadius: radius.md,
+  },
+  channelInfo: { flex: 1, gap: 1 },
+  channelName: { fontSize: fontSize.sm, fontWeight: '700', color: t.text },
+  channelOrders: { fontSize: fontSize.xs, color: t.textSubtle },
   channelAmounts: { alignItems: 'flex-end', gap: 1 },
   channelCa: { fontSize: fontSize.sm, fontWeight: '700', color: t.text },
   channelMargin: { fontSize: 11, color: t.textSubtle },
+  allOrders: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+  },
+  allOrdersText: { fontSize: fontSize.sm, fontWeight: '700', color: t.accentText },
   empty: { fontSize: fontSize.sm, color: t.textSubtle },
 }));

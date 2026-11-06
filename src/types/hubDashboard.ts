@@ -176,6 +176,18 @@ export interface HubDashboardOverview {
 
 // ─── Commandes d'un jour ─────────────────────────────────────────────────────
 
+/** Appareil du client à l'ouverture du paiement (capturé par le site). */
+export type HubOrderDevice = 'mobile' | 'tablet' | 'desktop';
+
+/** Code promo d'une commande du site. */
+export interface HubDayOrderPromo {
+  /** Une remise a été appliquée (avec ou sans code connu). */
+  used: boolean;
+  code: string | null;
+  /** Remise TTC en euros ; `null` si inconnue. */
+  discountTTC: number | null;
+}
+
 /** Une commande réalisée du jour avec sa marge. */
 export interface HubDayOrderRow {
   reference: string;
@@ -191,6 +203,10 @@ export interface HubDayOrderRow {
   /** Prix d'achat, poids ou grille manquant : marge à confirmer. */
   incomplete: boolean;
   fromQuote: boolean;
+  /** Code promo ; `null` hors site (marketplaces). Optionnel : API pas à jour. */
+  promo?: HubDayOrderPromo | null;
+  /** Appareil du client ; `null` si inconnu. Optionnel : API pas à jour. */
+  device?: HubOrderDevice | null;
 }
 
 /** `hub-app/dashboard/orders` : commandes réalisées d'un jour Paris, filtrées par origine. */

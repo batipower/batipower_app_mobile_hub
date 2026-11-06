@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 import { errorMessage } from '@/features/preparation/components/ListState';
@@ -10,14 +9,10 @@ import { fontSize, hitTarget, makeStyles, radius, spacing, useTheme, withAlpha }
 
 import { formatDayLabel, formatMonthLabel, parisMonthKey, shiftMonth } from '../dates';
 import { useCaMonth } from '../hooks/useCockpitData';
+import { openDayOrders } from '../navigation';
 import { CaMonthChart } from './CaMonthChart';
 import { DeltaChip, Panel } from './CockpitPrimitives';
 import { MonthSummaryRow } from './MonthSummaryRow';
-
-/** Ouvre la liste des commandes d'un jour (pile du cockpit). */
-export function openDayOrders(date: string) {
-  router.push({ pathname: '/hub/cockpit/jour/[date]', params: { date } });
-}
 
 type CaMonthSectionProps = {
   showMargin: boolean;
@@ -111,7 +106,7 @@ export function CaMonthSection({ showMargin }: CaMonthSectionProps) {
 
           {day ? (
             <Pressable
-              onPress={() => openDayOrders(day.date)}
+              onPress={() => openDayOrders(day.date, { margin: showMargin })}
               accessibilityRole="button"
               accessibilityLabel={`Commandes du ${formatDayLabel(day.date)}`}
               style={({ pressed }) => [styles.day, pressed && styles.dayPressed]}
