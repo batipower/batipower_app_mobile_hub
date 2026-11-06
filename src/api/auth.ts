@@ -1,6 +1,6 @@
-import { ApiError, apiClient } from '@/api/client';
-import { getTokens, type StoredTokens } from '@/auth/tokenStorage';
-import type { CurrentUser } from '@/types/user';
+import { ApiError, apiClient, refreshAccessToken } from '@/api/client';
+import { getImpersonation, getTokens, type StoredTokens } from '@/auth/tokenStorage';
+import type { CurrentUser, ImpersonableUser } from '@/types/user';
 
 /**
  * Endpoints d'authentification du back NestJS (`/buyer-app/auth/*`).
@@ -90,14 +90,25 @@ export const authApi = {
     );
   },
 
-  me() {
-    return apiClient.get<CurrentUser>('/buyer-app/me');
+  /**
+   * Compte courant. Pendant une impersonation, c'est le compte usurpé (avec `impersonatedBy`) ;
+   * `asAdmin` force la lecture du compte réellement connecté (le SUPERADMIN).
+   */
+  me(options?: { asAdmin?: boolean }) {
+    return apiClient.get<CurrentUser>('/buyer-app/me', { asAdmin: options?.asAdmin });
   },
 
   /** Révoque le refresh token côté back (Bearer + refreshToken dans le corps). */
   async logout(): Promise<void> {
-    const tokens = await getTokens();
+    let tokens = await getTokens();
     if (!tokens) return;
+    // Pendant une impersonation, le jeton d'accès du SUPERADMIN n'est renouvelé qu'à la
+    // demande (les requêtes portent celui du compte usurpé) : on le rafraîchit pour que la
+    // révocation du refresh token ne soit pas refusée parce qu'il a expiré.
+    if (await getImpersonation()) {
+      const fresh = await refreshAccessToken().catch(() => null);
+      if (fresh) tokens = { ...tokens, accessToken: fresh };
+    }
     await authApi.revokeSession(tokens);
   },
 
@@ -107,6 +118,26 @@ export const authApi = {
       '/buyer-app/auth/logout',
       { refreshToken: tokens.refreshToken },
       { auth: false, headers: { Authorization: `Bearer ${tokens.accessToken}` } },
+    );
+  },
+
+  // ─── Impersonation (SUPERADMIN) ────────────────────────────────────────────
+
+  /** Comptes actifs que le SUPERADMIN peut usurper (`GET /buyer-app/impersonate/users`). */
+  listImpersonableUsers() {
+    return apiClient.get<ImpersonableUser[]>('/buyer-app/impersonate/users', { asAdmin: true });
+  },
+
+  /**
+   * Obtient un jeton d'accès (2 h, sans refresh token) au nom d'un autre compte
+   * (`POST /buyer-app/impersonate/:userId`). La session du SUPERADMIN n'est pas modifiée :
+   * c'est à l'appelant de stocker ce jeton. L'action est tracée côté back.
+   */
+  impersonate(userId: string) {
+    return apiClient.post<{ accessToken: string }>(
+      `/buyer-app/impersonate/${encodeURIComponent(userId)}`,
+      undefined,
+      { asAdmin: true },
     );
   },
 };

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 
 import type { BatipowerModule, CurrentUser } from '@/types/user';
 
-import { getModuleHref } from './registry';
+import { getLandingHref, getModuleHref } from './registry';
 
 /** Hauteur d'une ligne du sélecteur (ligne + espacement). */
 export const MODULE_ROW_HEIGHT = 68;
@@ -23,6 +23,16 @@ export function moduleSheetDetent(moduleCount: number, windowHeight: number): nu
 /** Ouvre le sélecteur de module (feuille native). `active` y reçoit la coche. */
 export function openModuleSwitcher(active: BatipowerModule | null) {
   router.push({ pathname: '/switch-module', params: active ? { active } : {} });
+}
+
+/**
+ * Ouvre l'écran d'accueil d'un compte après un changement d'identité (impersonation) : ferme
+ * les feuilles ouvertes puis remplace l'écran courant, pour ne laisser aucun écran du compte
+ * précédent dans l'historique.
+ */
+export function goToLanding(user: CurrentUser) {
+  router.dismissAll();
+  router.replace(getLandingHref(user));
 }
 
 /**

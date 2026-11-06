@@ -2,7 +2,7 @@ import { Redirect } from 'expo-router';
 import { NativeTabs } from 'expo-router/native-tabs';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { canAccessHubPreparation } from '@/auth/permissions';
+import { canAccessHubCockpit, canAccessHubPreparation } from '@/auth/permissions';
 import { accessibleModules, getLandingHref } from '@/modules/registry';
 import { useTheme } from '@/theme';
 
@@ -10,8 +10,9 @@ import { useTheme } from '@/theme';
  * Navigation du module HUB : barre d'onglets native iOS (Liquid Glass sur iOS 26+).
  *
  * Le module est réservé aux comptes qui le possèdent (le back le refuse de toute façon
- * sur `/hub-app/*`) ; l'onglet Préparation n'apparaît que pour les rôles autorisés. La
- * Recherche est ouverte à tout compte HUB : sur iOS 26, elle s'affiche en bouton séparé.
+ * sur `/hub-app/*`) ; les onglets Cockpit (SUPERADMIN) et Préparation n'apparaissent que
+ * pour les rôles autorisés. La Recherche est ouverte à tout compte HUB : sur iOS 26, elle
+ * s'affiche en bouton séparé.
  */
 export default function HubLayout() {
   const t = useTheme();
@@ -21,6 +22,10 @@ export default function HubLayout() {
 
   return (
     <NativeTabs tintColor={t.accentText}>
+      <NativeTabs.Trigger name="cockpit" hidden={!canAccessHubCockpit(user.role)}>
+        <NativeTabs.Trigger.Label>Cockpit</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="gauge" md="speed" />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="preparation" hidden={!canAccessHubPreparation(user.role)}>
         <NativeTabs.Trigger.Label>Préparation</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

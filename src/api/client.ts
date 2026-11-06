@@ -1,8 +1,18 @@
-import { clearTokens, getTokens, setAccessToken } from '@/auth/tokenStorage';
+import {
+  clearImpersonation,
+  clearTokens,
+  getImpersonation,
+  getTokens,
+  setAccessToken,
+  setImpersonation,
+} from '@/auth/tokenStorage';
 import { env } from '@/config/env';
 
 /** Délai maximal d'une requête : `fetch` n'en a aucun par défaut en React Native. */
 const REQUEST_TIMEOUT_MS = 20_000;
+
+/** Code de l'erreur levée quand le back ne délivre plus de jeton pour le compte usurpé. */
+export const IMPERSONATION_ENDED_CODE = 'IMPERSONATION_ENDED';
 
 /**
  * Erreur API. `status === 0` signale un échec réseau (hors ligne, timeout, DNS…) :
@@ -42,19 +52,35 @@ export interface RequestOptions {
    */
   auth?: boolean;
   /**
+   * `true` : la requête part avec la session du compte connecté (SUPERADMIN), même pendant
+   * une impersonation. Réservé aux appels qui n'ont de sens que pour ce compte : lister
+   * les comptes à usurper, démarrer ou arrêter une impersonation.
+   */
+  asAdmin?: boolean;
+  /**
    * Annulation par l'appelant (ex. `signal` de TanStack Query, pour abandonner une
    * recherche devenue obsolète). Lève une `AbortError`, et non une `ApiError`.
    */
   signal?: AbortSignal;
 }
 
-// ─── Session expirée ─────────────────────────────────────────────────────────
+// ─── Événements de session ───────────────────────────────────────────────────
 
 let sessionExpiredHandler: (() => void) | null = null;
 
 /** Enregistré par l'AuthProvider : appelé quand le refresh est refusé par le back. */
 export function setSessionExpiredHandler(handler: (() => void) | null) {
   sessionExpiredHandler = handler;
+}
+
+let impersonationEndedHandler: (() => void) | null = null;
+
+/**
+ * Enregistré par l'AuthProvider : appelé quand une impersonation ne peut plus être
+ * renouvelée (compte usurpé supprimé ou désactivé…). Le client a déjà effacé l'impersonation.
+ */
+export function setImpersonationEndedHandler(handler: (() => void) | null) {
+  impersonationEndedHandler = handler;
 }
 
 // ─── Requête bas niveau ──────────────────────────────────────────────────────
@@ -135,11 +161,11 @@ async function parse<T>(res: Response): Promise<T> {
   return data as T;
 }
 
-// ─── Refresh (une seule requête en vol) ──────────────────────────────────────
+// ─── Refresh du compte connecté (une seule requête en vol) ───────────────────
 
-let refreshInFlight: Promise<string | null> | null = null;
+let adminRefreshInFlight: Promise<string | null> | null = null;
 
-async function performRefresh(): Promise<string | null> {
+async function performAdminRefresh(): Promise<string | null> {
   const tokens = await getTokens();
   if (!tokens) return null;
 
@@ -164,30 +190,85 @@ async function performRefresh(): Promise<string | null> {
   }
 }
 
-/** Les requêtes concurrentes qui reçoivent un 401 partagent le même refresh. */
-function refreshAccessToken(): Promise<string | null> {
-  refreshInFlight ??= performRefresh().finally(() => {
-    refreshInFlight = null;
+/**
+ * Renouvelle le jeton d'accès du compte connecté (le SUPERADMIN pendant une impersonation).
+ * Les requêtes concurrentes qui reçoivent un 401 partagent le même refresh.
+ */
+export function refreshAccessToken(): Promise<string | null> {
+  adminRefreshInFlight ??= performAdminRefresh().finally(() => {
+    adminRefreshInFlight = null;
   });
-  return refreshInFlight;
+  return adminRefreshInFlight;
+}
+
+// ─── Renouvellement d'une impersonation (une seule requête en vol) ───────────
+
+let impersonationRenewInFlight: Promise<string | null> | null = null;
+
+/**
+ * Le jeton d'un compte usurpé dure 2 h et n'a pas de refresh token (`/impersonate/:id`
+ * ne renvoie qu'un jeton d'accès). On en redemande donc un : refresh du SUPERADMIN, puis
+ * nouvelle impersonation du même compte. Si le back la refuse (compte supprimé, droits
+ * perdus), l'impersonation est terminée : on l'efface et on lève `IMPERSONATION_ENDED`.
+ */
+async function performImpersonationRenew(): Promise<string | null> {
+  const impersonation = await getImpersonation();
+  if (!impersonation) return null;
+
+  const adminToken = await refreshAccessToken();
+  if (!adminToken) return null; // session SUPERADMIN expirée : déjà gérée par le refresh
+
+  try {
+    const res = await send(
+      `/buyer-app/impersonate/${encodeURIComponent(impersonation.targetUserId)}`,
+      { method: 'POST' },
+      adminToken,
+    );
+    const { accessToken } = await parse<{ accessToken: string }>(res);
+    await setImpersonation({ ...impersonation, accessToken });
+    return accessToken;
+  } catch (error) {
+    if (error instanceof ApiError && !error.isNetworkError && error.status < 500) {
+      await clearImpersonation();
+      impersonationEndedHandler?.();
+      throw new ApiError(401, "L'impersonation a pris fin : ce compte n'est plus utilisable.", {
+        code: IMPERSONATION_ENDED_CODE,
+      });
+    }
+    throw error;
+  }
+}
+
+function renewImpersonationAccessToken(): Promise<string | null> {
+  impersonationRenewInFlight ??= performImpersonationRenew().finally(() => {
+    impersonationRenewInFlight = null;
+  });
+  return impersonationRenewInFlight;
 }
 
 // ─── API publique du client ──────────────────────────────────────────────────
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { auth = true } = options;
+  const { auth = true, asAdmin = false } = options;
 
   if (!auth) return parse<T>(await send(path, options, null));
 
+  // Pendant une impersonation, les requêtes portent le jeton du compte usurpé.
+  const impersonation = asAdmin ? null : await getImpersonation();
   const tokens = await getTokens();
-  const usedToken = tokens?.accessToken ?? null;
+  const usedToken = impersonation?.accessToken ?? tokens?.accessToken ?? null;
   const first = await send(path, options, usedToken);
   if (first.status !== 401) return parse<T>(first);
 
   // 401 : jeton d'accès expiré. Si une requête concurrente l'a déjà remplacé,
-  // on rejoue directement avec le nouveau, sinon on rafraîchit.
-  const current = (await getTokens())?.accessToken ?? null;
-  const freshToken = current && current !== usedToken ? current : await refreshAccessToken();
+  // on rejoue directement avec le nouveau, sinon on le renouvelle.
+  const current = impersonation
+    ? ((await getImpersonation())?.accessToken ?? null)
+    : ((await getTokens())?.accessToken ?? null);
+  const freshToken =
+    current && current !== usedToken
+      ? current
+      : await (impersonation ? renewImpersonationAccessToken() : refreshAccessToken());
   if (!freshToken) return parse<T>(first); // lève l'ApiError 401 d'origine
 
   return parse<T>(await send(path, options, freshToken));

@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
-import { ChevronRight, LayoutGrid, LogOut } from 'lucide-react-native';
+import { toast } from 'sonner-native';
+import { ChevronRight, LayoutGrid, LogOut, UserCog } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
+import { canImpersonate } from '@/auth/permissions';
 import { ModuleBadge } from '@/components/modules/ModuleBadge';
 import { ModuleSwitcherButton } from '@/components/modules/ModuleSwitcherButton';
 import { Button, Card } from '@/components/ui';
+import { openImpersonation } from '@/features/impersonation/navigation';
 import { AppearanceSection } from '@/features/profile/components/AppearanceSection';
 import { accessibleModules } from '@/modules/registry';
 import { roleLabel } from '@/modules/roles';
@@ -52,9 +56,10 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 export default function ProfileScreen() {
   const styles = useStyles();
   const t = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, isImpersonating, stopImpersonation } = useAuth();
   const insets = useSafeAreaInsets();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [stopping, setStopping] = useState(false);
   if (!user) return null;
 
   const modules = accessibleModules(user);
@@ -62,6 +67,17 @@ export default function ProfileScreen() {
   const warehouse = user.distributorWarehouse?.name ?? user.warehouse;
   const version = Constants.expoConfig?.version ?? '—';
   const appName = Constants.expoConfig?.name ?? 'Batipower Pro';
+
+  const stopImpersonating = () => {
+    setStopping(true);
+    stopImpersonation()
+      .catch((error: unknown) => {
+        toast.error(
+          error instanceof ApiError ? error.message : 'Impossible de revenir à votre compte.',
+        );
+      })
+      .finally(() => setStopping(false));
+  };
 
   const confirmLogout = () => {
     Alert.alert('Se déconnecter', 'Voulez-vous vraiment vous déconnecter ?', [
@@ -133,6 +149,37 @@ export default function ProfileScreen() {
         </Pressable>
       ) : null}
 
+      {isImpersonating ? (
+        <Card style={styles.impersonationCard} contentStyle={styles.impersonationContent}>
+          <View style={styles.impersonationHeader}>
+            <UserCog size={18} color={t.warning} />
+            <Text style={styles.impersonationTitle}>Connecté en tant que {user.name}</Text>
+          </View>
+          <Text style={styles.impersonationText}>
+            {`Vous voyez l'application comme ce compte (${roleLabel(user.role)}). Les données et les onglets sont ceux de son profil.`}
+          </Text>
+          <Button label="Revenir à mon compte" loading={stopping} onPress={stopImpersonating} />
+          <Button label="Changer de compte" variant="ghost" onPress={openImpersonation} />
+        </Card>
+      ) : canImpersonate(user.role) ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle} accessibilityRole="header">
+            Réglages super admin
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Se connecter en tant que"
+            accessibilityHint="Choisir un compte pour tester l'application avec son profil"
+            onPress={openImpersonation}
+            style={({ pressed }) => [styles.moduleRow, pressed && styles.moduleRowPressed]}
+          >
+            <UserCog size={18} color={t.accentText} />
+            <Text style={styles.moduleRowLabel}>Se connecter en tant que…</Text>
+            <ChevronRight size={18} color={t.textFaint} />
+          </Pressable>
+        </View>
+      ) : null}
+
       <Button
         label="Se déconnecter"
         variant="ghost"
@@ -167,6 +214,13 @@ const useStyles = makeStyles((t) => ({
   },
   moduleRowPressed: { backgroundColor: t.cardPressed },
   moduleRowLabel: { flex: 1, fontSize: fontSize.sm, fontWeight: '600', color: t.text },
+  section: { gap: spacing.sm },
+  sectionTitle: { ...typography.label, color: t.textSubtle, paddingHorizontal: spacing.xs },
+  impersonationCard: { borderColor: withAlpha(t.warning, 0.4) },
+  impersonationContent: { padding: spacing.lg, gap: spacing.md },
+  impersonationHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  impersonationTitle: { flex: 1, fontSize: fontSize.base, fontWeight: '700', color: t.text },
+  impersonationText: { fontSize: fontSize.sm, lineHeight: 20, color: t.textMuted },
   identity: { alignItems: 'center', gap: spacing.xs },
   avatar: {
     width: 80,

@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-import { canAccessHubPreparation } from '@/auth/permissions';
+import { canAccessHubCockpit, canAccessHubPreparation } from '@/auth/permissions';
 import type { AppUserRole, BatipowerModule, CurrentUser } from '@/types/user';
 
 /**
@@ -65,8 +65,12 @@ export const MODULES: Record<BatipowerModule, ModuleMeta> = {
     accent: '#F97316',
     fg: '#FFFFFF',
     mobileEnabled: true,
-    // La préparation est réservée aux opérations ; les autres comptes HUB arrivent sur la recherche.
-    landing: (role) => (canAccessHubPreparation(role) ? '/hub/preparation' : '/hub/recherche'),
+    // Le SUPERADMIN ouvre le cockpit, la préparation est réservée aux opérations ; les autres
+    // comptes HUB arrivent sur la recherche.
+    landing: (role) => {
+      if (canAccessHubCockpit(role)) return '/hub/cockpit';
+      return canAccessHubPreparation(role) ? '/hub/preparation' : '/hub/recherche';
+    },
   },
   MARQUE: {
     id: 'MARQUE',

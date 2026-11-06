@@ -1,7 +1,8 @@
-import { useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { ImpersonationBanner } from '@/components/auth/ImpersonationBanner';
 import { accessibleModules } from '@/modules/registry';
 import { moduleSheetDetent } from '@/modules/switchModule';
 import { useTheme } from '@/theme';
@@ -12,7 +13,9 @@ import { useTheme } from '@/theme';
  * utilisateur, rien n'est rendu (pas de fuite d'écran pendant une déconnexion).
  *
  * Un module = un écran de la pile (`hub`, `modules/[id]`…). Le sélecteur de module
- * (`switch-module`) se présente par-dessus, en feuille native.
+ * (`switch-module`) et le choix du compte à usurper (`impersonate`) se présentent par-dessus,
+ * en feuilles natives. Pendant une impersonation, une pastille flottante reste affichée au-dessus
+ * de la pile pour en sortir depuis n'importe quel écran.
  */
 export default function AppLayout() {
   const t = useTheme();
@@ -23,22 +26,35 @@ export default function AppLayout() {
   const detent = moduleSheetDetent(accessibleModules(user).length, height);
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: t.bg },
-      }}
-    >
-      <Stack.Screen
-        name="switch-module"
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [detent],
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 24,
-          contentStyle: { backgroundColor: t.bgElevated },
+    <View style={{ flex: 1, backgroundColor: t.bg }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: t.bg },
         }}
-      />
-    </Stack>
+      >
+        <Stack.Screen
+          name="switch-module"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [detent],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: t.bgElevated },
+          }}
+        />
+        <Stack.Screen
+          name="impersonate"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.85, 1],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: t.bgElevated },
+          }}
+        />
+      </Stack>
+      <ImpersonationBanner />
+    </View>
   );
 }

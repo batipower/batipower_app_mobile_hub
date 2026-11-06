@@ -12,8 +12,21 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner-native';
 
 import { authApi } from '@/api/auth';
-import { ApiError, setSessionExpiredHandler } from '@/api/client';
-import { clearTokens, getTokens, setTokens, type StoredTokens } from '@/auth/tokenStorage';
+import {
+  ApiError,
+  IMPERSONATION_ENDED_CODE,
+  setImpersonationEndedHandler,
+  setSessionExpiredHandler,
+} from '@/api/client';
+import {
+  clearImpersonation,
+  clearTokens,
+  getTokens,
+  setImpersonation,
+  setTokens,
+  type StoredTokens,
+} from '@/auth/tokenStorage';
+import { goToLanding } from '@/modules/switchModule';
 import type { CurrentUser } from '@/types/user';
 
 /**
@@ -39,6 +52,15 @@ interface AuthContextValue {
   cancelTwoFactor: () => void;
   logout: () => Promise<void>;
   retryBootstrap: () => Promise<void>;
+  /**
+   * Une impersonation est en cours : `user` est alors le compte usurpé, et non celui du
+   * SUPERADMIN connecté (qui reste en session pour renouveler l'impersonation et en sortir).
+   */
+  isImpersonating: boolean;
+  /** Se connecte « en tant que » un autre compte, puis ouvre son écran d'accueil. */
+  startImpersonation: (userId: string) => Promise<CurrentUser>;
+  /** Revient au compte du SUPERADMIN, puis ouvre son écran d'accueil. */
+  stopImpersonation: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -55,6 +77,12 @@ async function resolveStoredSession(): Promise<SessionSnapshot> {
     if (!(await getTokens())) return { status: 'signedOut', user: null };
     return { status: 'signedIn', user: await authApi.me() };
   } catch (error) {
+    // L'impersonation enregistrée n'est plus renouvelable : le client l'a effacée, la session
+    // du SUPERADMIN est intacte. On relit donc son compte (l'impersonation n'existe plus,
+    // la boucle est impossible).
+    if (error instanceof ApiError && error.code === IMPERSONATION_ENDED_CODE) {
+      return resolveStoredSession();
+    }
     // Serveur injoignable ou en panne : on garde la session et on propose de réessayer.
     if (error instanceof ApiError && (error.isNetworkError || error.status >= 500)) {
       return { status: 'unreachable', user: null };
@@ -128,6 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await authApi.revokeSession(tokens).catch(() => undefined);
         return 'password_change_required';
       }
+      // Une impersonation restée en mémoire d'une session précédente ne doit jamais survivre
+      // à une nouvelle connexion.
+      await clearImpersonation();
       await setTokens(tokens);
       setTempToken(null);
       setUser(signedInUser);
@@ -182,9 +213,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Révocation côté serveur au mieux : hors ligne, on déconnecte quand même localement.
     }
+    // `clearTokens` efface aussi l'impersonation éventuelle.
     await clearTokens();
     resetToSignedOut();
   }, [resetToSignedOut]);
+
+  // ─── Impersonation (SUPERADMIN) ────────────────────────────────────────────
+
+  /**
+   * Bascule l'app sur un autre compte (usurpé, ou le SUPERADMIN qui reprend la main) : les
+   * données du compte précédent ne doivent pas survivre au changement, on remet donc tout
+   * le cache à zéro (les requêtes actives sont relancées avec le nouveau jeton) avant
+   * d'ouvrir l'écran d'accueil du nouveau compte.
+   */
+  const switchIdentity = useCallback(
+    (next: CurrentUser) => {
+      setUser(next);
+      void queryClient.resetQueries();
+      goToLanding(next);
+    },
+    [queryClient],
+  );
+
+  const startImpersonation = useCallback<AuthContextValue['startImpersonation']>(
+    async (userId) => {
+      // Appels faits avec la session du SUPERADMIN (`asAdmin`), même si une impersonation
+      // est déjà active : on peut passer directement d'un compte à un autre.
+      const { accessToken } = await authApi.impersonate(userId);
+      await setImpersonation({ accessToken, targetUserId: userId });
+      let target: CurrentUser;
+      try {
+        // `/me` avec le jeton usurpé : le compte tel que l'app doit l'afficher, avec `impersonatedBy`.
+        target = await authApi.me();
+      } catch (error) {
+        await clearImpersonation();
+        throw error;
+      }
+      switchIdentity(target);
+      return target;
+    },
+    [switchIdentity],
+  );
+
+  const stopImpersonation = useCallback<AuthContextValue['stopImpersonation']>(async () => {
+    // Le compte réel est lu avant d'effacer l'impersonation : si la lecture échoue (hors
+    // ligne), l'état reste cohérent et l'utilisateur peut réessayer.
+    const admin = await authApi.me({ asAdmin: true });
+    await clearImpersonation();
+    switchIdentity(admin);
+  }, [switchIdentity]);
+
+  // Impersonation devenue impossible à renouveler (compte usurpé supprimé ou désactivé) :
+  // le client l'a déjà effacée, on retombe sur le compte du SUPERADMIN. Au lancement,
+  // `resolveStoredSession` s'en charge lui-même.
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    setImpersonationEndedHandler(() => {
+      if (statusRef.current !== 'signedIn') return;
+      void resolveStoredSession().then((session) => {
+        applySession(session);
+        if (session.status !== 'signedIn') return;
+        void queryClient.resetQueries();
+        goToLanding(session.user);
+        toast.error("L'impersonation a pris fin : ce compte n'est plus utilisable.");
+      });
+    });
+    return () => setImpersonationEndedHandler(null);
+  }, [applySession, queryClient]);
+
+  const isImpersonating = !!user?.impersonatedBy;
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -197,6 +298,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelTwoFactor,
       logout,
       retryBootstrap,
+      isImpersonating,
+      startImpersonation,
+      stopImpersonation,
     }),
     [
       status,
@@ -208,6 +312,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelTwoFactor,
       logout,
       retryBootstrap,
+      isImpersonating,
+      startImpersonation,
+      stopImpersonation,
     ],
   );
 

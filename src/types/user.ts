@@ -29,6 +29,26 @@ export interface PartnerRef {
   slug: string;
 }
 
+/**
+ * Compte listé par `GET /buyer-app/impersonate/users` (même forme que l'admin des
+ * utilisateurs du web) : de quoi choisir et reconnaître le compte à usurper.
+ */
+export interface ImpersonableUser {
+  id: string;
+  email: string;
+  name: string;
+  code: string | null;
+  role: AppUserRole;
+  modules: BatipowerModule[];
+  defaultModule: BatipowerModule;
+  warehouse: string | null;
+  isActive: boolean;
+  isOnVacation: boolean;
+  lastLoginAt: string | null;
+  subsidiary?: PartnerRef | null;
+  partnerDistributor?: PartnerRef | null;
+}
+
 export interface CurrentUser {
   id: string;
   /** `scraper` : session à périmètre réduit (clé API de l'extension), jamais émise au mobile. */
