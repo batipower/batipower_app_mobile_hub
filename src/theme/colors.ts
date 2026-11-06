@@ -1,0 +1,47 @@
+/**
+ * Palette Batipower, reprise de `front_externe_batipower/app/globals.css`
+ * (tokens `--bati-*`, canaux RGB convertis en hexadécimal).
+ */
+export const colors = {
+  green: '#94C83E',
+  greenDark: '#7AB32E',
+  greenLight: '#A8D45A',
+  /** Fond principal des écrans sombres (`--bati-black`). */
+  black: '#131921',
+  gray900: '#1A1F29',
+  gray800: '#232F3E',
+  gray700: '#37475A',
+  gray600: '#485769',
+  gray400: '#8C9196',
+  gray300: '#C6CACA',
+  white: '#FFFFFF',
+  /** Erreurs de formulaire (équivalent `text-red-400` du web). */
+  danger: '#F87171',
+  dangerBg: 'rgba(248,113,113,0.10)',
+} as const;
+
+/**
+ * Convertit une couleur hexadécimale `#RRGGBB` en `rgba()`.
+ * Équivalent des opacités Tailwind du web (`white/[0.04]`, `bati-green/40`…).
+ */
+export function withAlpha(hex: string, alpha: number): string {
+  const match = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (!match?.[1]) throw new Error(`Couleur hexadécimale invalide : ${hex}`);
+  const value = parseInt(match[1], 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+/** Textes et traits blancs translucides utilisés sur les fonds sombres. */
+export const onDark = {
+  text: colors.white,
+  textMuted: withAlpha(colors.white, 0.6),
+  textSubtle: withAlpha(colors.white, 0.4),
+  textFaint: withAlpha(colors.white, 0.25),
+  surface: withAlpha(colors.white, 0.04),
+  surfaceStrong: withAlpha(colors.white, 0.08),
+  border: withAlpha(colors.white, 0.08),
+  borderStrong: withAlpha(colors.white, 0.12),
+} as const;
