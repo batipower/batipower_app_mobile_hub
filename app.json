@@ -30,6 +30,12 @@
           "imageWidth": 160
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "13b2355f-fdc0-45f6-942e-bba66bced9b3"
+      }
+    },
+    "owner": "bati-user"
   }
 }
