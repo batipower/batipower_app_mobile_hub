@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 
-import { colors, fontSize, hitTarget, onDark, radius, spacing } from '@/theme';
+import { fontSize, hitTarget, makeStyles, radius, spacing, useTheme } from '@/theme';
 
 type SearchBarProps = {
   value: string;
@@ -11,20 +11,22 @@ type SearchBarProps = {
 
 /** Champ de recherche compact, avec bouton d'effacement. */
 export function SearchBar({ value, onChangeText, placeholder = 'Rechercher' }: SearchBarProps) {
+  const styles = useStyles();
+  const t = useTheme();
   return (
     <View style={styles.field}>
-      <Search size={16} color={onDark.textSubtle} />
+      <Search size={16} color={t.textSubtle} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={onDark.textSubtle}
+        placeholderTextColor={t.textSubtle}
         style={styles.input}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
         clearButtonMode="never"
-        selectionColor={colors.green}
+        selectionColor={t.accentText}
         accessibilityLabel={placeholder}
       />
       {value ? (
@@ -34,14 +36,14 @@ export function SearchBar({ value, onChangeText, placeholder = 'Rechercher' }: S
           accessibilityRole="button"
           accessibilityLabel="Effacer la recherche"
         >
-          <X size={16} color={onDark.textMuted} />
+          <X size={16} color={t.textMuted} />
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   field: {
     minHeight: hitTarget,
     flexDirection: 'row',
@@ -50,8 +52,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: onDark.borderStrong,
-    backgroundColor: onDark.surface,
+    borderColor: t.borderStrong,
+    backgroundColor: t.card,
   },
-  input: { flex: 1, paddingVertical: spacing.sm, fontSize: fontSize.sm, color: colors.white },
-});
+  input: { flex: 1, paddingVertical: spacing.sm, fontSize: fontSize.sm, color: t.text },
+}));

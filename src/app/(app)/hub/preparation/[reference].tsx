@@ -28,7 +28,7 @@ import {
   getTotalWeight,
   recipientName,
 } from '@/features/preparation/orderHelpers';
-import { colors, fontSize, monoFontFamily, onDark, spacing, typography } from '@/theme';
+import { fontSize, makeStyles, monoFontFamily, spacing, typography, useTheme } from '@/theme';
 import type { PreparationOrder } from '@/types/preparation';
 
 /** Détail d'une commande à préparer, lu dans la liste déjà chargée (pas d'appel dédié). */
@@ -39,6 +39,8 @@ export default function PreparationOrderScreen() {
 }
 
 function OrderDetail() {
+  const styles = useStyles();
+  const t = useTheme();
   const { reference } = useLocalSearchParams<{ reference: string }>();
   const { order, loading, error, refetch } = usePreparationOrder(reference);
   const { refreshing, onRefresh } = usePullToRefresh(refetch);
@@ -48,7 +50,7 @@ function OrderDetail() {
       <Stack.Screen options={{ title: reference ?? 'Commande' }} />
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.green} />
+          <ActivityIndicator color={t.accentText} />
         </View>
       ) : (
         <ScrollView
@@ -60,7 +62,7 @@ function OrderDetail() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => void onRefresh()}
-              tintColor={colors.green}
+              tintColor={t.accentText}
             />
           }
         >
@@ -75,7 +77,7 @@ function OrderDetail() {
             <OrderContent order={order} />
           ) : error ? null : (
             <EmptyState
-              icon={<PackageX size={24} color={onDark.textMuted} />}
+              icon={<PackageX size={24} color={t.textMuted} />}
               title="Commande introuvable"
               text="Cette commande est introuvable ou a déjà été traitée."
             />
@@ -87,6 +89,7 @@ function OrderDetail() {
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -96,6 +99,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -105,6 +109,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function OrderContent({ order }: { order: PreparationOrder }) {
+  const styles = useStyles();
   const rows = order.rows ?? [];
   const lines = addressLines(order.deliveryAddress);
   const created = formatDateTime(order.createdAt);
@@ -171,51 +176,51 @@ function OrderContent({ order }: { order: PreparationOrder }) {
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: colors.black },
+const useStyles = makeStyles((t) => ({
+  scroll: { flex: 1, backgroundColor: t.bg },
   content: { padding: spacing.xl, gap: spacing['2xl'], paddingBottom: spacing['4xl'] },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   section: { gap: spacing.sm },
-  sectionTitle: { ...typography.label, color: onDark.textSubtle, paddingHorizontal: spacing.xs },
+  sectionTitle: { ...typography.label, color: t.textSubtle, paddingHorizontal: spacing.xs },
   cardContent: { padding: spacing.lg, gap: spacing.md },
   reference: {
     fontFamily: monoFontFamily,
     fontSize: fontSize.xl,
     fontWeight: '700',
-    color: colors.white,
+    color: t.text,
   },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.lg },
-  infoLabel: { fontSize: fontSize.sm, color: onDark.textMuted },
+  infoLabel: { fontSize: fontSize.sm, color: t.textMuted },
   infoValue: {
     flexShrink: 1,
     fontSize: fontSize.sm,
     fontWeight: '600',
-    color: colors.white,
+    color: t.text,
     textAlign: 'right',
   },
   article: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   articleBorder: {
     paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth * 2,
-    borderTopColor: onDark.border,
+    borderTopColor: t.border,
   },
-  quantity: { minWidth: 36, fontSize: fontSize.lg, fontWeight: '800', color: colors.white },
+  quantity: { minWidth: 36, fontSize: fontSize.lg, fontWeight: '800', color: t.text },
   articleBody: { flex: 1, gap: 2 },
   articleRef: {
     fontFamily: monoFontFamily,
     fontSize: fontSize.sm,
     fontWeight: '700',
-    color: colors.green,
+    color: t.accentText,
   },
-  articleName: { fontSize: fontSize.xs, lineHeight: 17, color: onDark.textMuted },
-  articleWeight: { fontSize: fontSize.xs, color: onDark.textSubtle },
+  articleName: { fontSize: fontSize.xs, lineHeight: 17, color: t.textMuted },
+  articleWeight: { fontSize: fontSize.xs, color: t.textSubtle },
   totals: {
     gap: spacing.sm,
     paddingTop: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth * 2,
-    borderTopColor: onDark.border,
+    borderTopColor: t.border,
   },
-  recipient: { fontSize: fontSize.base, fontWeight: '700', color: colors.white },
-  addressLine: { fontSize: fontSize.sm, lineHeight: 20, color: onDark.textMuted },
-  muted: { fontSize: fontSize.sm, color: onDark.textSubtle },
-});
+  recipient: { fontSize: fontSize.base, fontWeight: '700', color: t.text },
+  addressLine: { fontSize: fontSize.sm, lineHeight: 20, color: t.textMuted },
+  muted: { fontSize: fontSize.sm, color: t.textSubtle },
+}));

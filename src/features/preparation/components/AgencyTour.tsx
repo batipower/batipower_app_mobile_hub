@@ -2,7 +2,15 @@ import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MapPin } from 'lucide-react-native';
 
-import { colors, fontSize, monoFontFamily, onDark, radius, spacing, withAlpha } from '@/theme';
+import {
+  fontSize,
+  makeStyles,
+  monoFontFamily,
+  radius,
+  spacing,
+  useTheme,
+  withAlpha,
+} from '@/theme';
 import type { DriverTourAgency, DriverTourItem } from '@/types/preparation';
 
 const plural = (count: number, singular: string, pluralForm = `${singular}s`) =>
@@ -14,10 +22,12 @@ type AgencySectionHeaderProps = {
 
 /** En-tête d'une agence : nom et totaux (commandes, références, pièces). */
 export function AgencySectionHeader({ agency }: AgencySectionHeaderProps) {
+  const styles = useStyles();
+  const t = useTheme();
   return (
     <View style={styles.header} accessibilityRole="header">
       <View style={styles.headerIcon}>
-        <MapPin size={16} color={colors.warning} />
+        <MapPin size={16} color={t.warning} />
       </View>
       <View style={styles.headerBody}>
         <Text style={styles.agencyName} numberOfLines={1}>
@@ -39,6 +49,7 @@ type AgencyItemRowProps = {
 
 /** Ligne d'article à récupérer : quantité, référence produit, désignation. */
 function AgencyItemRowBase({ item, last }: AgencyItemRowProps) {
+  const styles = useStyles();
   return (
     <View style={[styles.row, last && styles.rowLast]}>
       <Text style={styles.quantity}>{item.quantity}×</Text>
@@ -58,7 +69,7 @@ function AgencyItemRowBase({ item, last }: AgencyItemRowProps) {
 
 export const AgencyItemRow = memo(AgencyItemRowBase);
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -69,8 +80,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderBottomWidth: 0,
-    borderColor: onDark.border,
-    backgroundColor: onDark.surfaceStrong,
+    borderColor: t.border,
+    backgroundColor: t.surfaceStrong,
   },
   headerIcon: {
     width: 32,
@@ -78,11 +89,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: withAlpha(colors.warning, 0.14),
+    backgroundColor: withAlpha(t.warning, 0.14),
   },
   headerBody: { flex: 1, gap: 2 },
-  agencyName: { fontSize: fontSize.base, fontWeight: '700', color: colors.white },
-  agencyTotals: { fontSize: fontSize.xs, fontWeight: '600', color: colors.warning },
+  agencyName: { fontSize: fontSize.base, fontWeight: '700', color: t.text },
+  agencyTotals: { fontSize: fontSize.xs, fontWeight: '600', color: t.warning },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -92,8 +103,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: StyleSheet.hairlineWidth * 2,
     borderRightWidth: StyleSheet.hairlineWidth * 2,
     borderTopWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: onDark.border,
-    backgroundColor: onDark.surface,
+    borderColor: t.border,
+    backgroundColor: t.card,
   },
   rowLast: {
     borderBottomWidth: StyleSheet.hairlineWidth * 2,
@@ -104,7 +115,7 @@ const styles = StyleSheet.create({
     minWidth: 40,
     fontSize: fontSize.lg,
     fontWeight: '800',
-    color: colors.white,
+    color: t.text,
     fontVariant: ['tabular-nums'],
   },
   rowBody: { flex: 1, gap: 2 },
@@ -112,7 +123,7 @@ const styles = StyleSheet.create({
     fontFamily: monoFontFamily,
     fontSize: fontSize.sm,
     fontWeight: '700',
-    color: colors.green,
+    color: t.accentText,
   },
-  productName: { fontSize: fontSize.xs, lineHeight: 17, color: onDark.textMuted },
-});
+  productName: { fontSize: fontSize.xs, lineHeight: 17, color: t.textMuted },
+}));

@@ -1,19 +1,20 @@
 import { Stack } from 'expo-router';
 
-import { colors } from '@/theme';
+import { useTheme } from '@/theme';
 
 /**
  * Pile de l'onglet Préparation : la liste (sans en-tête natif, elle a le sien) et le
  * détail d'une commande, poussé par-dessus avec le bouton retour natif.
  */
 export default function PreparationLayout() {
+  const t = useTheme();
   return (
     <Stack
       screenOptions={{
-        contentStyle: { backgroundColor: colors.black },
-        headerStyle: { backgroundColor: colors.black },
-        headerTintColor: colors.green,
-        headerTitleStyle: { color: colors.white },
+        contentStyle: { backgroundColor: t.bg },
+        headerStyle: { backgroundColor: t.bg },
+        headerTintColor: t.accentText,
+        headerTitleStyle: { color: t.text },
         headerShadowVisible: false,
         headerBackTitle: 'Retour',
       }}

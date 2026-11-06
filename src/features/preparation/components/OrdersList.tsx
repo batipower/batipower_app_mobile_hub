@@ -1,7 +1,7 @@
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, View } from 'react-native';
 import { PackageOpen, Search } from 'lucide-react-native';
 
-import { colors, onDark, spacing } from '@/theme';
+import { makeStyles, spacing, useTheme } from '@/theme';
 import type { PreparationOrder } from '@/types/preparation';
 
 import { EmptyState, ErrorBanner, ListSkeleton } from './ListState';
@@ -29,6 +29,8 @@ export function OrdersList({
   refreshing,
   onRefresh,
 }: OrdersListProps) {
+  const styles = useStyles();
+  const t = useTheme();
   return (
     <FlatList
       data={orders}
@@ -43,7 +45,7 @@ export function OrdersList({
       initialNumToRender={8}
       windowSize={9}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accentText} />
       }
       ListHeaderComponent={
         error ? (
@@ -61,13 +63,13 @@ export function OrdersList({
           <ListSkeleton />
         ) : error ? undefined : filtered ? (
           <EmptyState
-            icon={<Search size={24} color={onDark.textMuted} />}
+            icon={<Search size={24} color={t.textMuted} />}
             title="Aucune commande"
             text="Aucune commande ne correspond à ce filtre ou à cette recherche."
           />
         ) : (
           <EmptyState
-            icon={<PackageOpen size={24} color={onDark.textMuted} />}
+            icon={<PackageOpen size={24} color={t.textMuted} />}
             title="Tout est préparé"
             text="Il n'y a aucune commande à préparer pour le moment."
           />
@@ -78,11 +80,12 @@ export function OrdersList({
 }
 
 function Separator() {
+  const styles = useStyles();
   return <View style={styles.separator} />;
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   content: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing['3xl'] },
   separator: { height: spacing.md },
   banner: { marginBottom: spacing.md },
-});
+}));

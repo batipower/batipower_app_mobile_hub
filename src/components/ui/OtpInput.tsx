@@ -1,7 +1,7 @@
 import { useRef, useState, type ComponentRef } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, onDark, radius, spacing, withAlpha } from '@/theme';
+import { makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 
 type OtpInputProps = {
   value: string;
@@ -28,6 +28,8 @@ export function OtpInput({
   hasError = false,
   autoFocus = false,
 }: OtpInputProps) {
+  const styles = useStyles();
+  const t = useTheme();
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const [focused, setFocused] = useState(false);
 
@@ -66,7 +68,7 @@ export function OtpInput({
         autoFocus={autoFocus}
         editable={editable}
         caretHidden
-        keyboardAppearance="dark"
+        keyboardAppearance={t.scheme}
         accessibilityLabel={`Code de vérification à ${length} chiffres`}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
@@ -75,7 +77,7 @@ export function OtpInput({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   container: { position: 'relative' },
   row: { flexDirection: 'row', justifyContent: 'center', gap: 10, pointerEvents: 'none' },
   box: {
@@ -86,20 +88,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: onDark.borderStrong,
-    backgroundColor: withAlpha(colors.white, 0.05),
+    borderColor: t.borderStrong,
+    backgroundColor: t.surface,
   },
-  boxFilled: { borderColor: withAlpha(colors.green, 0.3) },
+  boxFilled: { borderColor: withAlpha(t.accent, 0.3) },
   boxActive: {
-    borderColor: withAlpha(colors.green, 0.8),
-    backgroundColor: withAlpha(colors.green, 0.06),
+    borderColor: withAlpha(t.accent, 0.8),
+    backgroundColor: withAlpha(t.accent, 0.06),
   },
-  boxError: { borderColor: withAlpha(colors.danger, 0.7) },
-  digit: { fontSize: 22, fontWeight: '700', color: colors.white },
+  boxError: { borderColor: withAlpha(t.danger, 0.7) },
+  digit: { fontSize: 22, fontWeight: '700', color: t.text },
   // Couvre toute la rangée : un toucher n'importe où donne le focus au champ réel.
   hiddenInput: {
     ...StyleSheet.absoluteFill,
     opacity: 0,
     paddingHorizontal: spacing.xs,
   },
-});
+}));

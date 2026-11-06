@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { colors, fontSize, hitTarget, onDark, radius, spacing, withAlpha } from '@/theme';
+import { fontSize, hitTarget, makeStyles, radius, spacing, withAlpha } from '@/theme';
 
 export interface Segment<T extends string> {
   key: T;
@@ -22,6 +22,7 @@ export function SegmentedControl<T extends string>({
   value,
   onChange,
 }: SegmentedControlProps<T>) {
+  const styles = useStyles();
   return (
     <View style={styles.track} accessibilityRole="tablist">
       {segments.map((segment) => {
@@ -55,14 +56,14 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   track: {
     flexDirection: 'row',
     padding: 3,
     borderRadius: radius.md,
-    backgroundColor: onDark.surface,
+    backgroundColor: t.surface,
     borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: onDark.border,
+    borderColor: t.border,
   },
   segment: {
     flex: 1,
@@ -73,18 +74,18 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderRadius: radius.md - 3,
   },
-  segmentActive: { backgroundColor: onDark.surfaceStrong },
-  label: { fontSize: fontSize.sm, fontWeight: '600', color: onDark.textSubtle },
-  labelActive: { color: colors.white },
+  segmentActive: { backgroundColor: t.raised },
+  label: { fontSize: fontSize.sm, fontWeight: '600', color: t.textSubtle },
+  labelActive: { color: t.text },
   count: {
     minWidth: 22,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: radius.full,
     alignItems: 'center',
-    backgroundColor: onDark.surfaceStrong,
+    backgroundColor: t.surfaceStrong,
   },
-  countActive: { backgroundColor: withAlpha(colors.green, 0.2) },
-  countText: { fontSize: 11, fontWeight: '700', color: onDark.textMuted },
-  countTextActive: { color: colors.green },
-});
+  countActive: { backgroundColor: withAlpha(t.accent, 0.2) },
+  countText: { fontSize: 11, fontWeight: '700', color: t.textMuted },
+  countTextActive: { color: t.accentText },
+}));

@@ -1,8 +1,8 @@
 import { useState, type ComponentRef, type Ref } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Eye, EyeOff, type LucideIcon } from 'lucide-react-native';
 
-import { colors, hitTarget, onDark, radius, spacing, typography, withAlpha } from '@/theme';
+import { hitTarget, makeStyles, radius, spacing, typography, useTheme, withAlpha } from '@/theme';
 
 /** Instance d'un `TextInput` (pour `ref.current?.focus()`). */
 export type TextInputHandle = ComponentRef<typeof TextInput>;
@@ -28,6 +28,8 @@ export function TextField({
   onBlur,
   ...inputProps
 }: TextFieldProps) {
+  const styles = useStyles();
+  const t = useTheme();
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
 
@@ -43,15 +45,13 @@ export function TextField({
           error ? styles.fieldError : undefined,
         ]}
       >
-        {Icon ? (
-          <Icon size={18} color={onDark.textFaint} style={styles.icon} strokeWidth={2} />
-        ) : null}
+        {Icon ? <Icon size={18} color={t.textFaint} style={styles.icon} strokeWidth={2} /> : null}
         <TextInput
           ref={ref}
           style={[styles.input, Icon ? styles.inputWithIcon : undefined]}
-          placeholderTextColor={withAlpha(colors.white, 0.25)}
-          selectionColor={colors.green}
-          keyboardAppearance="dark"
+          placeholderTextColor={t.textFaint}
+          selectionColor={t.accentText}
+          keyboardAppearance={t.scheme}
           accessibilityLabel={label}
           secureTextEntry={hidden}
           onFocus={(e) => {
@@ -73,9 +73,9 @@ export function TextField({
             style={styles.toggle}
           >
             {revealed ? (
-              <EyeOff size={18} color={onDark.textSubtle} />
+              <EyeOff size={18} color={t.textSubtle} />
             ) : (
-              <Eye size={18} color={onDark.textSubtle} />
+              <Eye size={18} color={t.textSubtle} />
             )}
           </Pressable>
         ) : null}
@@ -89,29 +89,29 @@ export function TextField({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   wrapper: { gap: spacing.sm },
-  label: { ...typography.label, color: onDark.textMuted },
+  label: { ...typography.label, color: t.textMuted },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: onDark.border,
-    backgroundColor: onDark.surface,
+    borderColor: t.border,
+    backgroundColor: t.surface,
   },
   fieldFocused: {
-    borderColor: withAlpha(colors.green, 0.55),
-    backgroundColor: withAlpha(colors.green, 0.04),
+    borderColor: withAlpha(t.accent, 0.55),
+    backgroundColor: withAlpha(t.accent, 0.04),
   },
-  fieldError: { borderColor: withAlpha(colors.danger, 0.7) },
+  fieldError: { borderColor: withAlpha(t.danger, 0.7) },
   icon: { position: 'absolute', left: spacing.md + 2 },
   input: {
     flex: 1,
     minHeight: 48,
     paddingHorizontal: spacing.md + 2,
-    color: colors.white,
+    color: t.text,
     fontSize: 16,
   },
   inputWithIcon: { paddingLeft: 42 },
@@ -121,5 +121,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  error: { fontSize: 12, color: colors.danger },
-});
+  error: { fontSize: 12, color: t.danger },
+}));

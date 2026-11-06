@@ -41,6 +41,11 @@ export interface RequestOptions {
    * `false` : routes publiques (login, 2FA, mot de passe oublié).
    */
   auth?: boolean;
+  /**
+   * Annulation par l'appelant (ex. `signal` de TanStack Query, pour abandonner une
+   * recherche devenue obsolète). Lève une `AbortError`, et non une `ApiError`.
+   */
+  signal?: AbortSignal;
 }
 
 // ─── Session expirée ─────────────────────────────────────────────────────────
@@ -83,9 +88,13 @@ async function send(
   options: RequestOptions,
   accessToken: string | null,
 ): Promise<Response> {
-  const { method = 'GET', body, query, headers } = options;
+  const { method = 'GET', body, query, headers, signal } = options;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  // Le signal de l'appelant et le délai maximal coupent la même requête.
+  const abortFromCaller = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  else signal?.addEventListener('abort', abortFromCaller, { once: true });
 
   try {
     return await fetch(buildUrl(path, query), {
@@ -100,9 +109,15 @@ async function send(
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
+    if (signal?.aborted) {
+      const aborted = new Error('Requête annulée');
+      aborted.name = 'AbortError';
+      throw aborted;
+    }
     throw new ApiError(0, 'Impossible de joindre le serveur. Vérifiez votre connexion internet.');
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener('abort', abortFromCaller);
   }
 }
 

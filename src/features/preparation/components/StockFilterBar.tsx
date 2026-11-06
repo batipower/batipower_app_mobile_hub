@@ -1,18 +1,24 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { colors, onDark, radius, spacing, withAlpha } from '@/theme';
+import { makeStyles, radius, spacing, useTheme, withAlpha, type Theme } from '@/theme';
 import type { StockFilter } from '@/types/preparation';
 
 import { STOCK_FILTER_LABEL, STOCK_FILTER_ORDER } from '../constants';
 
 /** Couleur d'accent de chaque filtre, comme les pastilles de la page web. */
-const FILTER_COLOR: Record<StockFilter, string> = {
-  all: colors.green,
-  stock: colors.success,
-  attente: colors.warning,
-  nonaffecte: colors.danger,
-};
+function filterColor(t: Theme, filter: StockFilter): string {
+  switch (filter) {
+    case 'all':
+      return t.accentText;
+    case 'stock':
+      return t.success;
+    case 'attente':
+      return t.warning;
+    case 'nonaffecte':
+      return t.danger;
+  }
+}
 
 type StockFilterBarProps = {
   value: StockFilter;
@@ -22,6 +28,8 @@ type StockFilterBarProps = {
 
 /** Pastilles de filtre défilantes : Toutes, En stock QG, Attente livreur, Non affecté. */
 export function StockFilterBar({ value, counts, onChange }: StockFilterBarProps) {
+  const styles = useStyles();
+  const t = useTheme();
   return (
     <ScrollView
       horizontal
@@ -31,7 +39,7 @@ export function StockFilterBar({ value, counts, onChange }: StockFilterBarProps)
     >
       {STOCK_FILTER_ORDER.map((filter) => {
         const active = filter === value;
-        const accent = FILTER_COLOR[filter];
+        const accent = filterColor(t, filter);
         return (
           <Pressable
             key={filter}
@@ -48,7 +56,7 @@ export function StockFilterBar({ value, counts, onChange }: StockFilterBarProps)
             ]}
           >
             <View style={[styles.dot, { backgroundColor: accent }]} />
-            <Text style={[styles.label, active && { color: colors.white }]}>
+            <Text style={[styles.label, active && { color: t.text }]}>
               {STOCK_FILTER_LABEL[filter]}
             </Text>
             <Text style={[styles.count, active && { color: accent }]}>{counts[filter]}</Text>
@@ -59,7 +67,7 @@ export function StockFilterBar({ value, counts, onChange }: StockFilterBarProps)
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   row: { gap: spacing.sm, paddingHorizontal: spacing.xl },
   chip: {
     minHeight: 36,
@@ -69,10 +77,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: onDark.borderStrong,
-    backgroundColor: onDark.surface,
+    borderColor: t.borderStrong,
+    backgroundColor: t.card,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  label: { fontSize: 13, fontWeight: '600', color: onDark.textMuted },
-  count: { fontSize: 13, fontWeight: '700', color: onDark.textSubtle },
-});
+  label: { fontSize: 13, fontWeight: '600', color: t.textMuted },
+  count: { fontSize: 13, fontWeight: '700', color: t.textSubtle },
+}));

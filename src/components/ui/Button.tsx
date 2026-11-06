@@ -1,15 +1,8 @@
 import type { ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { colors, onDark, radius, spacing, typography, withAlpha } from '@/theme';
+import { makeStyles, radius, spacing, typography, useTheme } from '@/theme';
 
 type ButtonProps = {
   label: string;
@@ -39,6 +32,8 @@ export function Button({
   style,
   testID,
 }: ButtonProps) {
+  const styles = useStyles();
+  const t = useTheme();
   const inactive = disabled || loading;
   const isPrimary = variant === 'primary';
 
@@ -60,15 +55,15 @@ export function Button({
         styles.base,
         isPrimary ? styles.primary : styles.ghost,
         isPrimary && !inactive && styles.primaryShadow,
-        isPrimary && pressed && { backgroundColor: colors.greenDark },
-        !isPrimary && pressed && { backgroundColor: onDark.surface },
+        isPrimary && pressed && { backgroundColor: t.accentPressed },
+        !isPrimary && pressed && { backgroundColor: t.surface },
         pressed && styles.pressed,
         inactive && styles.inactive,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={isPrimary ? colors.white : onDark.textMuted} />
+        <ActivityIndicator color={isPrimary ? t.onAccent : t.textMuted} />
       ) : (
         <>
           {leadingIcon}
@@ -88,7 +83,7 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   base: {
     minHeight: 48,
     borderRadius: radius.lg,
@@ -98,9 +93,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  primary: { backgroundColor: colors.green },
+  primary: { backgroundColor: t.accent },
   primaryShadow: {
-    shadowColor: colors.green,
+    shadowColor: t.accent,
     shadowOpacity: 0.25,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
@@ -108,7 +103,7 @@ const styles = StyleSheet.create({
   ghost: { backgroundColor: 'transparent' },
   pressed: { transform: [{ scale: 0.98 }] },
   inactive: { opacity: 0.5 },
-  label: { ...typography.button, color: colors.white },
-  ghostLabel: { color: withAlpha(colors.white, 0.6) },
-  destructiveLabel: { color: colors.danger },
-});
+  label: { ...typography.button, color: t.onAccent },
+  ghostLabel: { color: t.textMuted },
+  destructiveLabel: { color: t.danger },
+}));

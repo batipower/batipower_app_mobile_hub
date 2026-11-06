@@ -1,7 +1,7 @@
-import { RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, SectionList, Text, View } from 'react-native';
 import { MapPin } from 'lucide-react-native';
 
-import { colors, fontSize, onDark, spacing } from '@/theme';
+import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 import type { DriverTourAgency, DriverTourItem } from '@/types/preparation';
 
 import { AgencyItemRow, AgencySectionHeader } from './AgencyTour';
@@ -34,6 +34,8 @@ export function AgencyList({
   refreshing,
   onRefresh,
 }: AgencyListProps) {
+  const styles = useStyles();
+  const t = useTheme();
   const sections: AgencySection[] = agencies.map((agency) => ({ agency, data: agency.items }));
 
   return (
@@ -49,7 +51,7 @@ export function AgencyList({
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accentText} />
       }
       ListHeaderComponent={
         <View style={styles.header}>
@@ -73,7 +75,7 @@ export function AgencyList({
           <ListSkeleton rows={3} height={150} />
         ) : error ? undefined : (
           <EmptyState
-            icon={<MapPin size={24} color={onDark.textMuted} />}
+            icon={<MapPin size={24} color={t.textMuted} />}
             title="Rien à récupérer"
             text="Aucun article à récupérer en agence pour le moment."
           />
@@ -83,13 +85,13 @@ export function AgencyList({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   content: { flexGrow: 1, paddingHorizontal: spacing.xl, paddingBottom: spacing['3xl'] },
   header: { gap: spacing.md },
   summary: {
     fontSize: fontSize.xs,
     fontWeight: '700',
     letterSpacing: 0.3,
-    color: colors.warning,
+    color: t.warning,
   },
-});
+}));

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { canAccessHubPreparation } from '@/auth/permissions';
+import { ModuleSwitcherButton } from '@/components/modules/ModuleSwitcherButton';
 import { AccessDenied } from '@/features/preparation/components/AccessDenied';
 import { AgencyList } from '@/features/preparation/components/AgencyList';
 import { OrdersList } from '@/features/preparation/components/OrdersList';
@@ -14,7 +15,7 @@ import { useDriversTour } from '@/features/preparation/hooks/useDriversTour';
 import { usePreparationOrders } from '@/features/preparation/hooks/usePreparationOrders';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
 import { formatTime } from '@/features/preparation/orderHelpers';
-import { colors, fontSize, onDark, spacing } from '@/theme';
+import { fontSize, makeStyles, spacing } from '@/theme';
 import type { StockFilter } from '@/types/preparation';
 
 type PreparationSegment = 'orders' | 'agency';
@@ -31,6 +32,7 @@ export default function PreparationScreen() {
 }
 
 function PreparationContent() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState<PreparationSegment>('orders');
   const [stockFilter, setStockFilter] = useState<StockFilter>('all');
@@ -52,12 +54,15 @@ function PreparationContent() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top + spacing.md }]}>
       <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
-          Préparation
-        </Text>
-        {lastRefresh ? (
-          <Text style={styles.updated}>Mis à jour à {formatTime(lastRefresh)}</Text>
-        ) : null}
+        <View style={styles.headerText}>
+          <Text style={styles.title} accessibilityRole="header">
+            Préparation
+          </Text>
+          {lastRefresh ? (
+            <Text style={styles.updated}>Mis à jour à {formatTime(lastRefresh)}</Text>
+          ) : null}
+        </View>
+        <ModuleSwitcherButton active="HUB" />
       </View>
 
       <View style={styles.block}>
@@ -101,16 +106,18 @@ function PreparationContent() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.black, gap: spacing.md },
+const useStyles = makeStyles((t) => ({
+  screen: { flex: 1, backgroundColor: t.bg, gap: spacing.md },
   header: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.md,
     paddingHorizontal: spacing.xl,
   },
-  title: { fontSize: fontSize['3xl'], fontWeight: '700', color: colors.white },
-  updated: { fontSize: fontSize.xs, color: onDark.textSubtle },
+  headerText: { flex: 1, gap: 2 },
+  title: { fontSize: fontSize['3xl'], fontWeight: '700', color: t.text },
+  updated: { fontSize: fontSize.xs, color: t.textSubtle },
   block: { paddingHorizontal: spacing.xl },
   filters: { minHeight: 36 },
-});
+}));

@@ -6,7 +6,9 @@ est prête pour accueillir les autres modules (PARTNER, MARQUE, ADMIN, POWER).
 
 État actuel : connexion (email + mot de passe, vérification 2FA par email), session
 persistante, onglets HUB : **Préparation** (consultation des commandes à préparer et
-des articles à récupérer en agence) et Profil / déconnexion.
+des articles à récupérer en agence), **Recherche** (commandes et produits, en lecture
+seule), Profil / déconnexion, et un **sélecteur de module** accessible depuis chaque
+écran racine.
 
 ## Stack
 
@@ -70,21 +72,88 @@ src/
 │   ├── unreachable.tsx       Back injoignable au démarrage (réessayer / se déconnecter)
 │   ├── (auth)/               login, verify-2fa  (visibles si déconnecté)
 │   └── (app)/                Visibles si connecté
-│       ├── hub/              Onglets natifs : Préparation, Profil
-│       │   └── preparation/  Pile de l'onglet : index (liste) + [reference] (détail)
-│       └── module-indisponible.tsx
-├── api/                      client.ts (fetch, refresh), auth.ts, preparation.ts, queryClient.ts
+│       ├── switch-module.tsx Feuille de sélection du module (formSheet)
+│       ├── modules/[id].tsx  « Bientôt disponible » pour un module pas encore sur mobile
+│       └── hub/              Onglets natifs : Préparation, Recherche, Profil
+│           ├── preparation/  Pile de l'onglet : index (liste) + [reference] (détail)
+│           └── recherche/    Pile de l'onglet : index (recherche), commandes (liste),
+│                             commande/[reference], produit/[reference]
+├── api/                      client.ts (fetch, refresh, annulation), auth.ts, preparation.ts,
+│                             hubOrders.ts, hubProducts.ts, searchHistory.ts, queryClient.ts
 ├── auth/                     AuthProvider (état de session), tokenStorage (SecureStore),
 │                             permissions.ts (accès par rôle)
-├── components/ui/            Button, TextField, OtpInput, Card, Screen
+├── components/ui/            Button, TextField, OtpInput, Card, Badge, DetailSection / InfoRow, Screen
 ├── components/auth/          Fond animé et logo de l'écran de connexion
+├── components/modules/       ModuleSwitcherButton (pastille du module + chevron)
 ├── features/preparation/     Hooks, helpers et composants de la préparation HUB
-├── modules/                  registry.ts (modules + routes), roles.ts
-├── theme/                    colors, spacing, typography
+├── features/search/          Recherche unifiée : écran, hooks (débounce, historique), navigation
+├── features/orders/          Liste paginée, fiche commande, libellés portés du web
+├── features/products/        Fiche produit (en-tête + stock), affichage des agences
+├── modules/                  registry.ts (modules + écran d'accueil), switchModule.ts, roles.ts
+├── features/profile/         Sélecteur d'apparence (Sombre / Clair / Auto)
+├── theme/                    colors, spacing, typography, palettes clair / sombre,
+│                             ThemeProvider (useTheme, makeStyles), préférence persistée
 ├── config/env.ts             Variables EXPO_PUBLIC_* validées (zod)
-├── lib/openWeb.ts            Ouvre une page du site web dans le navigateur intégré
-└── types/                    Types partagés (CurrentUser, préparation…)
+├── lib/                      openWeb (navigateur intégré), format (dates, montants),
+│                             clipboard (copie + toast), contact (appel, email)
+└── types/                    Types partagés (CurrentUser, préparation, commandes, produits…)
 ```
+
+## Recherche (module HUB)
+
+Onglet **Recherche** du HUB (bouton séparé en Liquid Glass sur iOS 26), pendant mobile de
+la recherche du web (`HubSearchBar`), en **lecture seule**. Ouvert à tout compte qui
+possède le module HUB ; les produits ne le sont qu'aux rôles `SUPERADMIN` et `MANAGER`
+(`canAccessHubProductSheet`, même règle que le back sur `hub-app/products/*`).
+
+- **Saisie** : barre de recherche native du titre. Recherche dès 2 caractères, avec un
+  délai de 120 ms pour un code collé ou scanné (8 caractères et plus), 250 ms sinon.
+  Les requêtes en cours sont annulées dès que la saisie change.
+- **Résultats** : commandes (référence, référence eBat, téléphone, n° de suivi, email, nom)
+  fusionnées avec celles qui contiennent la référence produit, puis produits (référence,
+  EAN, SKU, désignation). « Voir les N commandes » ouvre la liste complète à défilement
+  infini. La recherche par produit est sautée pour une référence `BATPWR…` ou quand une
+  commande porte déjà exactement cette référence (comme le web).
+- **Historique** : partagé avec le web (`hub-app/search-history`). Il s'affiche quand la
+  saisie est vide et s'efface après confirmation. Les entrées d'un type non autorisé
+  (produit pour un non-Manager, analyseur) sont masquées.
+- **Fiche commande** (`recherche/commande/[reference]`) : identité et statuts, demande
+  d'annulation, client et adresse (appel et email en un toucher), articles, montants HT /
+  TTC, mode de paiement, expédition (suivi transporteur cliquable), commandes liées,
+  retours et litiges. Les références et n° de suivi se copient d'un appui long.
+- **Fiche produit** (`recherche/produit/[reference]`, `SUPERADMIN` / `MANAGER`) : vignette,
+  désignation, codes, drapeaux, ventes 7 / 30 jours, stock par entrepôt et par agence
+  (inventaires périmés signalés), commandes fournisseur de la semaine, et lien vers les
+  commandes qui contiennent le produit.
+
+Aucune donnée financière interne (prix d'achat, marges) n'est typée ni affichée : le back
+les renvoie à un `SUPERADMIN`, l'app les ignore volontairement.
+
+| Donnée                 | Route back                                                     |
+| ---------------------- | -------------------------------------------------------------- |
+| Recherche commandes    | `GET /hub-app/orders/search-sav`                               |
+| Commandes d'un produit | `GET /hub-app/orders/search-by-product-reference`              |
+| Fiche commande         | `GET /hub-app/orders/logistics-detail/:reference`              |
+| Recherche produits     | `GET /hub-app/products/search`                                 |
+| Fiche produit          | `GET /hub-app/products/:reference` et `GET …/:reference/stock` |
+| Historique             | `GET`, `POST`, `DELETE /hub-app/search-history`                |
+
+## Modules et sélecteur
+
+Chaque écran racine d'un module affiche en haut à droite la pastille du module actif
+(`ModuleSwitcherButton`), qui ouvre la feuille `switch-module` : un module par ligne
+(icône, nom, accroche, coche sur l'actif, badge « Bientôt » s'il n'est pas encore sur
+mobile). Le profil propose aussi « Changer de module ». La pastille et la ligne sont
+masquées si le compte n'a qu'un seul module.
+
+- La feuille liste **tous les modules du compte** (`accessibleModules`), même ceux qui ne
+  sont pas encore disponibles sur mobile : ils mènent à `modules/[id]` (« bientôt
+  disponible », avec ouverture du web, retour au module actif et déconnexion). Passer d'un
+  module à l'autre n'empile pas d'historique (`dismissAll` puis `replace`).
+- Le HUB garde l'accès : un compte sans le module HUB est redirigé vers son module
+  d'atterrissage (`getLandingHref`).
+- L'écran d'accueil d'un module dépend du rôle (`landing` dans le registre) : pour le HUB,
+  la préparation pour `SUPERADMIN` / `MANAGER`, la recherche pour les autres comptes.
 
 ## Préparation (module HUB)
 
@@ -120,13 +189,33 @@ Comportements à connaître :
 
 ### Ajouter un module
 
-1. Dans `src/modules/registry.ts`, passer `mobileEnabled: true` et renseigner la
-   `route` du module.
+1. Dans `src/modules/registry.ts`, passer `mobileEnabled: true` et faire pointer
+   `landing` vers l'écran d'accueil du module (fonction du rôle de l'utilisateur).
 2. Créer le dossier de routes correspondant sous `src/app/(app)/<module>/`, avec son
-   `_layout.tsx` (onglets ou pile).
-3. `getLandingHref(user)` choisit le module d'atterrissage après connexion selon les
-   modules accessibles à l'utilisateur ; un module non activé mène à
-   `/module-indisponible`.
+   `_layout.tsx` (onglets ou pile), et y poser `ModuleSwitcherButton` (prop `active`)
+   dans l'en-tête de ses écrans racines.
+3. Le sélecteur (`switch-module`) intègre le module sans autre changement. Tant que
+   `mobileEnabled` est à `false`, `landing` renvoie vers `/modules/[id]` (« bientôt
+   disponible »). `getLandingHref(user)` choisit le module d'atterrissage après connexion
+   selon les modules accessibles à l'utilisateur.
+
+## Apparence (sombre / clair)
+
+Le profil propose un sélecteur **Sombre / Clair / Auto** (`features/profile`). « Auto »
+suit le réglage de l'iPhone ; le défaut est **Sombre**, l'identité historique de l'app.
+
+- **Palettes** : `src/theme/palettes.ts` définit les jetons sémantiques (`bg`, `card`,
+  `text`, `textMuted`, `accent`, `accentText`, `danger`…). Les couleurs de marque ne
+  changent pas ; le texte vert passe à `accentText` (vert foncé) en clair, car le vert
+  de marque est trop pâle sur fond blanc.
+- **Utilisation** : `useTheme()` donne le thème courant, et `makeStyles((t) => ({…}))`
+  remplace `StyleSheet.create` pour les styles qui dépendent du thème. Ne pas importer
+  `colors` ou `onDark` dans un composant d'écran : ils restent réservés à l'écran de
+  connexion et aux palettes.
+- **Persistance** : `src/theme/preference.ts` (SecureStore, lecture synchrone au
+  démarrage, donc sans flash) puis `Appearance.setColorScheme`. Les éléments natifs
+  (barre d'onglets, feuilles, clavier, recherche) suivent automatiquement.
+- **Connexion** : `(auth)/_layout.tsx` force le thème sombre avec `ForcedTheme`.
 
 ## Authentification
 
@@ -247,6 +336,8 @@ variables d'environnement EAS (`eas env:create`). Elles sont publiques : aucun s
 - **Contraste** : le texte blanc sur le bouton vert reprend l'identité du site web. Le
   contraste est limité ; à rediscuter avec le design si l'accessibilité devient un
   critère.
-- **Mode sombre uniquement** (`userInterfaceStyle: dark`), comme l'écran de connexion
-  du web.
+- **Apparence** : `userInterfaceStyle` vaut `automatic` dans `app.json`, sinon iOS et
+  Android bloquent le mode clair. Ce réglage est natif : il demande un nouveau build
+  (Expo Go l'ignore). L'écran de connexion et la double authentification restent
+  toujours sombres, comme sur le web.
 - `.claude/settings.json` et `AGENTS.md` viennent du modèle Expo et sont conservés.

@@ -1,29 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 
-import { colors, radius, spacing, withAlpha } from '@/theme';
+import { Badge } from '@/components/ui';
+import { makeStyles, spacing } from '@/theme';
 
 import { splitOrderTags } from '../orderHelpers';
-
-type Tone = 'green' | 'amber' | 'red' | 'blue' | 'neutral';
-
-const TONE_COLOR: Record<Tone, string> = {
-  green: colors.success,
-  amber: colors.warning,
-  red: colors.danger,
-  blue: colors.info,
-  neutral: colors.gray300,
-};
-
-function Badge({ label, tone }: { label: string; tone: Tone }) {
-  const color = TONE_COLOR[tone];
-  return (
-    <View style={[styles.badge, { backgroundColor: withAlpha(color, 0.14) }]}>
-      <Text style={[styles.text, { color }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-}
 
 type OrderTagBadgesProps = {
   tags: string[];
@@ -33,6 +13,7 @@ type OrderTagBadgesProps = {
 
 /** Badges d'une commande : stock QG, attente livreur, inter-agence, urgences et tags libres. */
 export function OrderTagBadges({ tags, maxCustom = 2 }: OrderTagBadgesProps) {
+  const styles = useStyles();
   const { urgent, custom, hasInterAgency, awaitingDriver, stockQg } = splitOrderTags(tags);
   const visibleCustom = custom.slice(0, maxCustom);
   const hidden = custom.length - visibleCustom.length;
@@ -57,13 +38,6 @@ export function OrderTagBadges({ tags, maxCustom = 2 }: OrderTagBadgesProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs + 2 },
-  badge: {
-    maxWidth: 160,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    borderRadius: radius.sm - 2,
-  },
-  text: { fontSize: 11, fontWeight: '700', letterSpacing: 0.2 },
-});
+}));

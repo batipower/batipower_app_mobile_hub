@@ -10,11 +10,17 @@ import { colors } from '@/theme';
  * demande d'accès, changement du mot de passe temporaire.
  */
 export async function openWebPage(path: string): Promise<void> {
+  await openExternalUrl(`${env.webUrl}${path}`, "Impossible d'ouvrir la page web.");
+}
+
+/** Ouvre une URL absolue (suivi transporteur…) dans le navigateur intégré. */
+export async function openExternalUrl(
+  url: string,
+  errorMessage = "Impossible d'ouvrir le lien.",
+): Promise<void> {
   try {
-    await WebBrowser.openBrowserAsync(`${env.webUrl}${path}`, {
-      controlsColor: colors.green,
-    });
+    await WebBrowser.openBrowserAsync(url, { controlsColor: colors.green });
   } catch {
-    toast.error("Impossible d'ouvrir la page web.");
+    toast.error(errorMessage);
   }
 }

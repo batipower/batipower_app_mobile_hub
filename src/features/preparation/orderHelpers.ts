@@ -86,12 +86,7 @@ export function ageLabel(iso: string, now = Date.now()): string {
   return `${Math.floor(hours / 24)} j`;
 }
 
-export function formatDateTime(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
-}
+export { formatDateTime } from '@/lib/format';
 
 export function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });

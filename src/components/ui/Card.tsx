@@ -3,7 +3,7 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { colors, onDark, radius, spacing, withAlpha } from '@/theme';
+import { makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 
 type CardProps = {
   children: ReactNode;
@@ -13,16 +13,18 @@ type CardProps = {
 };
 
 /**
- * Carte « verre » des écrans sombres : flou, voile blanc translucide, bordure
- * fine et filet d'accent vert en haut (même rendu que la carte du login web).
+ * Carte « verre » : flou, voile translucide (blanc plein en thème clair), bordure fine
+ * et filet d'accent vert en haut (même rendu que la carte du login web).
  */
 export function Card({ children, style, contentStyle }: CardProps) {
+  const styles = useStyles();
+  const t = useTheme();
   return (
     <View style={[styles.card, style]}>
-      <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={30} tint={t.blurTint} style={StyleSheet.absoluteFill} />
       <View style={[StyleSheet.absoluteFill, styles.veil]} />
       <LinearGradient
-        colors={['transparent', withAlpha(colors.green, 0.45), 'transparent']}
+        colors={['transparent', withAlpha(t.accent, 0.45), 'transparent']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.accentLine}
@@ -32,14 +34,14 @@ export function Card({ children, style, contentStyle }: CardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   card: {
     borderRadius: radius.xl,
     borderWidth: StyleSheet.hairlineWidth * 2,
-    borderColor: onDark.border,
+    borderColor: t.border,
     overflow: 'hidden',
   },
-  veil: { backgroundColor: onDark.surface, pointerEvents: 'none' },
+  veil: { backgroundColor: t.card, pointerEvents: 'none' },
   accentLine: {
     pointerEvents: 'none',
     position: 'absolute',
@@ -49,4 +51,4 @@ const styles = StyleSheet.create({
     height: 1,
   },
   content: { padding: spacing['2xl'] },
-});
+}));

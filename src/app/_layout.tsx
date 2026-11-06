@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { useEffect, useMemo } from 'react';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -9,28 +9,42 @@ import { Toaster } from 'sonner-native';
 
 import { queryClient } from '@/api/queryClient';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
-import { colors } from '@/theme';
+import { AppThemeProvider, useTheme } from '@/theme';
 
 // Le splash natif reste affiché tant que la session n'a pas été vérifiée.
 void SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 250, fade: true });
 
-// Thème sombre aux couleurs Batipower : évite les flashs blancs entre écrans et
-// sous la barre d'onglets native.
-const navigationTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    primary: colors.green,
-    background: colors.black,
-    card: colors.black,
-    border: 'transparent',
-  },
-};
-
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.black }}>
+    <AppThemeProvider>
+      <RootProviders />
+    </AppThemeProvider>
+  );
+}
+
+function RootProviders() {
+  const t = useTheme();
+
+  // Thème de navigation aux couleurs Batipower (sombre ou clair) : évite les flashs
+  // entre écrans et sous la barre d'onglets native.
+  const navigationTheme = useMemo(() => {
+    const base = t.scheme === 'dark' ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        primary: t.accentText,
+        background: t.bg,
+        card: t.bg,
+        text: t.text,
+        border: 'transparent',
+      },
+    };
+  }, [t]);
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: t.bg }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
@@ -38,7 +52,7 @@ export default function RootLayout() {
               <SplashController />
               <RootNavigator />
             </ThemeProvider>
-            <Toaster theme="dark" position="top-center" richColors />
+            <Toaster theme={t.scheme} position="top-center" richColors />
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
@@ -63,15 +77,16 @@ function SplashController() {
  */
 function RootNavigator() {
   const { status } = useAuth();
+  const t = useTheme();
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style={t.scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
           animation: 'fade',
-          contentStyle: { backgroundColor: colors.black },
+          contentStyle: { backgroundColor: t.bg },
         }}
       >
         <Stack.Screen name="index" />
