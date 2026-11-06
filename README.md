@@ -5,7 +5,8 @@ Application mobile (React Native / Expo) du logiciel Batipower, pendant de
 est prête pour accueillir les autres modules (PARTNER, MARQUE, ADMIN, POWER).
 
 État actuel : connexion (email + mot de passe, vérification 2FA par email), session
-persistante, onglets HUB (Accueil placeholder, Profil / déconnexion).
+persistante, onglets HUB : **Préparation** (consultation des commandes à préparer et
+des articles à récupérer en agence) et Profil / déconnexion.
 
 ## Stack
 
@@ -69,18 +70,53 @@ src/
 │   ├── unreachable.tsx       Back injoignable au démarrage (réessayer / se déconnecter)
 │   ├── (auth)/               login, verify-2fa  (visibles si déconnecté)
 │   └── (app)/                Visibles si connecté
-│       ├── hub/              Onglets natifs : Accueil, Profil  → /hub
+│       ├── hub/              Onglets natifs : Préparation, Profil
+│       │   └── preparation/  Pile de l'onglet : index (liste) + [reference] (détail)
 │       └── module-indisponible.tsx
-├── api/                      client.ts (fetch, refresh), auth.ts, queryClient.ts
-├── auth/                     AuthProvider (état de session), tokenStorage (SecureStore)
+├── api/                      client.ts (fetch, refresh), auth.ts, preparation.ts, queryClient.ts
+├── auth/                     AuthProvider (état de session), tokenStorage (SecureStore),
+│                             permissions.ts (accès par rôle)
 ├── components/ui/            Button, TextField, OtpInput, Card, Screen
 ├── components/auth/          Fond animé et logo de l'écran de connexion
+├── features/preparation/     Hooks, helpers et composants de la préparation HUB
 ├── modules/                  registry.ts (modules + routes), roles.ts
 ├── theme/                    colors, spacing, typography
 ├── config/env.ts             Variables EXPO_PUBLIC_* validées (zod)
 ├── lib/openWeb.ts            Ouvre une page du site web dans le navigateur intégré
-└── types/                    Types partagés (CurrentUser…)
+└── types/                    Types partagés (CurrentUser, préparation…)
 ```
+
+## Préparation (module HUB)
+
+Pendant mobile de `/hub/preparation-batipower` du front web, en **consultation seule**
+et réservé aux rôles `SUPERADMIN` et `MANAGER` (`canAccessHubPreparation`).
+
+- **À préparer** : commandes du QG, avec filtres (Toutes, En stock QG, Attente livreur,
+  Non affecté), recherche locale (référence, client, ville), badges de tags et
+  volumétrie (pièces, colis, poids, transporteur). Un appui ouvre le détail.
+- **En agence** : articles à récupérer en agence proche, regroupés par agence
+  (quantité, référence, désignation) avec les totaux.
+- **Détail** : lu dans la liste déjà chargée (même clé de cache TanStack), sans appel
+  dédié. Si la commande a disparu de la liste (préparée entre-temps) : « introuvable ».
+
+| Donnée          | Route back                                         |
+| --------------- | -------------------------------------------------- |
+| Commandes       | `GET /hub-app/orders/preparation?scope=to-prepare` |
+| Synthèse agence | `GET /hub-app/orders/preparation/drivers-tour`     |
+
+Comportements à connaître :
+
+- Rafraîchissement automatique toutes les 30 s (commandes) et 60 s (agences), **uniquement
+  quand l'écran est affiché**, et suspendu en arrière-plan (`focusManager` branché sur
+  `AppState`). Tirer pour rafraîchir est disponible partout, et l'app recharge les
+  données périmées à son retour au premier plan.
+- Les règles de classement (tag `AGENCE PROCHE` = attente livreur, absence de `STOCK_QG`
+  = non affecté) sont portées de `lib/hub/preparation/order-helpers.ts` : à garder
+  synchronisées avec le web.
+- Hors périmètre de cette V1 : scan douchette, impression d'étiquettes, bons de livraison,
+  transferts d'entrepôt (Flévy / Dombasle), onglet Expédiés, miniatures produit.
+- Pas de route `/hub` seule : le module s'ouvre directement sur `/hub/preparation`
+  (`NativeTabs` ne gère que les routes déclarées par un onglet).
 
 ### Ajouter un module
 

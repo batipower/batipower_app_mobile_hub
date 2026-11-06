@@ -6,9 +6,12 @@ import { colors } from '@/theme';
 export default function HubLayout() {
   return (
     <NativeTabs tintColor={colors.green}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Accueil</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
+      <NativeTabs.Trigger name="preparation">
+        <NativeTabs.Trigger.Label>Préparation</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{ default: 'shippingbox', selected: 'shippingbox.fill' }}
+          md="inventory_2"
+        />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profil">
         <NativeTabs.Trigger.Label>Profil</NativeTabs.Trigger.Label>

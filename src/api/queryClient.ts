@@ -1,6 +1,17 @@
-import { QueryClient } from '@tanstack/react-query';
+import { AppState } from 'react-native';
+import { focusManager, QueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
+
+// React Native n'a pas d'événement « focus de fenêtre » : on s'appuie sur l'état de
+// l'app. Au retour au premier plan, les requêtes périmées sont rechargées ; en
+// arrière-plan, les rafraîchissements automatiques (`refetchInterval`) sont suspendus.
+focusManager.setEventListener((handleFocus) => {
+  const subscription = AppState.addEventListener('change', (status) => {
+    handleFocus(status === 'active');
+  });
+  return () => subscription.remove();
+});
 
 export const queryClient = new QueryClient({
   defaultOptions: {

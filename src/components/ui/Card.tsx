@@ -8,13 +8,15 @@ import { colors, onDark, radius, spacing, withAlpha } from '@/theme';
 type CardProps = {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  /** Surcharge du conteneur interne (marges intérieures par défaut : 24). */
+  contentStyle?: StyleProp<ViewStyle>;
 };
 
 /**
  * Carte « verre » des écrans sombres : flou, voile blanc translucide, bordure
  * fine et filet d'accent vert en haut (même rendu que la carte du login web).
  */
-export function Card({ children, style }: CardProps) {
+export function Card({ children, style, contentStyle }: CardProps) {
   return (
     <View style={[styles.card, style]}>
       <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
@@ -25,7 +27,7 @@ export function Card({ children, style }: CardProps) {
         end={{ x: 1, y: 0 }}
         style={styles.accentLine}
       />
-      <View style={styles.content}>{children}</View>
+      <View style={[styles.content, contentStyle]}>{children}</View>
     </View>
   );
 }

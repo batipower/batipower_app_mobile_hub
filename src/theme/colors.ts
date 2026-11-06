@@ -18,6 +18,10 @@ export const colors = {
   /** Erreurs de formulaire (équivalent `text-red-400` du web). */
   danger: '#F87171',
   dangerBg: 'rgba(248,113,113,0.10)',
+  /** États lisibles sur fond sombre (emerald-400, amber-400, blue-400 de Tailwind). */
+  success: '#34D399',
+  warning: '#FBBF24',
+  info: '#60A5FA',
 } as const;
 
 /**

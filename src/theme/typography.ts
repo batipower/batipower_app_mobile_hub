@@ -1,4 +1,7 @@
-import type { TextStyle } from 'react-native';
+import { Platform, type TextStyle } from 'react-native';
+
+/** Police à chasse fixe pour les références commande et produit (`font-mono` du web). */
+export const monoFontFamily = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
 /**
  * Typographie : police système (SF Pro sur iOS), qui respecte aussi Dynamic Type

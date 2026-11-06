@@ -54,7 +54,7 @@ export const MODULES: Record<BatipowerModule, ModuleMeta> = {
     accent: '#F97316',
     fg: '#FFFFFF',
     mobileEnabled: true,
-    route: '/hub',
+    route: '/hub/preparation',
   },
   MARQUE: {
     id: 'MARQUE',
