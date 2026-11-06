@@ -18,9 +18,9 @@ const BASE_BUNDLE_ID = 'fr.batipower.hub';
 const BASE_SCHEME = 'batipower-hub';
 
 const VARIANTS: Record<AppVariant, { name: string; suffix: string }> = {
-  development: { name: 'Batipower HUB (Dev)', suffix: '.dev' },
-  preview: { name: 'Batipower HUB (Preview)', suffix: '.preview' },
-  production: { name: 'Batipower HUB', suffix: '' },
+  development: { name: 'Batipower Pro (Dev)', suffix: '.dev' },
+  preview: { name: 'Batipower Pro (Preview)', suffix: '.preview' },
+  production: { name: 'Batipower Pro', suffix: '' },
 };
 
 function resolveVariant(): AppVariant {

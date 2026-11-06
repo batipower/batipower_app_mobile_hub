@@ -1,4 +1,4 @@
-# Batipower HUB — application mobile
+# Batipower Pro — application mobile
 
 Application mobile (React Native / Expo) du logiciel Batipower, pendant de
 `front_externe_batipower`. Première cible : **iPhone**, module **HUB**. La structure
@@ -136,9 +136,9 @@ plutôt qu'un compte personnel, pour partager le projet.
 
 | Variante    | Nom                     | Bundle id                  |
 | ----------- | ----------------------- | -------------------------- |
-| development | Batipower HUB (Dev)     | `fr.batipower.hub.dev`     |
-| preview     | Batipower HUB (Preview) | `fr.batipower.hub.preview` |
-| production  | Batipower HUB           | `fr.batipower.hub`         |
+| development | Batipower Pro (Dev)     | `fr.batipower.hub.dev`     |
+| preview     | Batipower Pro (Preview) | `fr.batipower.hub.preview` |
+| production  | Batipower Pro           | `fr.batipower.hub`         |
 
 Les variantes s'installent côte à côte sur le même iPhone. EAS crée les identifiants
 (App ID, certificats, profils) dans le compte Apple Developer lors du premier build
@@ -163,7 +163,7 @@ npx expo start --dev-client                         # puis ouvrir l'app install�
 
 ### 4. TestFlight (distribution à l'équipe)
 
-1. Dans App Store Connect, créer l'app « Batipower HUB » avec le bundle id
+1. Dans App Store Connect, créer l'app « Batipower Pro » avec le bundle id
    `fr.batipower.hub`.
 2. `eas build --profile production --platform ios` (`autoIncrement` gère le numéro de
    build, `appVersionSource: remote`).

@@ -46,7 +46,7 @@ export default function ProfileScreen() {
   const lastLogin = formatDateTime(user.lastLoginAt);
   const warehouse = user.distributorWarehouse?.name ?? user.warehouse;
   const version = Constants.expoConfig?.version ?? '—';
-  const appName = Constants.expoConfig?.name ?? 'Batipower HUB';
+  const appName = Constants.expoConfig?.name ?? 'Batipower Pro';
 
   const confirmLogout = () => {
     Alert.alert('Se déconnecter', 'Voulez-vous vraiment vous déconnecter ?', [
