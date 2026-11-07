@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 import { useIsFocused } from 'expo-router';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { hubDashboardApi } from '@/api/hubDashboard';
 import { hubSupervisionApi } from '@/api/hubSupervision';
+import { percentDelta } from '@/lib/format';
 
-import { parisMonthKey } from '../dates';
+import { dayOfMonth, daysInMonth, parisDateKey, parisMonthKey, shiftMonth } from '../dates';
 
 /** Préfixe commun des requêtes du cockpit (invalidation / remise à zéro groupée). */
 export const HUB_DASHBOARD_KEY = ['hub-dashboard'] as const;
@@ -58,6 +60,53 @@ export function useCaMonth(month: string) {
     switching: query.isPlaceholderData,
     error: query.error,
     refetch: query.refetch,
+  };
+}
+
+/**
+ * Commandes du mois en cours (journée en cours comprise) comparées à la même période du mois
+ * précédent (jours 1 à N, N = jour courant, borné à la longueur de ce mois).
+ *
+ * S'appuie sur `useCaMonth` : la requête du mois courant est partagée avec l'histogramme du
+ * cockpit (même clé React Query), seule celle du mois précédent s'ajoute.
+ * - `current` : `null` si la requête du mois courant a échoué (pastille « — »).
+ * - `previous` / `delta` : `null` si le mois précédent est indisponible (échec) ou sans commande
+ *   (le nombre s'affiche alors seul).
+ * - `loading` : tant qu'une des deux réponses n'est pas arrivée (succès ou échec).
+ */
+export function useOrdersMonthTrend() {
+  const today = parisDateKey();
+  const currentMonth = today.slice(0, 7);
+  const previousMonth = shiftMonth(currentMonth, -1);
+  const day = dayOfMonth(today);
+  /** Dernier jour comparé : le 31 mars, tout février (28 ou 29 jours). */
+  const lastDay = Math.min(day, daysInMonth(previousMonth));
+
+  const currentQuery = useCaMonth(currentMonth);
+  const previousQuery = useCaMonth(previousMonth);
+
+  const currentView = currentQuery.view;
+  const previousDays = previousQuery.view?.days;
+
+  const previousToDate = useMemo(() => {
+    if (!previousDays) return null;
+    return previousDays.reduce(
+      (sum, item) => (dayOfMonth(item.date) <= lastDay ? sum + item.ordersCount : sum),
+      0,
+    );
+  }, [previousDays, lastDay]);
+
+  const current = currentView ? currentView.summary.ordersCount : null;
+  const delta =
+    current !== null && previousToDate !== null ? percentDelta(current, previousToDate) : null;
+
+  return {
+    current,
+    previous: previousToDate,
+    delta,
+    /** Mois précédent (`YYYY-MM`) et dernier jour comparé, pour le libellé d'accessibilité. */
+    comparison: { month: previousMonth, lastDay },
+    loading: currentQuery.loading || previousQuery.loading,
   };
 }
 

@@ -81,7 +81,7 @@ const useStyles = makeStyles((t) => ({
   text: { flex: 1, gap: 2 },
   title: { fontSize: fontSize['3xl'], fontWeight: '700', color: t.text },
   updated: { fontSize: fontSize.xs, color: t.textSubtle },
-  status: { flexDirection: 'row', marginTop: spacing.xs },
+  status: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.xs },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
