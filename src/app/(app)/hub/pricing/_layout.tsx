@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 import { Stack } from 'expo-router';
 
+import { PricingBackButton } from '@/features/pricing/components/PricingBackButton';
 import { useTheme } from '@/theme';
 
 type SheetOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
@@ -33,7 +34,11 @@ export default function PricingLayout() {
         headerBackTitle: 'Retour',
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Pricing' }} />
+      {/* Première page de la pile : pas de retour natif, on le fournit (voir PricingBackButton). */}
+      <Stack.Screen
+        name="index"
+        options={{ title: 'Pricing', headerLeft: () => <PricingBackButton /> }}
+      />
       <Stack.Screen name="[reference]" options={{ title: 'Ligne pricing' }} />
       <Stack.Screen name="filtres" options={sheet([0.9, 1])} />
       <Stack.Screen name="choix/[kind]" options={sheet([0.9, 1])} />
