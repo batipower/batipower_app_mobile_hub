@@ -7,13 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
+import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { makeStyles, radius, spacing } from '@/theme';
 
 /**
- * Au-dessus de la barre d'onglets (native, de hauteur variable selon la version d'iOS) : la
- * pastille ne doit pas la recouvrir.
+ * Marge au-dessus du bas de l'écran sur les écrans sans barre d'onglets (fil de discussion, fiches…) :
+ * la pastille ne recouvre ainsi ni le composeur ni les actions du bas.
  */
-const ABOVE_TAB_BAR = 76;
+const ABOVE_BOTTOM = 76;
 
 /**
  * Pastille flottante affichée pendant une impersonation : rappelle quel compte est usurpé et
@@ -23,6 +24,8 @@ const ABOVE_TAB_BAR = 76;
 export function ImpersonationBanner() {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
+  // Hauteur de la barre d'onglets flottante quand elle est affichée, sinon 0.
+  const tabBarInset = useTabBarInset();
   const { user, isImpersonating, stopImpersonation } = useAuth();
   const [stopping, setStopping] = useState(false);
   if (!user || !isImpersonating) return null;
@@ -41,7 +44,13 @@ export function ImpersonationBanner() {
   };
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { bottom: insets.bottom + ABOVE_TAB_BAR }]}>
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.wrap,
+        { bottom: tabBarInset > 0 ? tabBarInset : insets.bottom + ABOVE_BOTTOM },
+      ]}
+    >
       <Pressable
         onPress={stop}
         disabled={stopping}

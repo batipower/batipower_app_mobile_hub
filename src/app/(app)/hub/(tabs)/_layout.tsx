@@ -1,21 +1,24 @@
-import { NativeTabs } from 'expo-router/native-tabs';
+import { Gauge, MessagesSquare, Package, Search } from 'lucide-react-native';
+import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { canAccessHubCockpit, canAccessHubPreparation } from '@/auth/permissions';
+import { BatipowerTabBar, type TabBarItem } from '@/components/navigation/BatipowerTabBar';
 import { useDiscussionsUnread } from '@/features/discussions/hooks/useDiscussionsUnread';
 import { badgeCount } from '@/features/discussions/shared/format';
 import { openHubMenu } from '@/features/menu/navigation';
-import { useTheme, withAlpha } from '@/theme';
+import { useTheme } from '@/theme';
 
 /**
- * Barre d'onglets native du module HUB (Liquid Glass sur iOS 26+).
+ * Onglets du module HUB, avec la barre flottante Batipower (`BatipowerTabBar`) à la place de la
+ * barre native : onglets « headless » d'`expo-router/ui`, la `TabList` ne servant qu'à déclarer
+ * les routes (masquée), tandis que la barre dessine les boutons.
  *
- * Les onglets Cockpit (SUPERADMIN) et Préparation n'apparaissent que pour les rôles
- * autorisés. Discussions (messagerie Équipe et Clients) est ouvert à tout compte HUB, avec un
- * badge de non-lus. La Recherche est ouverte à tout compte HUB : sur iOS 26, elle s'affiche en
- * bouton séparé. Le dernier onglet, Menu, n'est jamais sélectionné : il est `disabled` (iOS et
- * Android bloquent la sélection mais émettent `tabPress`), et son appui ouvre la feuille de
- * menu à mi-écran déclarée dans `hub/_layout.tsx`.
+ * Les onglets Cockpit (SUPERADMIN) et Préparation n'apparaissent que pour les rôles autorisés ;
+ * un onglet sans déclencheur est retiré de la navigation. Discussions (messagerie Équipe et
+ * Clients) est ouvert à tout compte HUB, avec un badge de non-lus, comme la Recherche. Le bouton
+ * central (éclair) n'est pas un onglet : il ouvre la feuille de menu à mi-écran déclarée dans
+ * `hub/_layout.tsx`.
  */
 export default function HubTabsLayout() {
   const t = useTheme();
@@ -23,38 +26,31 @@ export default function HubTabsLayout() {
   const unread = useDiscussionsUnread(!!user);
   if (!user) return null;
 
+  const showCockpit = canAccessHubCockpit(user.role);
+  const showPreparation = canAccessHubPreparation(user.role);
+
+  const items: TabBarItem[] = [
+    ...(showCockpit ? [{ name: 'cockpit', label: 'Cockpit', Icon: Gauge }] : []),
+    ...(showPreparation ? [{ name: 'preparation', label: 'Préparation', Icon: Package }] : []),
+    {
+      name: 'discussions',
+      label: 'Discussions',
+      Icon: MessagesSquare,
+      badge: unread.total > 0 ? badgeCount(unread.total) : null,
+    },
+    { name: 'recherche', label: 'Recherche', Icon: Search },
+  ];
+
   return (
-    <NativeTabs
-      tintColor={t.accentText}
-      backgroundColor={t.bgElevated}
-      indicatorColor={withAlpha(t.accent, 0.2)}
-    >
-      <NativeTabs.Trigger name="cockpit" hidden={!canAccessHubCockpit(user.role)}>
-        <NativeTabs.Trigger.Label>Cockpit</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="gauge" md="speed" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="preparation" hidden={!canAccessHubPreparation(user.role)}>
-        <NativeTabs.Trigger.Label>Préparation</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'shippingbox', selected: 'shippingbox.fill' }}
-          md="inventory_2"
-        />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="discussions">
-        <NativeTabs.Trigger.Label>Discussions</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right" md="forum" />
-        <NativeTabs.Trigger.Badge hidden={unread.total === 0}>
-          {badgeCount(unread.total)}
-        </NativeTabs.Trigger.Badge>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="recherche" role="search">
-        <NativeTabs.Trigger.Label>Recherche</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="magnifyingglass" md="search" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="plus" disabled listeners={{ tabPress: openHubMenu }}>
-        <NativeTabs.Trigger.Label>Menu</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="line.3.horizontal" md="menu" />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Tabs style={{ flex: 1, backgroundColor: t.bg }}>
+      <TabSlot />
+      <TabList style={{ display: 'none' }}>
+        {showCockpit ? <TabTrigger name="cockpit" href="/hub/cockpit" /> : null}
+        {showPreparation ? <TabTrigger name="preparation" href="/hub/preparation" /> : null}
+        <TabTrigger name="discussions" href="/hub/discussions" />
+        <TabTrigger name="recherche" href="/hub/recherche" />
+      </TabList>
+      <BatipowerTabBar items={items} onCenterPress={openHubMenu} centerLabel="Menu" />
+    </Tabs>
   );
 }

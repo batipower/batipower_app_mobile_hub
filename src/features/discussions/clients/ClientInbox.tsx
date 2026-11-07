@@ -11,6 +11,7 @@ import { EmptyState, ErrorBanner, ListSkeleton, errorMessage } from '@/features/
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
 import { useDebouncedTerm } from '@/features/search/hooks/useDebouncedTerm';
 import { chooseAction } from '@/lib/actionSheet';
+import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { makeStyles, spacing, useTheme } from '@/theme';
 import type { ListSupportConversationsResult, SupportConversation, SupportConversationStatus } from '@/types/supportChat';
 
@@ -41,6 +42,7 @@ type ClientInboxProps = {
  */
 export function ClientInbox({ search }: ClientInboxProps) {
   const styles = useStyles();
+  const tabBarInset = useTabBarInset();
   const t = useTheme();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<StatusFilter>('OPEN');
@@ -158,7 +160,7 @@ export function ClientInbox({ search }: ClientInboxProps) {
       ItemSeparatorComponent={Separator}
       ListHeaderComponent={listHeader}
       ListEmptyComponent={empty}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarInset + spacing.lg }]}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"

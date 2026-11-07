@@ -10,6 +10,7 @@ import { EmptyState, ErrorBanner, ListSkeleton } from '@/features/preparation/co
 import { SegmentedControl, type Segment } from '@/features/preparation/components/SegmentedControl';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
 import { ProductResultCard } from '@/features/products/components/ProductResultCard';
+import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 import type { HubSearchHistoryEntry } from '@/types/searchHistory';
 import type { OrderSearchHit } from '@/types/order';
@@ -56,6 +57,7 @@ export function SearchScreen() {
 
 function SearchContent({ canSearchProducts }: { canSearchProducts: boolean }) {
   const styles = useStyles();
+  const tabBarInset = useTabBarInset();
   const t = useTheme();
   const [text, setText] = useState('');
   const [filter, setFilter] = useState<SearchFilter>('all');
@@ -284,7 +286,7 @@ function SearchContent({ canSearchProducts }: { canSearchProducts: boolean }) {
         ListHeaderComponent={header ?? undefined}
         ListEmptyComponent={empty ?? undefined}
         stickySectionHeadersEnabled
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarInset + spacing.lg }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         contentInsetAdjustmentBehavior="automatic"

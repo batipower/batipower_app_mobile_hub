@@ -8,8 +8,9 @@ import { useTheme } from '@/theme';
  * Pile du module HUB, réservé aux comptes qui le possèdent (le back le refuse de toute façon
  * sur `/hub-app/*`).
  *
- * - `(tabs)` : barre d'onglets native (Cockpit, Préparation, Recherche, Menu).
- * - `menu` : feuille native à mi-écran ouverte par l'onglet Menu (lignes de navigation).
+ * - `(tabs)` : onglets avec la barre flottante Batipower (Cockpit, Préparation, Discussions,
+ *   Recherche, et le bouton éclair central qui ouvre le menu).
+ * - `menu` : feuille native à mi-écran ouverte par le bouton central (lignes de navigation).
  * - `pricing`, `profil` : pages secondaires lancées depuis le menu, poussées par-dessus les
  *   onglets avec le bouton retour natif. Le profil est une page à part, pas un bloc du menu.
  */

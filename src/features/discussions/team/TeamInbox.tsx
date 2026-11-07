@@ -10,6 +10,7 @@ import { Chip } from '@/components/ui';
 import { EmptyState, ErrorBanner, ListSkeleton, errorMessage } from '@/features/preparation/components/ListState';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
 import { chooseAction } from '@/lib/actionSheet';
+import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { makeStyles, spacing, useTheme } from '@/theme';
 import type { GroupConversationSummary } from '@/types/discussions';
 
@@ -39,6 +40,7 @@ type TeamInboxProps = {
  */
 export function TeamInbox({ search }: TeamInboxProps) {
   const styles = useStyles();
+  const tabBarInset = useTabBarInset();
   const t = useTheme();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<TeamTab>('active');
@@ -198,7 +200,7 @@ export function TeamInbox({ search }: TeamInboxProps) {
       ItemSeparatorComponent={Separator}
       ListHeaderComponent={listHeader}
       ListEmptyComponent={empty}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarInset + spacing.lg }]}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"

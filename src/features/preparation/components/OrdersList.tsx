@@ -1,6 +1,7 @@
 import { FlatList, RefreshControl, View } from 'react-native';
 import { PackageOpen, Search } from 'lucide-react-native';
 
+import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { makeStyles, spacing, useTheme } from '@/theme';
 import type { PreparationOrder } from '@/types/preparation';
 
@@ -30,6 +31,7 @@ export function OrdersList({
   onRefresh,
 }: OrdersListProps) {
   const styles = useStyles();
+  const tabBarInset = useTabBarInset();
   const t = useTheme();
   return (
     <FlatList
@@ -37,7 +39,7 @@ export function OrdersList({
       keyExtractor={keyExtractor}
       renderItem={({ item }) => <OrderCard order={item} />}
       ItemSeparatorComponent={Separator}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarInset + spacing.lg }]}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       contentInsetAdjustmentBehavior="automatic"

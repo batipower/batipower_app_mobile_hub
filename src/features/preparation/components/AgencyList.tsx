@@ -1,6 +1,7 @@
 import { RefreshControl, SectionList, Text, View } from 'react-native';
 import { MapPin } from 'lucide-react-native';
 
+import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 import type { DriverTourAgency, DriverTourItem } from '@/types/preparation';
 
@@ -35,6 +36,7 @@ export function AgencyList({
   onRefresh,
 }: AgencyListProps) {
   const styles = useStyles();
+  const tabBarInset = useTabBarInset();
   const t = useTheme();
   const sections: AgencySection[] = agencies.map((agency) => ({ agency, data: agency.items }));
 
@@ -47,7 +49,7 @@ export function AgencyList({
         <AgencyItemRow item={item} last={index === section.data.length - 1} />
       )}
       stickySectionHeadersEnabled={false}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: tabBarInset + spacing.lg }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
       refreshControl={

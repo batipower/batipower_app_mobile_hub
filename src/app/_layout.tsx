@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -9,6 +9,7 @@ import { Toaster } from 'sonner-native';
 
 import { queryClient } from '@/api/queryClient';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
+import { EcosystemIntro } from '@/features/intro/EcosystemIntro';
 import { PushNotificationsController } from '@/notifications/PushNotificationsController';
 import { AppThemeProvider, useTheme } from '@/theme';
 
@@ -53,6 +54,7 @@ function RootProviders() {
               <SplashController />
               <PushNotificationsController />
               <RootNavigator />
+              <IntroGate />
             </ThemeProvider>
             <Toaster theme={t.scheme} position="top-center" richColors />
           </AuthProvider>
@@ -60,6 +62,22 @@ function RootProviders() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
+}
+
+/**
+ * Intro « entrée dans l'écosystème Batipower », jouée une fois par lancement à froid (l'état vit
+ * dans ce composant racine : un retour d'arrière-plan ne la rejoue pas). Elle recouvre l'app
+ * pendant la vérification de la session et ne se retire qu'une fois celle-ci connue ; dès son
+ * premier rendu, elle prend le relais du splash natif (même fond).
+ */
+function IntroGate() {
+  const { status } = useAuth();
+  const [done, setDone] = useState(false);
+  const hideSplash = useCallback(() => SplashScreen.hide(), []);
+  const finish = useCallback(() => setDone(true), []);
+
+  if (done) return null;
+  return <EcosystemIntro ready={status !== 'loading'} onReady={hideSplash} onDone={finish} />;
 }
 
 function SplashController() {

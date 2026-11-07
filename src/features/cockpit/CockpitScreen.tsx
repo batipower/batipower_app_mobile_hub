@@ -8,6 +8,7 @@ import { canAccessHubCockpit } from '@/auth/permissions';
 import { AccessDenied } from '@/features/preparation/components/AccessDenied';
 import { ErrorBanner, ListSkeleton } from '@/features/preparation/components/ListState';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
+import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { makeStyles, spacing, useTheme } from '@/theme';
 
 import { CaMonthSection } from './components/CaMonthSection';
@@ -36,6 +37,7 @@ export function CockpitScreen() {
 
 function CockpitContent() {
   const styles = useStyles();
+  const tabBarInset = useTabBarInset();
   const t = useTheme();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -57,6 +59,7 @@ function CockpitContent() {
       contentContainerStyle={[
         styles.content,
         { paddingTop: Platform.OS === 'ios' ? spacing.md : insets.top + spacing.md },
+        { paddingBottom: tabBarInset + spacing.lg },
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
