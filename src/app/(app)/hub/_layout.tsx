@@ -2,16 +2,16 @@ import { Redirect, Stack } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { accessibleModules, getLandingHref } from '@/modules/registry';
-import { colors, useTheme } from '@/theme';
+import { useTheme } from '@/theme';
 
 /**
  * Pile du module HUB, réservé aux comptes qui le possèdent (le back le refuse de toute façon
  * sur `/hub-app/*`).
  *
  * - `(tabs)` : barre d'onglets native (Cockpit, Préparation, Recherche, Menu).
- * - `menu` : feuille native à mi-écran ouverte par l'onglet Menu.
+ * - `menu` : feuille native à mi-écran ouverte par l'onglet Menu (lignes de navigation).
  * - `pricing`, `profil` : pages secondaires lancées depuis le menu, poussées par-dessus les
- *   onglets avec le bouton retour natif.
+ *   onglets avec le bouton retour natif. Le profil est une page à part, pas un bloc du menu.
  */
 export default function HubLayout() {
   const t = useTheme();
@@ -40,7 +40,8 @@ export default function HubLayout() {
           sheetInitialDetentIndex: 0,
           sheetGrabberVisible: true,
           sheetCornerRadius: 16,
-          contentStyle: { backgroundColor: colors.black },
+          // Fond de la feuille : suit le thème (clair/sombre), jamais figé.
+          contentStyle: { backgroundColor: t.bgElevated },
         }}
       />
       <Stack.Screen name="pricing" options={{ headerShown: false }} />

@@ -1,62 +1,71 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { LinearGradient } from 'expo-linear-gradient';
-import { LogOut, Moon, Sun, SunMoon, type LucideIcon } from 'lucide-react-native';
+import { ChevronRight, LayoutGrid, LogOut, type LucideIcon } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { ModuleSwitcherButton } from '@/components/modules/ModuleSwitcherButton';
-import { roleLabel } from '@/modules/roles';
+import { accessibleModules } from '@/modules/registry';
 import { openModuleSwitcher } from '@/modules/switchModule';
-import {
-  colors,
-  fontSize,
-  makeStyles,
-  radius,
-  spacing,
-  THEME_PREFERENCES,
-  useTheme,
-  useThemePreference,
-  withAlpha,
-  type ThemePreference,
-} from '@/theme';
+import { fontSize, makeStyles, radius, spacing, typography, useTheme, withAlpha } from '@/theme';
 
-import { menuSectionsFor, type HubMenuEntry } from './hubMenu';
+import { menuSectionsFor, type HubMenuSection } from './hubMenu';
 import { openFromMenu } from './navigation';
 
-const APPEARANCE: Record<ThemePreference, { label: string; icon: LucideIcon }> = {
-  dark: { label: 'Sombre', icon: Moon },
-  light: { label: 'Clair', icon: Sun },
-  system: { label: 'Auto', icon: SunMoon },
+/**
+ * Taille des icônes du menu. Les icônes de la barre d'onglets natifs font ~24 pt : celles du
+ * menu ne doivent jamais les dépasser.
+ */
+const ICON_SIZE = 20;
+const CHEVRON_SIZE = 16;
+
+type MenuRow = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  onPress: () => void;
 };
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters = parts.length > 1 ? [parts[0], parts[parts.length - 1]] : [parts[0]];
-  return letters
-    .map((part) => part?.charAt(0) ?? '')
-    .join('')
-    .toUpperCase();
-}
+type MenuGroup = { section: HubMenuSection; rows: MenuRow[] };
 
 /**
- * Menu du HUB, présenté en feuille native à mi-écran. Reprend le chrome de la sidebar web :
- * dégradé sombre `#131921` vers `#1A1F29`, groupes en petites capitales, entrées icône + libellé,
- * pied avec l'apparence et la déconnexion. À rendre dans un `ForcedTheme` sombre.
+ * Menu du HUB, présenté en feuille native à mi-écran : uniquement des lignes de navigation
+ * (pages, changement de module) et la déconnexion. Il suit le thème de l'app (clair, sombre ou
+ * auto) ; le contenu du profil (identité, infos du compte, apparence, impersonation) vit dans la
+ * page `Profil`, simple destination du menu.
  */
 export function MenuSheet() {
   const styles = useStyles();
   const t = useTheme();
   const { user, logout } = useAuth();
-  const { preference, setPreference } = useThemePreference();
   const [loggingOut, setLoggingOut] = useState(false);
   if (!user) return null;
 
-  const groups = menuSectionsFor(user.role);
+  const groups: MenuGroup[] = menuSectionsFor(user.role).map((group) => ({
+    section: group.section,
+    rows: group.entries.map((entry) => ({
+      id: entry.id,
+      label: entry.label,
+      icon: entry.icon,
+      onPress: () => openFromMenu(entry.href),
+    })),
+  }));
 
-  const open = (entry: HubMenuEntry) => {
+  // Le changement de module rejoint le groupe « Compte » (créé au besoin).
+  if (accessibleModules(user).length > 1) {
+    const moduleRow: MenuRow = {
+      id: 'modules',
+      label: 'Changer de module',
+      icon: LayoutGrid,
+      onPress: () => openFromMenu(() => openModuleSwitcher('HUB')),
+    };
+    const account = groups.find((group) => group.section === 'Compte');
+    if (account) account.rows.push(moduleRow);
+    else groups.push({ section: 'Compte', rows: [moduleRow] });
+  }
+
+  const press = (row: MenuRow) => {
     void Haptics.selectionAsync().catch(() => undefined);
-    openFromMenu(entry.href);
+    row.onPress();
   };
 
   const confirmLogout = () => {
@@ -74,180 +83,109 @@ export function MenuSheet() {
   };
 
   return (
-    <LinearGradient colors={[colors.black, colors.gray900]} style={styles.sheet}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials(user.name)}</Text>
-          </View>
-          <View style={styles.identity}>
-            <Text style={styles.name} numberOfLines={1}>
-              {user.name}
-            </Text>
-            <Text style={styles.role} numberOfLines={1}>
-              {roleLabel(user.role)}
-            </Text>
-          </View>
-          <ModuleSwitcherButton
-            active="HUB"
-            onOpen={() => openFromMenu(() => openModuleSwitcher('HUB'))}
-          />
-        </View>
+    <ScrollView
+      style={styles.sheet}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+    >
+      <Text style={styles.title} accessibilityRole="header">
+        Menu
+      </Text>
 
-        {groups.map((group) => (
-          <View key={group.section} style={styles.group}>
-            <Text style={styles.groupTitle} accessibilityRole="header">
-              {group.section}
-            </Text>
-            {group.entries.map((entry) => {
-              const Icon = entry.icon;
+      {groups.map((group) => (
+        <View key={group.section} style={styles.group}>
+          <Text style={styles.groupTitle} accessibilityRole="header">
+            {group.section}
+          </Text>
+          <View style={styles.list}>
+            {group.rows.map((row, index) => {
+              const Icon = row.icon;
               return (
-                <Pressable
-                  key={entry.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={entry.label}
-                  onPress={() => open(entry)}
-                  style={({ pressed }) => [styles.item, pressed && styles.itemActive]}
-                >
-                  {({ pressed }) => (
-                    <>
-                      <Icon size={18} color={pressed ? t.accentText : colors.gray400} />
-                      <Text style={[styles.itemLabel, pressed && styles.itemLabelActive]}>
-                        {entry.label}
-                      </Text>
-                    </>
-                  )}
-                </Pressable>
+                <Fragment key={row.id}>
+                  {index > 0 ? <View style={styles.separator} /> : null}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={row.label}
+                    onPress={() => press(row)}
+                    style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                  >
+                    <View style={styles.iconSlot}>
+                      <Icon size={ICON_SIZE} color={t.accentText} />
+                    </View>
+                    <Text style={styles.rowLabel} numberOfLines={1}>
+                      {row.label}
+                    </Text>
+                    <ChevronRight size={CHEVRON_SIZE} color={t.textFaint} />
+                  </Pressable>
+                </Fragment>
               );
             })}
           </View>
-        ))}
-
-        <View style={styles.footer}>
-          <View style={styles.segments} accessibilityRole="radiogroup">
-            {THEME_PREFERENCES.map((key) => {
-              const { label, icon: Icon } = APPEARANCE[key];
-              const selected = key === preference;
-              return (
-                <Pressable
-                  key={key}
-                  accessibilityRole="radio"
-                  accessibilityLabel={`Apparence ${label}`}
-                  accessibilityState={{ selected, checked: selected }}
-                  onPress={() => {
-                    if (selected) return;
-                    void Haptics.selectionAsync().catch(() => undefined);
-                    setPreference(key);
-                  }}
-                  style={[styles.segment, selected && styles.segmentSelected]}
-                >
-                  <Icon size={14} color={selected ? t.accentText : colors.gray400} />
-                  <Text style={[styles.segmentLabel, selected && styles.segmentLabelSelected]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Se déconnecter"
-            disabled={loggingOut}
-            onPress={confirmLogout}
-            style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
-          >
-            <LogOut size={18} color={t.danger} />
-            <Text style={[styles.itemLabel, { color: t.danger }]}>Se déconnecter</Text>
-          </Pressable>
         </View>
-      </ScrollView>
-    </LinearGradient>
+      ))}
+
+      <View style={styles.list}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Se déconnecter"
+          disabled={loggingOut}
+          onPress={confirmLogout}
+          style={({ pressed }) => [
+            styles.row,
+            pressed && styles.rowPressed,
+            loggingOut && styles.rowDisabled,
+          ]}
+        >
+          <View style={styles.iconSlot}>
+            <LogOut size={ICON_SIZE} color={t.danger} />
+          </View>
+          <Text style={[styles.rowLabel, { color: t.danger }]} numberOfLines={1}>
+            Se déconnecter
+          </Text>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
 const useStyles = makeStyles((t) => ({
-  sheet: { flex: 1 },
+  sheet: { flex: 1, backgroundColor: t.bgElevated },
   content: {
     paddingTop: spacing['2xl'],
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing['3xl'],
     gap: spacing.lg,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: withAlpha(t.accent, 0.15),
-    borderWidth: 1,
-    borderColor: withAlpha(t.accent, 0.3),
-  },
-  avatarText: { fontSize: fontSize.sm, fontWeight: '700', color: t.accentText },
-  identity: { flex: 1, gap: 1 },
-  name: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2, color: colors.white },
-  role: { fontSize: 12, color: colors.gray400 },
+  title: { fontSize: fontSize.xl, fontWeight: '700', letterSpacing: -0.3, color: t.text },
   group: { gap: spacing.xs },
   groupTitle: {
+    ...typography.label,
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.xs,
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    color: withAlpha(colors.white, 0.35),
+    color: t.textSubtle,
   },
-  item: {
-    minHeight: 44,
+  list: {
+    overflow: 'hidden',
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: t.border,
+    backgroundColor: t.surface,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth * 2,
+    marginLeft: spacing.md + 28 + spacing.md,
+    backgroundColor: t.border,
+  },
+  row: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: 'transparent',
   },
-  itemActive: {
-    backgroundColor: withAlpha(colors.green, 0.15),
-    borderColor: withAlpha(colors.green, 0.2),
-  },
-  itemPressed: { backgroundColor: withAlpha(colors.white, 0.05) },
-  itemLabel: { fontSize: fontSize.sm, fontWeight: '500', color: colors.gray400 },
-  itemLabelActive: { color: t.accentText },
-  footer: {
-    gap: spacing.sm,
-    paddingTop: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth * 2,
-    borderTopColor: withAlpha(colors.white, 0.08),
-  },
-  segments: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    padding: spacing.xs,
-    borderRadius: radius.md,
-    backgroundColor: withAlpha(colors.white, 0.05),
-  },
-  segment: {
-    flex: 1,
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs + 2,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  segmentSelected: {
-    backgroundColor: withAlpha(colors.green, 0.15),
-    borderColor: withAlpha(colors.green, 0.2),
-  },
-  segmentLabel: { fontSize: 12, fontWeight: '500', color: colors.gray400 },
-  segmentLabelSelected: { color: t.accentText },
+  rowPressed: { backgroundColor: withAlpha(t.accent, 0.12) },
+  rowDisabled: { opacity: 0.5 },
+  iconSlot: { width: 28, alignItems: 'center', justifyContent: 'center' },
+  rowLabel: { flex: 1, fontSize: fontSize.base, fontWeight: '500', color: t.text },
 }));
