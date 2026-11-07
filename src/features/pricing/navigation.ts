@@ -5,24 +5,24 @@ import { router } from 'expo-router';
 export type PricingPickerKind = 'brands' | 'tags' | 'affaires' | 'edit-tags';
 
 export function openPricingRow(reference: string) {
-  router.push({ pathname: '/hub/menu/pricing/[reference]', params: { reference } });
+  router.push({ pathname: '/hub/pricing/[reference]', params: { reference } });
 }
 
 export function openPricingFilters() {
-  router.push('/hub/menu/pricing/filtres');
+  router.push('/hub/pricing/filtres');
 }
 
 export function openPricingSort() {
-  router.push('/hub/menu/pricing/tri');
+  router.push('/hub/pricing/tri');
 }
 
 export function openPricingStats() {
-  router.push('/hub/menu/pricing/stats');
+  router.push('/hub/pricing/stats');
 }
 
 /** Feuille de choix (marques, tags, affaires) ; `reference` seulement pour l'édition des tags d'une ligne. */
 export function openPricingPicker(kind: PricingPickerKind, reference?: string) {
-  router.push({ pathname: '/hub/menu/pricing/choix/[kind]', params: { kind, reference } });
+  router.push({ pathname: '/hub/pricing/choix/[kind]', params: { kind, reference } });
 }
 
 export type PricingEditField =
@@ -36,5 +36,5 @@ export type PricingEditField =
 
 /** Feuille d'édition d'une valeur numérique d'une ligne. */
 export function openPricingEdit(reference: string, field: PricingEditField) {
-  router.push({ pathname: '/hub/menu/pricing/editer', params: { reference, field } });
+  router.push({ pathname: '/hub/pricing/editer', params: { reference, field } });
 }

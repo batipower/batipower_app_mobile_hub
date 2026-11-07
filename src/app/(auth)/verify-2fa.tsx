@@ -117,7 +117,7 @@ export default function VerifyTwoFactorScreen() {
         </Text>
       </View>
 
-      <Card>
+      <Card variant="glass">
         <View style={styles.form}>
           <OtpInput
             value={code}

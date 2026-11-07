@@ -76,8 +76,8 @@ const useStyles = makeStyles((t) => ({
     gap: spacing.md,
     marginTop: spacing.lg,
     padding: spacing.lg,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
+    borderTopLeftRadius: radius.md,
+    borderTopRightRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderBottomWidth: 0,
     borderColor: t.border,
@@ -108,8 +108,8 @@ const useStyles = makeStyles((t) => ({
   },
   rowLast: {
     borderBottomWidth: StyleSheet.hairlineWidth * 2,
-    borderBottomLeftRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
+    borderBottomLeftRadius: radius.md,
+    borderBottomRightRadius: radius.md,
   },
   quantity: {
     minWidth: 40,

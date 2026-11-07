@@ -190,7 +190,7 @@ const useStyles = makeStyles((t) => ({
     flexBasis: '47%',
     gap: 4,
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: t.border,
     backgroundColor: t.surface,
@@ -224,7 +224,7 @@ const useStyles = makeStyles((t) => ({
   card: {
     gap: spacing.xs,
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: t.border,
     backgroundColor: t.surface,

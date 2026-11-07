@@ -3,7 +3,15 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight, Copy, type LucideIcon } from 'lucide-react-native';
 
 import { copyToClipboard } from '@/lib/clipboard';
-import { fontSize, makeStyles, monoFontFamily, spacing, typography, useTheme } from '@/theme';
+import {
+  fontSize,
+  makeStyles,
+  monoFontFamily,
+  radius,
+  spacing,
+  typography,
+  useTheme,
+} from '@/theme';
 
 import { Card } from './Card';
 
@@ -17,7 +25,7 @@ type DetailSectionProps = {
   children: ReactNode;
 };
 
-/** Bloc titré d'une fiche (commande, produit) : petit titre en capitales + carte « verre ». */
+/** Bloc titré d'une fiche (commande, produit) : petit titre en capitales + carte plate. */
 export function DetailSection({ title, trailing, children }: DetailSectionProps) {
   const styles = useStyles();
   return (
@@ -124,7 +132,11 @@ const useStyles = makeStyles((t) => ({
     justifyContent: 'space-between',
     gap: spacing.lg,
   },
-  pressable: { marginHorizontal: -spacing.sm, paddingHorizontal: spacing.sm, borderRadius: 8 },
+  pressable: {
+    marginHorizontal: -spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+  },
   pressed: { backgroundColor: t.surface },
   infoLabel: { fontSize: fontSize.sm, color: t.textMuted },
   infoValueWrap: {

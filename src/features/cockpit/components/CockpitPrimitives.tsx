@@ -277,7 +277,7 @@ const useStyles = makeStyles((t) => ({
     gap: 3,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: radius.sm - 2,
+    borderRadius: radius.sm,
   },
   deltaText: { fontSize: 11, fontWeight: '700' },
 

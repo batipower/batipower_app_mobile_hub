@@ -45,7 +45,7 @@ const useStyles = makeStyles((t) => ({
     alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: t.border,
     backgroundColor: t.surface,

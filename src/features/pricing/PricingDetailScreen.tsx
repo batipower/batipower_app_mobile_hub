@@ -525,7 +525,7 @@ const useStyles = makeStyles((t) => ({
     width: '100%',
     flex: 1,
     justifyContent: 'flex-end',
-    borderRadius: radius.sm - 4,
+    borderRadius: radius.sm - 2,
     backgroundColor: withAlpha(t.accent, 0.08),
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: t.border,

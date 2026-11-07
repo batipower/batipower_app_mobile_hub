@@ -8,5 +8,5 @@ export {
   useTheme,
   useThemePreference,
 } from './ThemeProvider';
-export { hitTarget, radius, spacing } from './spacing';
+export { hitTarget, radius, shadow, spacing } from './spacing';
 export { fontSize, fontWeight, monoFontFamily, typography } from './typography';

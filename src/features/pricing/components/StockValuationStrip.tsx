@@ -71,7 +71,7 @@ const useStyles = makeStyles((t) => ({
     marginHorizontal: spacing.xl,
     gap: spacing.xs,
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: withAlpha(t.accent, 0.4),
     backgroundColor: withAlpha(t.accent, 0.08),

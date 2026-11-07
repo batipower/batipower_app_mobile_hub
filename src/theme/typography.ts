@@ -27,13 +27,13 @@ export const fontWeight = {
 export const typography = {
   title: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold },
   body: { fontSize: fontSize.sm, fontWeight: fontWeight.regular },
-  /** Libellé de champ : petites capitales espacées, comme sur le web. */
+  /** Libellé de champ ou de groupe : petites capitales espacées, comme sur le web. */
   label: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
-    letterSpacing: 0.8,
+    fontSize: 11,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  button: { fontSize: fontSize.base, fontWeight: fontWeight.semibold },
+  button: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold },
   caption: { fontSize: fontSize.xs, fontWeight: fontWeight.regular },
 } as const satisfies Record<string, TextStyle>;

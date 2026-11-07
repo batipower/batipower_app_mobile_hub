@@ -70,7 +70,7 @@ export function ErrorBanner({ error, fallback, onRetry }: ErrorBannerProps) {
 
 const useStyles = makeStyles((t) => ({
   skeletonList: { gap: spacing.md },
-  skeleton: { borderRadius: radius.lg, backgroundColor: t.card },
+  skeleton: { borderRadius: radius.md, backgroundColor: t.card },
   center: {
     alignItems: 'center',
     gap: spacing.sm,
@@ -81,7 +81,7 @@ const useStyles = makeStyles((t) => ({
     width: 56,
     height: 56,
     marginBottom: spacing.sm,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: t.surface,

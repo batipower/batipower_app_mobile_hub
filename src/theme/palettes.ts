@@ -52,18 +52,19 @@ export interface Theme {
 export const darkTheme: Theme = {
   scheme: 'dark',
 
-  bg: colors.black,
-  bgElevated: colors.gray900,
-  card: onDark.surface,
-  cardPressed: onDark.surfaceStrong,
+  // Variables `.dark` de `front_externe_batipower/app/globals.css` (HSL converties en hex).
+  bg: '#0F131A',
+  bgElevated: '#181D25',
+  card: '#181D25',
+  cardPressed: '#212832',
   surface: onDark.surface,
   surfaceStrong: onDark.surfaceStrong,
   raised: onDark.surfaceStrong,
-  border: onDark.border,
-  borderStrong: onDark.borderStrong,
+  border: '#363D49',
+  borderStrong: '#454E5C',
 
-  text: colors.white,
-  textMuted: onDark.textMuted,
+  text: '#F0F2F5',
+  textMuted: '#8D97A5',
   textSubtle: onDark.textSubtle,
   textFaint: onDark.textFaint,
 
@@ -89,15 +90,16 @@ const INK = '#0F1111';
 export const lightTheme: Theme = {
   scheme: 'light',
 
-  bg: '#F2F4F7',
+  // Fond de page, cartes et bordures du web (`--background`, `--card`, `--border`).
+  bg: '#EAEDED',
   bgElevated: '#FFFFFF',
   card: '#FFFFFF',
-  cardPressed: '#EAEEF2',
+  cardPressed: '#F3F3F3',
   surface: withAlpha(INK, 0.04),
   surfaceStrong: withAlpha(INK, 0.08),
   raised: '#FFFFFF',
-  border: withAlpha(INK, 0.1),
-  borderStrong: withAlpha(INK, 0.16),
+  border: '#D5D9D9',
+  borderStrong: '#C6CACA',
 
   text: INK,
   textMuted: withAlpha(INK, 0.64),

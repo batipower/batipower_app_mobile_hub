@@ -4,7 +4,7 @@ import { ChevronRight } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui';
 import { productMatchedOnLabel } from '@/features/search/searchHelpers';
-import { fontSize, makeStyles, monoFontFamily, radius, spacing, useTheme } from '@/theme';
+import { fontSize, makeStyles, monoFontFamily, radius, shadow, spacing, useTheme } from '@/theme';
 import type { HubProductSearchHit } from '@/types/product';
 
 type ProductResultCardProps = {
@@ -60,10 +60,11 @@ const useStyles = makeStyles((t) => ({
   card: {
     gap: spacing.xs + 2,
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: t.border,
     backgroundColor: t.card,
+    ...shadow.sm,
   },
   pressed: { backgroundColor: t.cardPressed },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

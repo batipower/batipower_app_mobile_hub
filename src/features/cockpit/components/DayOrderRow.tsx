@@ -7,7 +7,16 @@ import { Badge } from '@/components/ui';
 import { OriginLogo } from '@/features/orders/components/OriginLogo';
 import { deviceLabel, originLabel } from '@/features/orders/orderDisplay';
 import { formatEuro, formatInteger, formatPercent } from '@/lib/format';
-import { fontSize, makeStyles, monoFontFamily, radius, spacing, useTheme, withAlpha } from '@/theme';
+import {
+  fontSize,
+  makeStyles,
+  monoFontFamily,
+  radius,
+  shadow,
+  spacing,
+  useTheme,
+  withAlpha,
+} from '@/theme';
 import type { HubDayOrderRow, HubOrderDevice } from '@/types/hubDashboard';
 
 import { formatParisTime } from '../dates';
@@ -35,7 +44,10 @@ function PromoBadge({ promo }: { promo: HubDayOrderRow['promo'] }) {
   const color = code ? t.success : t.warning;
   return (
     <View
-      style={[styles.promo, { borderColor: withAlpha(color, 0.5), backgroundColor: withAlpha(color, 0.12) }]}
+      style={[
+        styles.promo,
+        { borderColor: withAlpha(color, 0.5), backgroundColor: withAlpha(color, 0.12) },
+      ]}
       accessible
       accessibilityLabel={`${code ? `Code promo ${code}` : 'Remise appliquée'}${discount ? `, remise ${discount} TTC` : ''}`}
     >
@@ -110,10 +122,11 @@ const useStyles = makeStyles((t) => ({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.md,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: t.border,
     backgroundColor: t.card,
+    ...shadow.sm,
   },
   main: { flex: 1, gap: 6 },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -134,7 +147,7 @@ const useStyles = makeStyles((t) => ({
     maxWidth: 190,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: radius.sm - 2,
+    borderRadius: radius.sm,
     borderWidth: 1,
   },
   promoText: { flexShrink: 1, fontSize: 10, fontWeight: '700' },

@@ -2,12 +2,13 @@ import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, type StyleProp, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
-import { makeStyles, radius, spacing, typography, useTheme } from '@/theme';
+import { hitTarget, makeStyles, radius, spacing, typography, useTheme } from '@/theme';
 
 type ButtonProps = {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'ghost';
+  /** Variantes du `Button` web : `primary`, `secondary` (gris), `outline` (bordure) et `ghost`. */
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   /** Action destructive (ex. déconnexion) : libellé en rouge pour la variante `ghost`. */
   destructive?: boolean;
   loading?: boolean;
@@ -53,10 +54,9 @@ export function Button({
       accessibilityState={{ disabled: inactive, busy: loading }}
       style={({ pressed }) => [
         styles.base,
-        isPrimary ? styles.primary : styles.ghost,
-        isPrimary && !inactive && styles.primaryShadow,
+        styles[variant],
         isPrimary && pressed && { backgroundColor: t.accentPressed },
-        !isPrimary && pressed && { backgroundColor: t.surface },
+        !isPrimary && pressed && { backgroundColor: t.surfaceStrong },
         pressed && styles.pressed,
         inactive && styles.inactive,
         style,
@@ -70,7 +70,8 @@ export function Button({
           <Text
             style={[
               styles.label,
-              !isPrimary && styles.ghostLabel,
+              variant === 'ghost' && styles.ghostLabel,
+              (variant === 'secondary' || variant === 'outline') && styles.neutralLabel,
               !isPrimary && destructive && styles.destructiveLabel,
             ]}
           >
@@ -85,8 +86,8 @@ export function Button({
 
 const useStyles = makeStyles((t) => ({
   base: {
-    minHeight: 48,
-    borderRadius: radius.lg,
+    minHeight: hitTarget,
+    borderRadius: radius.md,
     paddingHorizontal: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
@@ -94,16 +95,13 @@ const useStyles = makeStyles((t) => ({
     gap: spacing.sm,
   },
   primary: { backgroundColor: t.accent },
-  primaryShadow: {
-    shadowColor: t.accent,
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-  },
+  secondary: { backgroundColor: t.surfaceStrong },
+  outline: { backgroundColor: 'transparent', borderWidth: 1, borderColor: t.borderStrong },
   ghost: { backgroundColor: 'transparent' },
   pressed: { transform: [{ scale: 0.98 }] },
   inactive: { opacity: 0.5 },
   label: { ...typography.button, color: t.onAccent },
   ghostLabel: { color: t.textMuted },
+  neutralLabel: { color: t.text },
   destructiveLabel: { color: t.danger },
 }));

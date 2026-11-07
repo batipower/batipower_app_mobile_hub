@@ -71,7 +71,7 @@ export default function LoginScreen() {
         <Text style={styles.subtitle}>Connectez-vous à votre espace professionnel</Text>
       </View>
 
-      <Card>
+      <Card variant="glass">
         <View style={styles.form}>
           <Controller
             control={control}

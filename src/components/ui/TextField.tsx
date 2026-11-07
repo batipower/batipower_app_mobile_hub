@@ -95,7 +95,7 @@ const useStyles = makeStyles((t) => ({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: hitTarget,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: t.border,
@@ -109,15 +109,15 @@ const useStyles = makeStyles((t) => ({
   icon: { position: 'absolute', left: spacing.md + 2 },
   input: {
     flex: 1,
-    minHeight: 48,
+    minHeight: hitTarget,
     paddingHorizontal: spacing.md + 2,
     color: t.text,
-    fontSize: 16,
+    fontSize: 15,
   },
   inputWithIcon: { paddingLeft: 42 },
   toggle: {
     minWidth: hitTarget,
-    height: 48,
+    height: hitTarget,
     alignItems: 'center',
     justifyContent: 'center',
   },

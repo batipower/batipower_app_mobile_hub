@@ -1,19 +1,17 @@
-import { Redirect } from 'expo-router';
-import { NativeTabs } from 'expo-router/native-tabs';
+import { Redirect, Stack } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { canAccessHubCockpit, canAccessHubPreparation } from '@/auth/permissions';
 import { accessibleModules, getLandingHref } from '@/modules/registry';
-import { useTheme } from '@/theme';
+import { colors, useTheme } from '@/theme';
 
 /**
- * Navigation du module HUB : barre d'onglets native iOS (Liquid Glass sur iOS 26+).
+ * Pile du module HUB, réservé aux comptes qui le possèdent (le back le refuse de toute façon
+ * sur `/hub-app/*`).
  *
- * Le module est réservé aux comptes qui le possèdent (le back le refuse de toute façon
- * sur `/hub-app/*`) ; les onglets Cockpit (SUPERADMIN) et Préparation n'apparaissent que
- * pour les rôles autorisés. La Recherche est ouverte à tout compte HUB : sur iOS 26, elle
- * s'affiche en bouton séparé. Le dernier onglet, Menu, est le lanceur des pages secondaires
- * (Pricing…) et du profil : une nouvelle page s'y ajoute sans toucher à la barre d'onglets.
+ * - `(tabs)` : barre d'onglets native (Cockpit, Préparation, Recherche, Menu).
+ * - `menu` : feuille native à mi-écran ouverte par l'onglet Menu.
+ * - `pricing`, `profil` : pages secondaires lancées depuis le menu, poussées par-dessus les
+ *   onglets avec le bouton retour natif.
  */
 export default function HubLayout() {
   const t = useTheme();
@@ -22,26 +20,31 @@ export default function HubLayout() {
   if (!accessibleModules(user).includes('HUB')) return <Redirect href={getLandingHref(user)} />;
 
   return (
-    <NativeTabs tintColor={t.accentText}>
-      <NativeTabs.Trigger name="cockpit" hidden={!canAccessHubCockpit(user.role)}>
-        <NativeTabs.Trigger.Label>Cockpit</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="gauge" md="speed" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="preparation" hidden={!canAccessHubPreparation(user.role)}>
-        <NativeTabs.Trigger.Label>Préparation</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'shippingbox', selected: 'shippingbox.fill' }}
-          md="inventory_2"
-        />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="recherche" role="search">
-        <NativeTabs.Trigger.Label>Recherche</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="magnifyingglass" md="search" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="menu">
-        <NativeTabs.Trigger.Label>Menu</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="square.grid.2x2" md="apps" />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Stack
+      screenOptions={{
+        contentStyle: { backgroundColor: t.bg },
+        headerStyle: { backgroundColor: t.bg },
+        headerTintColor: t.accentText,
+        headerTitleStyle: { color: t.text },
+        headerShadowVisible: false,
+        headerBackTitle: 'Retour',
+      }}
+    >
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="menu"
+        options={{
+          headerShown: false,
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.5, 1],
+          sheetInitialDetentIndex: 0,
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 16,
+          contentStyle: { backgroundColor: colors.black },
+        }}
+      />
+      <Stack.Screen name="pricing" options={{ headerShown: false }} />
+      <Stack.Screen name="profil" options={{ title: 'Profil' }} />
+    </Stack>
   );
 }

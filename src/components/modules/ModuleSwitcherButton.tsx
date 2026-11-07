@@ -12,13 +12,15 @@ import type { BatipowerModule } from '@/types/user';
 type ModuleSwitcherButtonProps = {
   /** Module affiché par l'écran courant. */
   active: BatipowerModule;
+  /** Remplace l'ouverture directe du sélecteur (ex. fermer d'abord une feuille). */
+  onOpen?: () => void;
 };
 
 /**
  * Pastille du module courant, qui ouvre le sélecteur de module (équivalent de
  * `ModuleSwitcher` du front web). Masquée quand le compte n'a qu'un seul module.
  */
-export function ModuleSwitcherButton({ active }: ModuleSwitcherButtonProps) {
+export function ModuleSwitcherButton({ active, onOpen }: ModuleSwitcherButtonProps) {
   const { user } = useAuth();
   if (!user || accessibleModules(user).length < 2) return null;
 
@@ -32,7 +34,8 @@ export function ModuleSwitcherButton({ active }: ModuleSwitcherButtonProps) {
       hitSlop={8}
       onPress={() => {
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-        openModuleSwitcher(active);
+        if (onOpen) onOpen();
+        else openModuleSwitcher(active);
       }}
       style={({ pressed }) => [styles.pill, pressed && styles.pressed]}
     >

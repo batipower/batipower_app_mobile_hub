@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   frame: {
     width: '82%',
     height: 150,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.8)',
   },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.lg,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
   },
   bannerText: { flex: 1, gap: 2 },
   bannerTitle: { color: colors.white, fontSize: fontSize.lg, fontWeight: '800' },
