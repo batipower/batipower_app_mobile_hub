@@ -12,7 +12,8 @@ import { useTheme } from '@/theme';
  * Le module est réservé aux comptes qui le possèdent (le back le refuse de toute façon
  * sur `/hub-app/*`) ; les onglets Cockpit (SUPERADMIN) et Préparation n'apparaissent que
  * pour les rôles autorisés. La Recherche est ouverte à tout compte HUB : sur iOS 26, elle
- * s'affiche en bouton séparé.
+ * s'affiche en bouton séparé. Le dernier onglet, Menu, est le lanceur des pages secondaires
+ * (Pricing…) et du profil : une nouvelle page s'y ajoute sans toucher à la barre d'onglets.
  */
 export default function HubLayout() {
   const t = useTheme();
@@ -37,9 +38,9 @@ export default function HubLayout() {
         <NativeTabs.Trigger.Label>Recherche</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="magnifyingglass" md="search" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profil">
-        <NativeTabs.Trigger.Label>Profil</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} md="person" />
+      <NativeTabs.Trigger name="menu">
+        <NativeTabs.Trigger.Label>Menu</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="square.grid.2x2" md="apps" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

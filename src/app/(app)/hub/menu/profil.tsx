@@ -3,13 +3,11 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import Constants from 'expo-constants';
 import { toast } from 'sonner-native';
 import { ChevronRight, LayoutGrid, LogOut, UserCog } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
 import { canImpersonate } from '@/auth/permissions';
 import { ModuleBadge } from '@/components/modules/ModuleBadge';
-import { ModuleSwitcherButton } from '@/components/modules/ModuleSwitcherButton';
 import { Button, Card } from '@/components/ui';
 import { openImpersonation } from '@/features/impersonation/navigation';
 import { AppearanceSection } from '@/features/profile/components/AppearanceSection';
@@ -57,7 +55,6 @@ export default function ProfileScreen() {
   const styles = useStyles();
   const t = useTheme();
   const { user, logout, isImpersonating, stopImpersonation } = useAuth();
-  const insets = useSafeAreaInsets();
   const [loggingOut, setLoggingOut] = useState(false);
   const [stopping, setStopping] = useState(false);
   if (!user) return null;
@@ -97,13 +94,9 @@ export default function ProfileScreen() {
     <ScrollView
       style={styles.scroll}
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + spacing['2xl'] }]}
+      contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.switcher}>
-        <ModuleSwitcherButton active="HUB" />
-      </View>
-
       <View style={styles.identity}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initials(user.name)}</Text>
@@ -199,8 +192,12 @@ export default function ProfileScreen() {
 
 const useStyles = makeStyles((t) => ({
   scroll: { flex: 1, backgroundColor: t.bg },
-  content: { paddingHorizontal: spacing.xl, paddingBottom: spacing['4xl'], gap: spacing['2xl'] },
-  switcher: { alignItems: 'flex-end' },
+  content: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing['4xl'],
+    gap: spacing['2xl'],
+  },
   moduleRow: {
     minHeight: hitTarget,
     flexDirection: 'row',

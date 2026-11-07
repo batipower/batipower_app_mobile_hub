@@ -26,6 +26,7 @@ import {
   setTokens,
   type StoredTokens,
 } from '@/auth/tokenStorage';
+import { resetPricingState } from '@/features/pricing/filtersStore';
 import { goToLanding } from '@/modules/switchModule';
 import type { CurrentUser } from '@/types/user';
 
@@ -112,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setStatus('signedOut');
     queryClient.clear();
+    resetPricingState();
   }, [queryClient, setTempToken]);
 
   // Refresh refusé par le back : le client a déjà purgé les jetons.

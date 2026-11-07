@@ -22,6 +22,14 @@ export function canImpersonate(role: AppUserRole): boolean {
   return role === 'SUPERADMIN';
 }
 
+/**
+ * Liste Pricing du HUB (prix d'achat, marges, BuyBox) : SUPERADMIN uniquement, comme
+ * `canAccessHubPricing` côté web et `@Roles(SUPERADMIN)` de `hub-pricing.controller.ts`.
+ */
+export function canAccessHubPricing(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
 /** Page Préparation du HUB : mêmes rôles que `canAccessHubPreparation` côté web. */
 export function canAccessHubPreparation(role: AppUserRole): boolean {
   return isHubOpsRole(role);
