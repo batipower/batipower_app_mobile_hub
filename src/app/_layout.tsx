@@ -9,6 +9,7 @@ import { Toaster } from 'sonner-native';
 
 import { queryClient } from '@/api/queryClient';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
+import { PushNotificationsController } from '@/notifications/PushNotificationsController';
 import { AppThemeProvider, useTheme } from '@/theme';
 
 // Le splash natif reste affiché tant que la session n'a pas été vérifiée.
@@ -50,6 +51,7 @@ function RootProviders() {
           <AuthProvider>
             <ThemeProvider value={navigationTheme}>
               <SplashController />
+              <PushNotificationsController />
               <RootNavigator />
             </ThemeProvider>
             <Toaster theme={t.scheme} position="top-center" richColors />

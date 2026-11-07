@@ -28,6 +28,7 @@ import {
 } from '@/auth/tokenStorage';
 import { resetPricingState } from '@/features/pricing/filtersStore';
 import { goToLanding } from '@/modules/switchModule';
+import { unregisterStoredPushToken } from '@/notifications/pushRegistration';
 import type { CurrentUser } from '@/types/user';
 
 /**
@@ -210,6 +211,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const cancelTwoFactor = useCallback(() => setTempToken(null), [setTempToken]);
 
   const logout = useCallback(async () => {
+    // Le token push est retiré tant que le jeton de session est valide. Au mieux et borné dans
+    // le temps (hors ligne, serveur en panne) : la déconnexion ne dépend jamais de cet appel.
+    await unregisterStoredPushToken().catch(() => undefined);
     try {
       await authApi.logout();
     } catch {
