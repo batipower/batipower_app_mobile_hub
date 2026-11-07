@@ -17,6 +17,21 @@ export function canAccessHubCockpit(role: AppUserRole): boolean {
   return role === 'SUPERADMIN';
 }
 
+/** Vue « Site » de l'accueil HUB (notes, ruptures, palmarès avec marges) : SUPERADMIN. */
+export function canAccessHubWebsiteDashboard(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/** Vue « Stats PARTNER » de l'accueil HUB : SUPERADMIN (`@Roles` de `hub-partner-stats.controller.ts`). */
+export function canAccessHubPartnerStats(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/** Vue « Financier » de l'accueil HUB (P&L, Teogest) : SUPERADMIN, comme `canViewHubFinance` du web. */
+export function canViewHubFinance(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
 /** Réglages réservés au SUPERADMIN : impersonation (se connecter en tant qu'un autre compte). */
 export function canImpersonate(role: AppUserRole): boolean {
   return role === 'SUPERADMIN';

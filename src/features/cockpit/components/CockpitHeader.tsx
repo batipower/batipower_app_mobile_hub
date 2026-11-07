@@ -8,6 +8,7 @@ import { formatInteger, formatRelative } from '@/lib/format';
 import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 import type { MarketplaceSyncSummary } from '@/types/hubDashboard';
 
+import { HubViewMenu } from './HubViewMenu';
 import { SystemStatusPills } from './SystemStatusPills';
 
 /** Heure courante, rafraîchie régulièrement (libellés « il y a X min »). */
@@ -42,9 +43,7 @@ export function CockpitHeader({ generatedAt, marketplaceSync }: CockpitHeaderPro
     <View style={styles.wrap}>
       <View style={styles.row}>
         <View style={styles.text}>
-          <Text style={styles.title} accessibilityRole="header">
-            Cockpit
-          </Text>
+          <HubViewMenu current="cockpit" />
           {updated ? (
             <Text style={styles.updated}>Mis à jour {updated} · actualisation automatique</Text>
           ) : null}
@@ -79,7 +78,6 @@ const useStyles = makeStyles((t) => ({
     gap: spacing.md,
   },
   text: { flex: 1, gap: 2 },
-  title: { fontSize: fontSize['3xl'], fontWeight: '700', color: t.text },
   updated: { fontSize: fontSize.xs, color: t.textSubtle },
   status: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.xs },
   banner: {

@@ -5,6 +5,7 @@ import type {
   HubDayOrders,
   SupportResponseTimes,
 } from '@/types/hubDashboard';
+import type { WebsiteDashboardPeriod, WebsiteDashboardReport } from '@/types/hubWebsiteDashboard';
 
 type ReadOptions = { signal?: AbortSignal };
 
@@ -30,6 +31,17 @@ export const hubDashboardApi = {
   dayOrders(date: string, origins: readonly string[] = [], { signal }: ReadOptions = {}) {
     return apiClient.get<HubDayOrders>('hub-app/dashboard/orders', {
       query: { date, origins: origins.length > 0 ? origins.join(',') : undefined },
+      signal,
+    });
+  },
+
+  /**
+   * Vue « Site » : notes des fiches, ruptures, déploiement par service et palmarès des produits
+   * vendus uniquement sur le site, sur `30d` | `90d` | `12m` ; SUPERADMIN.
+   */
+  website(period: WebsiteDashboardPeriod, { signal }: ReadOptions = {}) {
+    return apiClient.get<WebsiteDashboardReport>('hub-app/dashboard/website', {
+      query: { period },
       signal,
     });
   },
