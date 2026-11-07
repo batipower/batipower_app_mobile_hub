@@ -43,3 +43,22 @@ export function canAccessHubPreparation(role: AppUserRole): boolean {
 export function canAccessHubProductSheet(role: AppUserRole): boolean {
   return isHubOpsRole(role);
 }
+
+/**
+ * Joindre une carte opportunité à un message d'équipe : SUPERADMIN uniquement, comme
+ * `canAttachOpportunity` de la page web des discussions.
+ */
+export function canAttachOpportunities(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/**
+ * Joindre une carte renégociation : tout rôle sauf un distributeur « DEP uniquement »
+ * (`opportunityOpenAccess === false`, cf. `isDepOnlyUser` du web), comme `canAttachRenegotiation`
+ * de la page web des discussions.
+ */
+export function canAttachRenegotiations(
+  user: { role: AppUserRole; opportunityOpenAccess?: boolean } | null | undefined,
+): boolean {
+  return !!user && user.opportunityOpenAccess !== false;
+}

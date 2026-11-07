@@ -66,6 +66,8 @@ export interface CurrentUser {
   lastLoginAt: string | null;
   introSeenAt?: string | null;
   impersonatedBy?: string | null;
+  /** `false` pour un distributeur limité à ses DEP (jamais pour un compte HUB) ; absent = accès complet. */
+  opportunityOpenAccess?: boolean;
   subsidiaryId: string | null;
   subsidiary: PartnerRef | null;
   partnerDistributor: PartnerRef | null;
