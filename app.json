@@ -23,11 +23,27 @@
       "expo-image",
       "expo-web-browser",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo-batipower.png",
+          "color": "#94C83E"
+        }
+      ],
+      "@bacons/apple-targets",
+      [
         "expo-camera",
         {
           "cameraPermission": "Batipower Pro utilise la caméra pour scanner les codes-barres des commandes.",
           "microphonePermission": false,
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Batipower Pro accède à vos photos pour les joindre aux messages des discussions.",
+          "cameraPermission": "Batipower Pro utilise la caméra pour scanner les codes-barres des commandes et prendre des photos à joindre aux discussions.",
+          "microphonePermission": false
         }
       ],
       [
