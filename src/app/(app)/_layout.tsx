@@ -5,6 +5,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { ImpersonationBanner } from '@/components/auth/ImpersonationBanner';
 import { accessibleModules } from '@/modules/registry';
 import { moduleSheetDetent } from '@/modules/switchModule';
+import { sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
 
 /**
@@ -35,23 +36,11 @@ export default function AppLayout() {
       >
         <Stack.Screen
           name="switch-module"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [detent],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 24,
-            contentStyle: { backgroundColor: t.bgElevated },
-          }}
+          options={sheetOptions(t, [detent])}
         />
         <Stack.Screen
           name="impersonate"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.85, 1],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 24,
-            contentStyle: { backgroundColor: t.bgElevated },
-          }}
+          options={sheetOptions(t, [0.85, 1])}
         />
       </Stack>
       <ImpersonationBanner />

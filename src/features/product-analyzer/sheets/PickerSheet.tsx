@@ -27,6 +27,7 @@ import { BulkActionsSheet } from './BulkActionsSheet';
 import { BulkLaunchSheet } from './BulkLaunchSheet';
 import { ItemActionsSheet } from './ItemActionsSheet';
 import { StockFilterSheet } from './StockFilterSheet';
+import { dismissSheetThen } from '@/components/sheet/dismissSheet';
 
 const MAX_TAGS = 10;
 
@@ -209,8 +210,7 @@ function BulkAffairePicker() {
         const affaire = affaires.data?.find((a) => a.uuid === value);
         if (!affaire) return;
         const targets = getSelectedItems();
-        router.back();
-        setTimeout(() => void assignItemsToAffaire(targets, affaire), 350);
+        dismissSheetThen(() => void assignItemsToAffaire(targets, affaire));
       }}
     />
   );
@@ -228,8 +228,7 @@ function BulkDepPicker() {
   const apply = () => {
     if (!chosen || !chosenName) return;
     const targets = getSelectedItems();
-    router.back();
-    setTimeout(() => void applyDepToItems(targets, chosen, chosenName, planned === 'set'), 350);
+    dismissSheetThen(() => void applyDepToItems(targets, chosen, chosenName, planned === 'set'));
   };
 
   return (

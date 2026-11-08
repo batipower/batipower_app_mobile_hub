@@ -1,5 +1,7 @@
 import { router } from 'expo-router';
 
+import { dismissSheetThen } from '@/components/sheet/dismissSheet';
+
 import type { StagingFilters } from '@/types/hubProductAnalyzer';
 
 /** Navigation interne du Product Analyzer (menu Pilotage) : tout s'empile dans sa pile. */
@@ -121,11 +123,5 @@ export function backToHistory() {
 
 export type { StagingFilters };
 
-/**
- * Ferme la feuille courante puis exécute l'action : une alerte, un écran poussé ou un autre
- * sélecteur ne peuvent pas s'ouvrir pendant l'animation de fermeture d'une feuille.
- */
-export function dismissThen(action: () => void, delay = 380) {
-  router.back();
-  setTimeout(action, delay);
-}
+/** Voir `dismissSheetThen` : fermeture de la feuille, puis action une fois l'animation finie. */
+export const dismissThen = dismissSheetThen;

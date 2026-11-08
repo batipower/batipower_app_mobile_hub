@@ -8,22 +8,16 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { Search, type LucideIcon } from 'lucide-react-native';
 
+import { useSheetKeyboard } from '@/components/sheet/useSheetKeyboard';
 import { Badge, type BadgeTone } from '@/components/ui';
 import { EmptyState, ErrorBanner } from '@/features/preparation/components/ListState';
 import { useDebouncedTerm } from '@/features/search/hooks/useDebouncedTerm';
-import {
-  fontSize,
-  hitTarget,
-  makeStyles,
-  radius,
-  spacing,
-  useTheme,
-  withAlpha,
-} from '@/theme';
+import { fontSize, hitTarget, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 
 import { teamPickerKey } from '../../queryKeys';
 import { thumbnailSource } from '../teamHelpers';
@@ -59,6 +53,11 @@ type CardPickerSheetProps<T extends { uuid: string }> = {
   remainingSlots: number;
   /** Sélection unique (carte initiale d'une discussion) : la dernière coche remplace la précédente. */
   single?: boolean;
+  /**
+   * Rend le sélecteur dans la page courante, sans `Modal` : à utiliser depuis une feuille native
+   * (`formSheet`), où un `Modal` imbriqué se présente mal sur iOS.
+   */
+  inline?: boolean;
   confirmLabel?: string;
   describe: (item: T) => PickerResultView;
   /** Libellé lu par les lecteurs d'écran pour une ligne. */
@@ -70,9 +69,16 @@ type CardPickerSheetProps<T extends { uuid: string }> = {
  * Feuille de sélection de cartes (opportunités ou renégociations) : recherche avec délai,
  * multi-sélection jusqu'à la limite restante, confirmation par « Ajouter ». Présentée en
  * `Modal` natif (`pageSheet`) depuis le composer, sans nouvelle route, pour conserver le brouillon.
+ * Depuis une feuille native (`formSheet`), `inline` le rend dans la page au lieu d'un `Modal`.
  */
 export function CardPickerSheet<T extends { uuid: string }>(props: CardPickerSheetProps<T>) {
-  const styles = useStyles();
+  if (props.inline) {
+    return props.visible ? (
+      <PickerRoot inline>
+        <PickerBody {...props} />
+      </PickerRoot>
+    ) : null;
+  }
   return (
     <Modal
       visible={props.visible}
@@ -80,10 +86,21 @@ export function CardPickerSheet<T extends { uuid: string }>(props: CardPickerShe
       presentationStyle="pageSheet"
       onRequestClose={props.onClose}
     >
-      <View style={styles.root}>
+      <PickerRoot>
         <PickerBody {...props} />
-      </View>
+      </PickerRoot>
     </Modal>
+  );
+}
+
+/** Fond du sélecteur : le clavier réduit la liste au lieu de la recouvrir. */
+function PickerRoot({ children, inline = false }: { children: ReactNode; inline?: boolean }) {
+  const styles = useStyles();
+  const { rootStyle } = useSheetKeyboard();
+  return (
+    <Animated.View style={[styles.root, inline && styles.rootInline, rootStyle]}>
+      {children}
+    </Animated.View>
   );
 }
 
@@ -265,7 +282,9 @@ function ResultContent({ view, accent, icon: Icon, already }: ResultContentProps
       {source ? (
         <Image source={{ uri: source }} style={styles.thumb} contentFit="cover" />
       ) : (
-        <View style={[styles.thumb, styles.thumbFallback, { backgroundColor: withAlpha(accent, 0.16) }]}>
+        <View
+          style={[styles.thumb, styles.thumbFallback, { backgroundColor: withAlpha(accent, 0.16) }]}
+        >
           <Icon size={18} color={accent} />
         </View>
       )}
@@ -300,6 +319,8 @@ function ResultContent({ view, accent, icon: Icon, already }: ResultContentProps
 
 const useStyles = makeStyles((t) => ({
   root: { flex: 1, backgroundColor: t.bgElevated },
+  // Laisse la place du grabber d'une feuille native au-dessus de l'en-tête.
+  rootInline: { paddingTop: spacing.md },
   header: {
     minHeight: hitTarget + 8,
     flexDirection: 'row',

@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner-native';
 import { Check, ChevronRight, ShieldAlert, UserX } from 'lucide-react-native';
@@ -17,6 +18,7 @@ import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
 import { canImpersonate } from '@/auth/permissions';
 import { ModuleBadge } from '@/components/modules/ModuleBadge';
+import { useSheetKeyboard } from '@/components/sheet/useSheetKeyboard';
 import { Badge, Chip } from '@/components/ui';
 import { AccessDenied } from '@/features/preparation/components/AccessDenied';
 import { EmptyState, ErrorBanner, ListSkeleton } from '@/features/preparation/components/ListState';
@@ -71,6 +73,7 @@ function ImpersonationList() {
   const styles = useStyles();
   const t = useTheme();
   const { user, startImpersonation } = useAuth();
+  const { rootStyle, restingPadding } = useSheetKeyboard();
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<AppUserRole | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -123,7 +126,7 @@ function ImpersonationList() {
   };
 
   return (
-    <View style={styles.sheet}>
+    <Animated.View style={[styles.sheet, rootStyle]}>
       <Text style={styles.title} accessibilityRole="header">
         Se connecter en tant que
       </Text>
@@ -172,7 +175,7 @@ function ImpersonationList() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: restingPadding + spacing['2xl'] }]}
         renderItem={({ item }) => (
           <UserRow
             item={item}
@@ -203,7 +206,7 @@ function ImpersonationList() {
           ) : undefined
         }
       />
-    </View>
+    </Animated.View>
   );
 }
 

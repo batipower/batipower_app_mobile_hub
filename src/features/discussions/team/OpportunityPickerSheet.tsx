@@ -19,6 +19,8 @@ type OpportunityPickerSheetProps = {
   remainingSlots: number;
   /** Sélection unique (carte initiale à la création d'une discussion). */
   single?: boolean;
+  /** Affiche la liste dans la page courante (feuille native) au lieu d'un `Modal` imbriqué. */
+  inline?: boolean;
 };
 
 const NO_UUIDS: readonly string[] = [];
@@ -60,6 +62,7 @@ export function OpportunityPickerSheet({
   alreadyAttachedUuids = NO_UUIDS,
   remainingSlots,
   single,
+  inline,
 }: OpportunityPickerSheetProps) {
   const t = useTheme();
   return (
@@ -76,6 +79,7 @@ export function OpportunityPickerSheet({
       alreadyAttachedUuids={alreadyAttachedUuids}
       remainingSlots={remainingSlots}
       single={single}
+      inline={inline}
       confirmLabel={single ? 'Choisir' : 'Ajouter'}
       describe={describe}
       itemLabel={itemLabel}

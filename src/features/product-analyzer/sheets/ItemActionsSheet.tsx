@@ -29,6 +29,7 @@ import { dismissThen, openPaEdit, openPaLive, replacePaPicker } from '../navigat
 import { useAnalyzerEngine } from '../socket/AnalyzerSocketProvider';
 
 import { ActionRow } from './BulkActionsSheet';
+import { dismissSheetThen } from '@/components/sheet/dismissSheet';
 
 /** Menu « … » d'une fiche : analyse, organisation, négociation et zone sensible, regroupés par famille. */
 export function ItemActionsSheet({ uuid }: { uuid: string }) {
@@ -63,8 +64,8 @@ export function ItemActionsSheet({ uuid }: { uuid: string }) {
       toast.error('Produit non relançable.');
       return;
     }
-    router.back();
-    if (engine.startSingle(request)) setTimeout(openPaLive, 400);
+    if (engine.startSingle(request)) dismissSheetThen(openPaLive);
+    else router.back();
   };
 
   return (
@@ -113,8 +114,7 @@ export function ItemActionsSheet({ uuid }: { uuid: string }) {
               label="Affaires"
               detail="Rattacher le produit à une affaire fournisseur"
               onPress={() => {
-                router.back();
-                setTimeout(() => openPaEdit('affaire', { uuid }), 380);
+                dismissSheetThen(() => openPaEdit('affaire', { uuid }));
               }}
             />
             <ActionRow
@@ -122,8 +122,7 @@ export function ItemActionsSheet({ uuid }: { uuid: string }) {
               label="DEP planifiée"
               detail="Poser ou retirer la DEP par fournisseur"
               onPress={() => {
-                router.back();
-                setTimeout(() => openPaEdit('dep', { uuid }), 380);
+                dismissSheetThen(() => openPaEdit('dep', { uuid }));
               }}
             />
             <ActionRow
@@ -131,8 +130,7 @@ export function ItemActionsSheet({ uuid }: { uuid: string }) {
               label="Codes fournisseurs"
               detail="Rechercher ou rattacher les codes internes"
               onPress={() => {
-                router.back();
-                setTimeout(() => openPaEdit('supplier-codes', { uuid }), 380);
+                dismissSheetThen(() => openPaEdit('supplier-codes', { uuid }));
               }}
             />
           </>

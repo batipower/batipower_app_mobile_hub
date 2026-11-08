@@ -161,7 +161,9 @@ export function LinkRow({
       onPress={onPress}
       style={({ pressed }) => [styles.link, pressed && styles.linkPressed]}
     >
-      <Text style={styles.linkLabel}>{label}</Text>
+      <Text style={styles.linkLabel} numberOfLines={2}>
+        {label}
+      </Text>
       <Text style={styles.linkValue} numberOfLines={1}>
         {value}
       </Text>
@@ -180,12 +182,27 @@ const useStyles = makeStyles((t) => ({
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: t.border,
     backgroundColor: t.surface,
   },
   linkPressed: { backgroundColor: t.surfaceStrong },
-  linkLabel: { fontSize: fontSize.sm, fontWeight: '600', color: t.text },
-  linkValue: { flex: 1, textAlign: 'right', fontSize: fontSize.sm, color: t.textMuted },
+  // Le libellé garde au moins la moitié de la ligne : une longue valeur se tronque à sa place.
+  linkLabel: {
+    flexShrink: 1,
+    maxWidth: '60%',
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: t.text,
+  },
+  linkValue: {
+    flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
+    textAlign: 'right',
+    fontSize: fontSize.sm,
+    color: t.textMuted,
+  },
 }));

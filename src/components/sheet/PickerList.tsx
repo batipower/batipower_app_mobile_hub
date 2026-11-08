@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, Plus } from 'lucide-react-native';
 
 import { SheetScreen } from '@/components/sheet/SheetScreen';
@@ -63,6 +64,7 @@ export function PickerList({
 }: PickerListProps) {
   const styles = useStyles();
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
 
   const visible = useMemo(() => {
@@ -74,7 +76,9 @@ export function PickerList({
       .map((value) => ({ value, label: value }));
     const all: PickerItem[] = [...extra, ...items];
     return needle
-      ? all.filter((item) => normalizeForSearch(`${item.label} ${item.detail ?? ''}`).includes(needle))
+      ? all.filter((item) =>
+          normalizeForSearch(`${item.label} ${item.detail ?? ''}`).includes(needle),
+        )
       : all;
   }, [items, search, selected]);
 
@@ -104,7 +108,11 @@ export function PickerList({
           keyExtractor={(item) => item.value}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[
+            styles.list,
+            // Sans pied, la dernière ligne reste au-dessus de la barre d'accueil.
+            !footer && { paddingBottom: insets.bottom + spacing['2xl'] },
+          ]}
           ListHeaderComponent={
             <>
               {!multiple && noneLabel ? (

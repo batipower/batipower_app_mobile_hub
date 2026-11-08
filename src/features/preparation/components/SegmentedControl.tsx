@@ -39,7 +39,12 @@ export function SegmentedControl<T extends string>({
             }}
             style={[styles.segment, active && styles.segmentActive]}
           >
-            <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1}>
+            <Text
+              style={[styles.label, active && styles.labelActive]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               {segment.label}
             </Text>
             {segment.count !== undefined ? (
@@ -72,6 +77,7 @@ const useStyles = makeStyles((t) => ({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
+    paddingHorizontal: spacing.xs,
     borderRadius: radius.md - 3,
   },
   segmentActive: { backgroundColor: t.raised },

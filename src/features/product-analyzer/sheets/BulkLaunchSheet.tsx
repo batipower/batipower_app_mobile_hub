@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { router } from 'expo-router';
 
 import { SheetScreen, SheetSection } from '@/components/sheet/SheetScreen';
 import { Button } from '@/components/ui';
@@ -16,6 +15,7 @@ import {
 } from '../bulkActions';
 import { useDistributors } from '../hooks/useDistributors';
 import { getSelectedItems, useSelection } from '../selectionStore';
+import { dismissSheetThen } from '@/components/sheet/dismissSheet';
 
 /**
  * Lancement groupé : « Lancer » (fiche catalogue) ou « Lancer + déployer » (offres marketplace),
@@ -34,8 +34,7 @@ export function BulkLaunchSheet({ initialMode = 'launch' }: { initialMode?: Bulk
 
   const run = () => {
     const snapshot = categorizeSelection(getSelectedItems());
-    router.back();
-    setTimeout(() => void runBulkLaunch(mode, snapshot, dep || null), 350);
+    dismissSheetThen(() => void runBulkLaunch(mode, snapshot, dep || null));
   };
 
   return (

@@ -28,6 +28,7 @@ import { canDeleteStaging } from '../lib/helpers';
 import { openPaQueue, replacePaPicker } from '../navigation';
 import { clearSelection, getSelectedItems, useSelection } from '../selectionStore';
 import { useAnalyzerEngine } from '../socket/AnalyzerSocketProvider';
+import { dismissSheetThen } from '@/components/sheet/dismissSheet';
 
 type RowProps = {
   icon: ReactNode;
@@ -60,8 +61,7 @@ export function ActionRow({ icon, label, detail, disabled, destructive, onPress 
 
 /** Dismisse la feuille puis exécute l'action (une alerte ne peut pas s'ouvrir pendant la fermeture). */
 function closeThen(action: () => void) {
-  router.back();
-  setTimeout(action, 400);
+  dismissSheetThen(action);
 }
 
 /** Actions groupées de la sélection, par famille : analyse, organisation, négociation, suppression. */
@@ -109,7 +109,7 @@ export function BulkActionsSheet() {
             router.back();
             engine.startQueue(rerun.seeds, 'rerun');
             clearSelection();
-            setTimeout(openPaQueue, 400);
+            dismissSheetThen(openPaQueue);
           }}
         />
         <ActionRow

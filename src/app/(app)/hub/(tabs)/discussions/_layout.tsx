@@ -1,9 +1,7 @@
-import type { ComponentProps } from 'react';
 import { Stack } from 'expo-router';
 
+import { SHEET_DETENTS, sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
-
-type SheetOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
 
 /**
  * Pile de l'onglet Discussions : la liste (sans en-tête natif, elle a le sien comme Cockpit et
@@ -14,14 +12,7 @@ type SheetOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
 export default function DiscussionsLayout() {
   const t = useTheme();
 
-  const sheet = (detents: number[]): SheetOptions => ({
-    presentation: 'formSheet',
-    sheetAllowedDetents: detents,
-    sheetGrabberVisible: true,
-    sheetCornerRadius: 16,
-    contentStyle: { backgroundColor: t.bgElevated },
-    headerShown: false,
-  });
+  const sheet = (detents: readonly number[]) => sheetOptions(t, detents);
 
   return (
     <Stack
@@ -37,10 +28,10 @@ export default function DiscussionsLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="equipe/[id]" options={{ title: 'Discussion' }} />
       <Stack.Screen name="equipe/[id]/membres" options={{ title: 'Membres' }} />
-      <Stack.Screen name="equipe/nouvelle" options={sheet([0.9, 1])} />
+      <Stack.Screen name="equipe/nouvelle" options={sheet(SHEET_DETENTS.tall)} />
       <Stack.Screen name="invitations" options={{ title: 'Invitations' }} />
       <Stack.Screen name="clients/[id]" options={{ title: 'Client' }} />
-      <Stack.Screen name="clients/[id]/action" options={sheet([0.9, 1])} />
+      <Stack.Screen name="clients/[id]/action" options={sheet(SHEET_DETENTS.tall)} />
     </Stack>
   );
 }

@@ -2,6 +2,7 @@ import { Redirect, Stack } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
 import { accessibleModules, getLandingHref } from '@/modules/registry';
+import { SHEET_DETENTS, sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
 
 /**
@@ -35,28 +36,11 @@ export default function HubLayout() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="menu"
-        options={{
-          headerShown: false,
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.5, 1],
-          sheetInitialDetentIndex: 0,
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 16,
-          // Fond de la feuille : suit le thème (clair/sombre), jamais figé.
-          contentStyle: { backgroundColor: t.bgElevated },
-        }}
+        options={sheetOptions(t, SHEET_DETENTS.half, { sheetInitialDetentIndex: 0 })}
       />
       <Stack.Screen
         name="scraping-fleet"
-        options={{
-          headerShown: false,
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.5, 1],
-          sheetInitialDetentIndex: 0,
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 16,
-          contentStyle: { backgroundColor: t.bgElevated },
-        }}
+        options={sheetOptions(t, SHEET_DETENTS.half, { sheetInitialDetentIndex: 0 })}
       />
       <Stack.Screen name="pricing" options={{ headerShown: false }} />
       <Stack.Screen name="product-analyzer" options={{ headerShown: false }} />

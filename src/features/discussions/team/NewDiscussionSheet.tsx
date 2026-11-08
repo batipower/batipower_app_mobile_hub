@@ -94,7 +94,12 @@ const BASE_TILES: readonly ScopeTileMeta[] = [
     description: 'Plusieurs produits regroupés',
     icon: Package,
   },
-  { scope: 'FREE', title: 'Discussion libre', description: 'Aucun rattachement', icon: MessageSquare },
+  {
+    scope: 'FREE',
+    title: 'Discussion libre',
+    description: 'Aucun rattachement',
+    icon: MessageSquare,
+  },
 ];
 
 /**
@@ -238,6 +243,51 @@ export function NewDiscussionSheet() {
       />
     );
 
+  // Le choix d'une carte remplace le contenu de la feuille (pas de `Modal` imbriqué dans une
+  // feuille native) ; les saisies de la feuille sont conservées, ce composant reste monté.
+  if (picker === 'OPPORTUNITY') {
+    return (
+      <OpportunityPickerSheet
+        visible
+        inline
+        onClose={() => setPicker(null)}
+        remainingSlots={1}
+        single
+        onConfirm={(items) => {
+          const opportunity = items[0];
+          if (opportunity) {
+            setInitialCard({
+              type: 'OPPORTUNITY',
+              uuid: opportunity.uuid,
+              label: opportunity.designation ?? opportunity.ean ?? opportunity.uuid,
+            });
+          }
+        }}
+      />
+    );
+  }
+  if (picker === 'RENEGOTIATION') {
+    return (
+      <RenegotiationPickerSheet
+        visible
+        inline
+        onClose={() => setPicker(null)}
+        remainingSlots={1}
+        single
+        onConfirm={(items) => {
+          const renegotiation = items[0];
+          if (renegotiation) {
+            setInitialCard({
+              type: 'RENEGOTIATION',
+              uuid: renegotiation.uuid,
+              label: renegotiation.designation ?? renegotiation.reference ?? renegotiation.uuid,
+            });
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <SheetScreen
       title="Nouvelle discussion"
@@ -292,7 +342,9 @@ export function NewDiscussionSheet() {
                   : 'Renégociation sélectionnée'}
               </Text>
               <Pressable
-                onPress={() => setPicker(visualScope === 'OPPORTUNITY' ? 'OPPORTUNITY' : 'RENEGOTIATION')}
+                onPress={() =>
+                  setPicker(visualScope === 'OPPORTUNITY' ? 'OPPORTUNITY' : 'RENEGOTIATION')
+                }
                 accessibilityRole="button"
                 accessibilityLabel={
                   initialCard
@@ -371,39 +423,6 @@ export function NewDiscussionSheet() {
           </View>
         </>
       )}
-
-      <OpportunityPickerSheet
-        visible={picker === 'OPPORTUNITY'}
-        onClose={() => setPicker(null)}
-        remainingSlots={1}
-        single
-        onConfirm={(items) => {
-          const opportunity = items[0];
-          if (opportunity) {
-            setInitialCard({
-              type: 'OPPORTUNITY',
-              uuid: opportunity.uuid,
-              label: opportunity.designation ?? opportunity.ean ?? opportunity.uuid,
-            });
-          }
-        }}
-      />
-      <RenegotiationPickerSheet
-        visible={picker === 'RENEGOTIATION'}
-        onClose={() => setPicker(null)}
-        remainingSlots={1}
-        single
-        onConfirm={(items) => {
-          const renegotiation = items[0];
-          if (renegotiation) {
-            setInitialCard({
-              type: 'RENEGOTIATION',
-              uuid: renegotiation.uuid,
-              label: renegotiation.designation ?? renegotiation.reference ?? renegotiation.uuid,
-            });
-          }
-        }}
-      />
     </SheetScreen>
   );
 }
@@ -448,7 +467,7 @@ const useStyles = makeStyles((t) => ({
   },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tile: {
-    width: '48.5%',
+    width: '48%',
     gap: spacing.xs,
     padding: spacing.md,
     borderRadius: radius.lg,

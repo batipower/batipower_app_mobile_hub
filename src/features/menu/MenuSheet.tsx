@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight, LayoutGrid, LogOut, type LucideIcon } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -36,6 +37,7 @@ type MenuGroup = { section: HubMenuSection; rows: MenuRow[] };
 export function MenuSheet() {
   const styles = useStyles();
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   if (!user) return null;
@@ -85,7 +87,7 @@ export function MenuSheet() {
   return (
     <ScrollView
       style={styles.sheet}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing['2xl'] }]}
       showsVerticalScrollIndicator={false}
       bounces={false}
     >

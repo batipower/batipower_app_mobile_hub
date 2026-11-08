@@ -1,4 +1,3 @@
-import type { ComponentProps } from 'react';
 import { Stack } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -6,9 +5,8 @@ import { canAccessHubProductAnalyzer } from '@/auth/permissions';
 import { AccessDenied } from '@/features/preparation/components/AccessDenied';
 import { AnalyzerSocketProvider } from '@/features/product-analyzer/socket/AnalyzerSocketProvider';
 import { PricingBackButton } from '@/features/pricing/components/PricingBackButton';
+import { SHEET_DETENTS, sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
-
-type SheetOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
 
 /**
  * Pile Product Analyzer, ouverte depuis le menu : l'historique, la fiche d'un produit, l'analyse
@@ -20,14 +18,7 @@ export default function ProductAnalyzerLayout() {
   const t = useTheme();
   const { user } = useAuth();
 
-  const sheet = (detents: number[]): SheetOptions => ({
-    presentation: 'formSheet',
-    sheetAllowedDetents: detents,
-    sheetGrabberVisible: true,
-    sheetCornerRadius: 16,
-    contentStyle: { backgroundColor: t.bgElevated },
-    headerShown: false,
-  });
+  const sheet = (detents: readonly number[]) => sheetOptions(t, detents);
 
   if (!user) return null;
   if (!canAccessHubProductAnalyzer(user.role)) {
@@ -60,11 +51,11 @@ export default function ProductAnalyzerLayout() {
         <Stack.Screen name="file" options={{ title: "File d'analyses" }} />
         <Stack.Screen name="affaire/[id]" options={{ title: 'Affaire' }} />
         <Stack.Screen name="lancer" options={sheet([0.75, 1])} />
-        <Stack.Screen name="filtres" options={sheet([0.9, 1])} />
-        <Stack.Screen name="tri" options={sheet([0.7, 1])} />
-        <Stack.Screen name="choix/[kind]" options={sheet([0.7, 1])} />
+        <Stack.Screen name="filtres" options={sheet(SHEET_DETENTS.tall)} />
+        <Stack.Screen name="tri" options={sheet(SHEET_DETENTS.sort)} />
+        <Stack.Screen name="choix/[kind]" options={sheet(SHEET_DETENTS.tall)} />
         <Stack.Screen name="negociation" options={sheet([0.95, 1])} />
-        <Stack.Screen name="editer/[kind]" options={sheet([0.5, 0.9])} />
+        <Stack.Screen name="editer/[kind]" options={sheet(SHEET_DETENTS.editor)} />
         <Stack.Screen
           name="scan"
           options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }}

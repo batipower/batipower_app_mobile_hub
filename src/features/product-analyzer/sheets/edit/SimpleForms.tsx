@@ -29,6 +29,7 @@ import { LAUNCH_FROM_STAGING_TITLE_MAX , WS_CFG, CONFIDENCE_CFG } from '../../li
 import { EAN_PATTERN, FormField, isPositiveDecimal, parseDecimal } from './formKit';
 import { formatDateTime } from '@/lib/format';
 import { launchFromStagingDone } from './launchFromStagingDone';
+import { dismissSheetThen } from '@/components/sheet/dismissSheet';
 
 const useStyles = makeStyles((t) => ({
   body: { gap: spacing.lg },
@@ -244,8 +245,8 @@ export function EanForm({
         },
       });
       refreshAnalyzerData();
-      router.back();
-      if (started && !fromLive) setTimeout(openPaLive, 380);
+      if (started && !fromLive) dismissSheetThen(openPaLive);
+      else router.back();
     }),
   );
 

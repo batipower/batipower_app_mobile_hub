@@ -51,6 +51,7 @@ const useStyles = makeStyles((t) => ({
   pill: {
     minHeight: hitTarget - 8,
     maxWidth: 260,
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs + 2,

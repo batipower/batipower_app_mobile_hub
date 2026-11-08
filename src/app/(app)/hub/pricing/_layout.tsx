@@ -1,10 +1,8 @@
-import type { ComponentProps } from 'react';
 import { Stack } from 'expo-router';
 
 import { PricingBackButton } from '@/features/pricing/components/PricingBackButton';
+import { SHEET_DETENTS, sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
-
-type SheetOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
 
 /**
  * Pile Pricing, ouverte depuis le menu : la liste, la fiche d'une ligne, puis les filtres,
@@ -14,14 +12,7 @@ type SheetOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
 export default function PricingLayout() {
   const t = useTheme();
 
-  const sheet = (detents: number[]): SheetOptions => ({
-    presentation: 'formSheet',
-    sheetAllowedDetents: detents,
-    sheetGrabberVisible: true,
-    sheetCornerRadius: 16,
-    contentStyle: { backgroundColor: t.bgElevated },
-    headerShown: false,
-  });
+  const sheet = (detents: readonly number[]) => sheetOptions(t, detents);
 
   return (
     <Stack
@@ -40,11 +31,11 @@ export default function PricingLayout() {
         options={{ title: 'Pricing', headerLeft: () => <PricingBackButton /> }}
       />
       <Stack.Screen name="[reference]" options={{ title: 'Ligne pricing' }} />
-      <Stack.Screen name="filtres" options={sheet([0.9, 1])} />
-      <Stack.Screen name="choix/[kind]" options={sheet([0.9, 1])} />
-      <Stack.Screen name="tri" options={sheet([0.7, 1])} />
-      <Stack.Screen name="stats" options={sheet([0.9, 1])} />
-      <Stack.Screen name="editer" options={sheet([0.5, 0.9])} />
+      <Stack.Screen name="filtres" options={sheet(SHEET_DETENTS.tall)} />
+      <Stack.Screen name="choix/[kind]" options={sheet(SHEET_DETENTS.tall)} />
+      <Stack.Screen name="tri" options={sheet(SHEET_DETENTS.sort)} />
+      <Stack.Screen name="stats" options={sheet(SHEET_DETENTS.tall)} />
+      <Stack.Screen name="editer" options={sheet(SHEET_DETENTS.editor)} />
     </Stack>
   );
 }

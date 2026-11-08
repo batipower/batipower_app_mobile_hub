@@ -3,8 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Pressable,
-  ScrollView,
-  StyleSheet,
   Switch,
   Text,
   View,
@@ -15,6 +13,7 @@ import { Minus, Plus, TriangleAlert } from 'lucide-react-native';
 import { toast } from 'sonner-native';
 
 import { supportChatApi } from '@/api/supportChat';
+import { SheetScreen } from '@/components/sheet/SheetScreen';
 import { Badge, Button, TextField, type BadgeTone } from '@/components/ui';
 import { EmptyState, ErrorBanner, errorMessage } from '@/features/preparation/components/ListState';
 import { SegmentedControl } from '@/features/preparation/components/SegmentedControl';
@@ -235,7 +234,9 @@ function ActionSheet({ id }: { id: string }) {
     if (type === 'RESEND' || !orderReference || invalid || execute.isPending) return;
     if (type === 'NON_RECEIPT_ATTESTATION' && !hasRoomForAttachment(id)) {
       hapticError();
-      setError('Le brouillon contient déjà 3 pièces jointes : retirez-en une avant de générer l’attestation.');
+      setError(
+        'Le brouillon contient déjà 3 pièces jointes : retirez-en une avant de générer l’attestation.',
+      );
       return;
     }
     setError(null);
@@ -266,262 +267,241 @@ function ActionSheet({ id }: { id: string }) {
   const pending = execute.isPending;
 
   return (
-    <View style={styles.root}>
-      <View style={styles.header}>
-        <View style={styles.side} />
-        <Text style={styles.title} accessibilityRole="header" numberOfLines={1}>
-          Actions SAV
-        </Text>
-        <View style={[styles.side, styles.sideEnd]}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Fermer"
-            accessibilityState={{ disabled: pending }}
-            disabled={pending}
-            hitSlop={10}
-            onPress={() => router.back()}
-          >
-            <Text style={[styles.close, pending && { opacity: 0.4 }]}>Fermer</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.body}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
-      >
-        <SegmentedControl segments={SEGMENTS} value={type} onChange={changeType} />
-
-        {copy ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{copy.title}</Text>
-            <Text style={styles.description}>{copy.description}</Text>
-          </View>
-        ) : (
-          <View style={styles.notice} accessibilityRole="alert">
-            <TriangleAlert size={18} color={t.warning} />
-            <Text style={styles.noticeText}>{RESEND_MANUAL_NOTICE}</Text>
-          </View>
-        )}
-
-        {/* Commande concernée */}
-        <Section title="Commande">
-          {options.isPending && orders.length === 0 ? (
-            <ActivityIndicator color={t.accentText} />
-          ) : orders.length === 0 && !orderReference ? (
-            options.isError ? (
-              <ErrorBanner
-                error={options.error}
-                fallback="Impossible de charger les commandes du client."
-                onRetry={() => void options.refetch()}
-              />
-            ) : (
-              <Text style={styles.muted}>Aucune commande pour ce client.</Text>
-            )
-          ) : (
-            <View style={styles.orderList}>
-              {(orders.length > 0
-                ? orders
-                : [{ reference: orderReference!, dateAdd: null, totalPaid: null }]
-              ).map((order) => {
-                const selected = order.reference === orderReference;
-                const meta = [
-                  formatDateTimeShort(order.dateAdd),
-                  order.totalPaid != null ? formatEuro(order.totalPaid) : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ');
-                return (
-                  <Pressable
-                    key={order.reference}
-                    accessibilityRole="radio"
-                    accessibilityLabel={`Commande ${order.reference}${meta ? `, ${meta}` : ''}`}
-                    accessibilityState={{ selected, disabled: pending }}
-                    disabled={pending}
-                    onPress={() => {
-                      setChosenOrder(order.reference);
-                      setError(null);
-                    }}
-                    style={[styles.radioRow, selected && styles.radioRowSelected]}
-                  >
-                    <RadioDot selected={selected} />
-                    <View style={styles.radioBody}>
-                      <Text style={[styles.orderRef, selected && { color: t.accentText }]}>
-                        {order.reference}
-                      </Text>
-                      {meta ? <Text style={styles.radioMeta}>{meta}</Text> : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-          {initial && initial.orderReference === orderReference ? (
-            <View style={styles.proposal}>
-              <Text style={styles.proposalTitle}>Proposé par l’IA</Text>
-              {describeActionParams(initial) ? (
-                <Text style={styles.proposalText}>{describeActionParams(initial)}</Text>
-              ) : null}
-              {initial.rationale ? <Text style={styles.muted}>{initial.rationale}</Text> : null}
-              {initial.warning ? <Text style={styles.warning}>{initial.warning}</Text> : null}
-            </View>
-          ) : null}
-        </Section>
-
-        {/* Paramètres de l'action */}
-        {type === 'REFUND' ? (
-          <Section title="Montant de l’avoir">
-            <RadioOption
-              label="Remboursement total de la commande (hors port)"
-              selected={effectiveMode === 'total'}
-              disabled={pending}
-              onPress={() => setMode('total')}
-            />
-            {productsAvailable ? (
-              <RadioOption
-                label="Produits sélectionnés"
-                selected={effectiveMode === 'products'}
-                disabled={pending}
-                onPress={() => setMode('products')}
-              />
-            ) : null}
-            <RadioOption
-              label="Montant personnalisé (TTC)"
-              selected={effectiveMode === 'custom'}
-              disabled={pending}
-              onPress={() => setMode('custom')}
-            />
-            {effectiveMode === 'products' ? (
-              <View style={styles.products}>
-                {products.map((line, index) => (
-                  <View key={line.reference} style={styles.productRow}>
-                    <Text style={styles.productRef} numberOfLines={1}>
-                      {line.reference}
-                    </Text>
-                    <Stepper
-                      label={`Quantité de ${line.reference}`}
-                      value={line.quantity}
-                      min={0}
-                      max={999}
-                      disabled={pending}
-                      onChange={(quantity) =>
-                        setProducts((prev) =>
-                          prev.map((item, i) => (i === index ? { ...item, quantity } : item)),
-                        )
-                      }
-                    />
-                  </View>
-                ))}
-                {productsInvalid ? (
-                  <Text style={styles.fieldError}>Choisissez au moins un produit.</Text>
-                ) : null}
-              </View>
-            ) : null}
-            {effectiveMode === 'custom' ? (
-              <TextField
-                label="Montant TTC (€)"
-                value={amount}
-                onChangeText={(text) => setAmount(text.replace(/[^\d.,]/g, ''))}
-                keyboardType="decimal-pad"
-                placeholder="0,00"
-                editable={!pending}
-                error={
-                  amountInvalid && amount.trim() !== ''
-                    ? `Montant invalide${totalPaid != null ? ` (maximum ${formatEuro(totalPaid)})` : ''}.`
-                    : undefined
-                }
-              />
-            ) : null}
-            {totalPaid != null ? (
-              <Text style={styles.muted}>Total payé : {formatEuro(totalPaid)}</Text>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {type === 'RETURN_LABEL' ? (
-          <Section title="Étiquette de retour">
-            <View style={styles.parcelRow}>
-              <Text style={styles.parcelLabel}>Nombre de colis</Text>
-              <Stepper
-                label="Nombre de colis"
-                value={parcels}
-                min={1}
-                max={MAX_PARCELS}
-                disabled={pending}
-                onChange={setParcels}
-              />
-            </View>
-            {needsForceNew ? (
-              <View style={styles.forceNew}>
-                <Text style={styles.forceNewText}>
-                  Un lot d’étiquettes existe déjà pour cette commande. Créer un nouveau lot malgré
-                  tout ?
-                </Text>
-                <Switch
-                  value={forceNew}
-                  onValueChange={setForceNew}
-                  disabled={pending}
-                  trackColor={{ true: t.accent }}
-                  accessibilityLabel="Créer un nouveau lot d’étiquettes malgré le lot existant"
-                />
-              </View>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {type === 'RESEND' && orderReference ? (
-          <Button
-            label="Ouvrir la commande"
-            variant="outline"
-            onPress={() => openOrder(orderReference)}
-          />
-        ) : null}
-
-        {error ? (
-          <View style={styles.error} accessibilityRole="alert">
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        {/* Historique */}
-        <Section title="Historique des actions">
-          {history.isPending ? (
-            <ActivityIndicator color={t.accentText} />
-          ) : history.isError ? (
-            <ErrorBanner
-              error={history.error}
-              fallback="Impossible de charger l’historique."
-              onRetry={() => void history.refetch()}
-            />
-          ) : (history.data?.length ?? 0) === 0 ? (
-            <EmptyState icon={<TriangleAlert size={22} color={t.textMuted} />} title="Aucune action" text="Les actions SAV effectuées sur cette conversation apparaîtront ici." />
-          ) : (
-            <View style={styles.historyList}>
-              {[...(history.data ?? [])]
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .map((record) => (
-                  <HistoryRow key={record.id} record={record} />
-                ))}
-            </View>
-          )}
-        </Section>
-      </ScrollView>
-
-      {executable ? (
-        <View style={styles.footer}>
+    <SheetScreen
+      title="Actions SAV"
+      closeLabel="Fermer"
+      closeDisabled={pending}
+      footer={
+        executable ? (
           <Button
             label={copy?.confirm ?? 'Confirmer'}
             onPress={confirm}
             loading={pending}
             disabled={invalid}
           />
+        ) : undefined
+      }
+    >
+      <SegmentedControl segments={SEGMENTS} value={type} onChange={changeType} />
+
+      {copy ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{copy.title}</Text>
+          <Text style={styles.description}>{copy.description}</Text>
+        </View>
+      ) : (
+        <View style={styles.notice} accessibilityRole="alert">
+          <TriangleAlert size={18} color={t.warning} />
+          <Text style={styles.noticeText}>{RESEND_MANUAL_NOTICE}</Text>
+        </View>
+      )}
+
+      {/* Commande concernée */}
+      <Section title="Commande">
+        {options.isPending && orders.length === 0 ? (
+          <ActivityIndicator color={t.accentText} />
+        ) : orders.length === 0 && !orderReference ? (
+          options.isError ? (
+            <ErrorBanner
+              error={options.error}
+              fallback="Impossible de charger les commandes du client."
+              onRetry={() => void options.refetch()}
+            />
+          ) : (
+            <Text style={styles.muted}>Aucune commande pour ce client.</Text>
+          )
+        ) : (
+          <View style={styles.orderList}>
+            {(orders.length > 0
+              ? orders
+              : [{ reference: orderReference!, dateAdd: null, totalPaid: null }]
+            ).map((order) => {
+              const selected = order.reference === orderReference;
+              const meta = [
+                formatDateTimeShort(order.dateAdd),
+                order.totalPaid != null ? formatEuro(order.totalPaid) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ');
+              return (
+                <Pressable
+                  key={order.reference}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`Commande ${order.reference}${meta ? `, ${meta}` : ''}`}
+                  accessibilityState={{ selected, disabled: pending }}
+                  disabled={pending}
+                  onPress={() => {
+                    setChosenOrder(order.reference);
+                    setError(null);
+                  }}
+                  style={[styles.radioRow, selected && styles.radioRowSelected]}
+                >
+                  <RadioDot selected={selected} />
+                  <View style={styles.radioBody}>
+                    <Text style={[styles.orderRef, selected && { color: t.accentText }]}>
+                      {order.reference}
+                    </Text>
+                    {meta ? <Text style={styles.radioMeta}>{meta}</Text> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+        {initial && initial.orderReference === orderReference ? (
+          <View style={styles.proposal}>
+            <Text style={styles.proposalTitle}>Proposé par l’IA</Text>
+            {describeActionParams(initial) ? (
+              <Text style={styles.proposalText}>{describeActionParams(initial)}</Text>
+            ) : null}
+            {initial.rationale ? <Text style={styles.muted}>{initial.rationale}</Text> : null}
+            {initial.warning ? <Text style={styles.warning}>{initial.warning}</Text> : null}
+          </View>
+        ) : null}
+      </Section>
+
+      {/* Paramètres de l'action */}
+      {type === 'REFUND' ? (
+        <Section title="Montant de l’avoir">
+          <RadioOption
+            label="Remboursement total de la commande (hors port)"
+            selected={effectiveMode === 'total'}
+            disabled={pending}
+            onPress={() => setMode('total')}
+          />
+          {productsAvailable ? (
+            <RadioOption
+              label="Produits sélectionnés"
+              selected={effectiveMode === 'products'}
+              disabled={pending}
+              onPress={() => setMode('products')}
+            />
+          ) : null}
+          <RadioOption
+            label="Montant personnalisé (TTC)"
+            selected={effectiveMode === 'custom'}
+            disabled={pending}
+            onPress={() => setMode('custom')}
+          />
+          {effectiveMode === 'products' ? (
+            <View style={styles.products}>
+              {products.map((line, index) => (
+                <View key={line.reference} style={styles.productRow}>
+                  <Text style={styles.productRef} numberOfLines={1}>
+                    {line.reference}
+                  </Text>
+                  <Stepper
+                    label={`Quantité de ${line.reference}`}
+                    value={line.quantity}
+                    min={0}
+                    max={999}
+                    disabled={pending}
+                    onChange={(quantity) =>
+                      setProducts((prev) =>
+                        prev.map((item, i) => (i === index ? { ...item, quantity } : item)),
+                      )
+                    }
+                  />
+                </View>
+              ))}
+              {productsInvalid ? (
+                <Text style={styles.fieldError}>Choisissez au moins un produit.</Text>
+              ) : null}
+            </View>
+          ) : null}
+          {effectiveMode === 'custom' ? (
+            <TextField
+              label="Montant TTC (€)"
+              value={amount}
+              onChangeText={(text) => setAmount(text.replace(/[^\d.,]/g, ''))}
+              keyboardType="decimal-pad"
+              placeholder="0,00"
+              editable={!pending}
+              error={
+                amountInvalid && amount.trim() !== ''
+                  ? `Montant invalide${totalPaid != null ? ` (maximum ${formatEuro(totalPaid)})` : ''}.`
+                  : undefined
+              }
+            />
+          ) : null}
+          {totalPaid != null ? (
+            <Text style={styles.muted}>Total payé : {formatEuro(totalPaid)}</Text>
+          ) : null}
+        </Section>
+      ) : null}
+
+      {type === 'RETURN_LABEL' ? (
+        <Section title="Étiquette de retour">
+          <View style={styles.parcelRow}>
+            <Text style={styles.parcelLabel}>Nombre de colis</Text>
+            <Stepper
+              label="Nombre de colis"
+              value={parcels}
+              min={1}
+              max={MAX_PARCELS}
+              disabled={pending}
+              onChange={setParcels}
+            />
+          </View>
+          {needsForceNew ? (
+            <View style={styles.forceNew}>
+              <Text style={styles.forceNewText}>
+                Un lot d’étiquettes existe déjà pour cette commande. Créer un nouveau lot malgré
+                tout ?
+              </Text>
+              <Switch
+                value={forceNew}
+                onValueChange={setForceNew}
+                disabled={pending}
+                trackColor={{ true: t.accent }}
+                accessibilityLabel="Créer un nouveau lot d’étiquettes malgré le lot existant"
+              />
+            </View>
+          ) : null}
+        </Section>
+      ) : null}
+
+      {type === 'RESEND' && orderReference ? (
+        <Button
+          label="Ouvrir la commande"
+          variant="outline"
+          onPress={() => openOrder(orderReference)}
+        />
+      ) : null}
+
+      {error ? (
+        <View style={styles.error} accessibilityRole="alert">
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
-    </View>
+
+      {/* Historique */}
+      <Section title="Historique des actions">
+        {history.isPending ? (
+          <ActivityIndicator color={t.accentText} />
+        ) : history.isError ? (
+          <ErrorBanner
+            error={history.error}
+            fallback="Impossible de charger l’historique."
+            onRetry={() => void history.refetch()}
+          />
+        ) : (history.data?.length ?? 0) === 0 ? (
+          <EmptyState
+            icon={<TriangleAlert size={22} color={t.textMuted} />}
+            title="Aucune action"
+            text="Les actions SAV effectuées sur cette conversation apparaîtront ici."
+          />
+        ) : (
+          <View style={styles.historyList}>
+            {[...(history.data ?? [])]
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+              .map((record) => (
+                <HistoryRow key={record.id} record={record} />
+              ))}
+          </View>
+        )}
+      </Section>
+    </SheetScreen>
   );
 }
 
@@ -651,34 +631,6 @@ function HistoryRow({ record }: { record: SupportActionRecord }) {
 }
 
 const useStyles = makeStyles((t) => ({
-  root: { flex: 1, backgroundColor: t.bgElevated },
-  header: {
-    minHeight: hitTarget + 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth * 2,
-    borderBottomColor: t.border,
-  },
-  side: { width: 72 },
-  sideEnd: { alignItems: 'flex-end' },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: fontSize.base,
-    fontWeight: '700',
-    color: t.text,
-  },
-  close: { fontSize: fontSize.sm, fontWeight: '700', color: t.accentText },
-  body: { flex: 1 },
-  content: { gap: spacing['2xl'], padding: spacing.xl, paddingBottom: spacing['4xl'] },
-  footer: {
-    padding: spacing.xl,
-    borderTopWidth: StyleSheet.hairlineWidth * 2,
-    borderTopColor: t.border,
-  },
   section: { gap: spacing.sm },
   sectionTitle: { fontSize: fontSize.base, fontWeight: '700', color: t.text },
   sectionLabel: {
