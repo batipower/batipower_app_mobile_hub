@@ -1,7 +1,7 @@
 import type { Href } from 'expo-router';
-import { BadgeEuro, UserRound, type LucideIcon } from 'lucide-react-native';
+import { BadgeEuro, ScanSearch, UserRound, type LucideIcon } from 'lucide-react-native';
 
-import { canAccessHubPricing } from '@/auth/permissions';
+import { canAccessHubPricing, canAccessHubProductAnalyzer } from '@/auth/permissions';
 import type { AppUserRole } from '@/types/user';
 
 /** Sections du menu, nommées comme les groupes de la sidebar HUB du web. */
@@ -32,6 +32,14 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     icon: BadgeEuro,
     href: '/hub/pricing',
     visible: canAccessHubPricing,
+  },
+  {
+    id: 'product-analyzer',
+    section: 'Pilotage',
+    label: 'Product Analyzer',
+    icon: ScanSearch,
+    href: '/hub/product-analyzer',
+    visible: canAccessHubProductAnalyzer,
   },
   {
     id: 'profil',

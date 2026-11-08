@@ -4,7 +4,7 @@ import { Stack } from 'expo-router';
 import { SearchX } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { canAccessHubProductSheet } from '@/auth/permissions';
+import { canAccessHubProductAnalyzer, canAccessHubProductSheet } from '@/auth/permissions';
 import { OrderResultCard } from '@/features/orders/components/OrderResultCard';
 import { EmptyState, ErrorBanner, ListSkeleton } from '@/features/preparation/components/ListState';
 import { SegmentedControl, type Segment } from '@/features/preparation/components/SegmentedControl';
@@ -52,10 +52,21 @@ const PLACEHOLDER_ORDERS_ONLY = 'Commande, client, téléphone, suivi…';
 export function SearchScreen() {
   const { user } = useAuth();
   if (!user) return null;
-  return <SearchContent canSearchProducts={canAccessHubProductSheet(user.role)} />;
+  return (
+    <SearchContent
+      canSearchProducts={canAccessHubProductSheet(user.role)}
+      canOpenAnalyzer={canAccessHubProductAnalyzer(user.role)}
+    />
+  );
 }
 
-function SearchContent({ canSearchProducts }: { canSearchProducts: boolean }) {
+function SearchContent({
+  canSearchProducts,
+  canOpenAnalyzer,
+}: {
+  canSearchProducts: boolean;
+  canOpenAnalyzer: boolean;
+}) {
   const styles = useStyles();
   const tabBarInset = useTabBarInset();
   const t = useTheme();
@@ -74,14 +85,15 @@ function SearchContent({ canSearchProducts }: { canSearchProducts: boolean }) {
     useCallback(() => (typed ? search.refetch() : history.refetch()), [typed, search, history]),
   );
 
-  // Les entrées de l'analyseur n'ont pas d'écran sur mobile, et les fiches produit sont
-  // réservées à certains rôles : on ne propose que ce que l'utilisateur peut ouvrir.
+  // Les fiches produit et celles de l'analyseur sont réservées à certains rôles : on ne propose
+  // que ce que l'utilisateur peut ouvrir.
   const recents = useMemo(
     () =>
       history.entries.filter(
-        (entry) => entry.type !== 'ANALYZER' && (entry.type !== 'PRODUCT' || canSearchProducts),
+        (entry) =>
+          (entry.type !== 'ANALYZER' || canOpenAnalyzer) && (entry.type !== 'PRODUCT' || canSearchProducts),
       ),
-    [history.entries, canSearchProducts],
+    [history.entries, canSearchProducts, canOpenAnalyzer],
   );
 
   const ordersCountExact =

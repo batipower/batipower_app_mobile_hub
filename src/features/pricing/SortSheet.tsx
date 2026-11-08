@@ -5,7 +5,7 @@ import { Check } from 'lucide-react-native';
 import { SegmentedControl } from '@/features/preparation/components/SegmentedControl';
 import { fontSize, hitTarget, makeStyles, spacing, useTheme } from '@/theme';
 
-import { SheetScreen, SheetSection } from './components/SheetScreen';
+import { SheetScreen, SheetSection } from '@/components/sheet/SheetScreen';
 import { patchPricingFilters, usePricingState } from './filtersStore';
 import { SORT_OPTIONS } from './options';
 

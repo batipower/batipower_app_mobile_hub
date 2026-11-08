@@ -9,7 +9,7 @@ import { formatInteger } from '@/lib/format';
 import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 import type { HubPricingSelectionStatsMonths } from '@/types/hubPricing';
 
-import { SheetScreen } from '../components/SheetScreen';
+import { SheetScreen } from '@/components/sheet/SheetScreen';
 import { usePricingState } from '../filtersStore';
 import { useSelectionStats } from '../hooks/useSelectionStats';
 import { GeographyTab, MonthlyTab, OverviewTab, ProductsTab, SiteTab } from './tabs';

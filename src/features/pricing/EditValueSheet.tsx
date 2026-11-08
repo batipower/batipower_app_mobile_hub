@@ -7,7 +7,7 @@ import { formatEuro } from '@/lib/format';
 import { fontSize, makeStyles } from '@/theme';
 import type { HubPricingRow, UpdateHubProductPayload } from '@/types/hubPricing';
 
-import { SheetScreen } from './components/SheetScreen';
+import { SheetScreen } from '@/components/sheet/SheetScreen';
 import { usePricingRow } from './hooks/usePricingRow';
 import { useUpdatePricingRow } from './hooks/useUpdatePricingRow';
 import type { PricingEditField } from './navigation';

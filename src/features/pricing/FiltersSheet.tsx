@@ -11,7 +11,7 @@ import {
   StateField,
   TriStateField,
 } from './components/FilterControls';
-import { SheetScreen, SheetSection } from './components/SheetScreen';
+import { SheetScreen, SheetSection } from '@/components/sheet/SheetScreen';
 import { countActiveFilters } from './filters';
 import {
   patchPricingFilters,

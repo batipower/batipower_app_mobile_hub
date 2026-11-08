@@ -45,6 +45,14 @@ export function canAccessHubPricing(role: AppUserRole): boolean {
   return role === 'SUPERADMIN';
 }
 
+/**
+ * Product Analyzer du HUB (analyse de produits, historique, négociation) : SUPERADMIN uniquement,
+ * comme `canAccessHubProductAnalyzer` côté web.
+ */
+export function canAccessHubProductAnalyzer(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
 /** Page Préparation du HUB : mêmes rôles que `canAccessHubPreparation` côté web. */
 export function canAccessHubPreparation(role: AppUserRole): boolean {
   return isHubOpsRole(role);

@@ -4,7 +4,7 @@ import { makeStyles, spacing } from '@/theme';
 
 import { isQgStockFilter } from '../filters';
 import { patchPricingFilters, usePricingState } from '../filtersStore';
-import { FilterPill } from './FilterPill';
+import { FilterPill } from '@/components/sheet/FilterPill';
 
 /** Cycle des filtres à trois états : neutre → oui → non → neutre. */
 function nextTriState(current: boolean | null): boolean | null {

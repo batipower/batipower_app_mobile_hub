@@ -5,7 +5,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { SegmentedControl } from '@/features/preparation/components/SegmentedControl';
 import { fontSize, hitTarget, makeStyles, radius, spacing, useTheme } from '@/theme';
 
-import { FilterPill } from './FilterPill';
+import { FilterPill } from '@/components/sheet/FilterPill';
 
 /** Étiquette + contrôle, empilés. */
 export function Field({ label, children }: { label: string; children: ReactNode }) {

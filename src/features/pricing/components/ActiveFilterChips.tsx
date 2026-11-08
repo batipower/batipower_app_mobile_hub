@@ -7,7 +7,7 @@ import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 import { buildFilterChips } from '../filterLabels';
 import { patchPricingFilters, resetPricingFilters, usePricingState } from '../filtersStore';
 import { usePricingAffaires } from '../hooks/usePricingOptions';
-import { FilterPill } from './FilterPill';
+import { FilterPill } from '@/components/sheet/FilterPill';
 
 /**
  * Puces des filtres actifs, chacune retirable. La recherche n'y figure pas : elle reste

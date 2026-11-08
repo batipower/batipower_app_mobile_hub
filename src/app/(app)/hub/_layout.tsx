@@ -11,7 +11,7 @@ import { useTheme } from '@/theme';
  * - `(tabs)` : onglets avec la barre flottante Batipower (Cockpit, Préparation, Discussions,
  *   Recherche, et le bouton éclair central qui ouvre le menu).
  * - `menu` : feuille native à mi-écran ouverte par le bouton central (lignes de navigation).
- * - `pricing`, `profil` : pages secondaires lancées depuis le menu, poussées par-dessus les
+ * - `pricing`, `product-analyzer`, `profil` : pages secondaires lancées depuis le menu, poussées par-dessus les
  *   onglets avec le bouton retour natif. Le profil est une page à part, pas un bloc du menu.
  */
 export default function HubLayout() {
@@ -46,6 +46,7 @@ export default function HubLayout() {
         }}
       />
       <Stack.Screen name="pricing" options={{ headerShown: false }} />
+      <Stack.Screen name="product-analyzer" options={{ headerShown: false }} />
       <Stack.Screen name="profil" options={{ title: 'Profil' }} />
     </Stack>
   );

@@ -18,7 +18,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { canAttachRenegotiations } from '@/auth/permissions';
 import { Button, Card, Chip, TextField } from '@/components/ui';
 import { openFromMenu } from '@/features/menu/navigation';
-import { SheetScreen } from '@/features/pricing/components/SheetScreen';
+import { SheetScreen } from '@/components/sheet/SheetScreen';
 import { SegmentedControl } from '@/features/preparation/components/SegmentedControl';
 import { errorMessage } from '@/features/preparation/components/ListState';
 import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';

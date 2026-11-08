@@ -6,6 +6,8 @@ import type { OrderSearchHit } from '@/types/order';
 import type { HubProductSearchHit } from '@/types/product';
 import type { HubSearchHistoryEntry } from '@/types/searchHistory';
 
+import { openPaFiche } from '@/features/product-analyzer/navigation';
+
 import { openOrder, openProduct } from '../navigation';
 import { useSearchHistoryActions } from './useSearchHistory';
 
@@ -56,6 +58,7 @@ export function useOpenResults() {
       });
       void Haptics.selectionAsync().catch(() => undefined);
       if (entry.type === 'PRODUCT') openProduct(entry.reference);
+      else if (entry.type === 'ANALYZER') openPaFiche(entry.reference);
       else openOrder(entry.reference);
     },
     [recordSearch],
