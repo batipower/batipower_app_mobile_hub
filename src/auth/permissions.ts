@@ -140,3 +140,99 @@ export function canAccessHubCustomerQuotes(role: AppUserRole): boolean {
 export function canAccessAdmin(role: AppUserRole): boolean {
   return role === 'SUPERADMIN';
 }
+
+// ─── Module PARTNER (espace fournisseurs) ────────────────────────────────────
+
+/** Compte tel que le jugent les règles PARTNER : rôle et drapeaux de périmètre de `GET /buyer-app/me`. */
+export type PartnerAccessUser = {
+  role: AppUserRole;
+  opportunityOpenAccess?: boolean;
+  productsCatalogAccess?: boolean;
+} | null | undefined;
+
+/**
+ * Rôles du catalogue Produits et des inter-agences : `BUYER_PRODUCT_ROLES` de
+ * `buyer-products.controller.ts` et `INTER_AGENCY_ORDERS_ROLES` du web.
+ */
+const PARTNER_BUYER_ROLES: readonly AppUserRole[] = [
+  'ACHETEUR',
+  'CHEF_SERVICE',
+  'RESPONSABLE_ACHAT',
+  'RESPONSABLE_ACHAT_REFERENT',
+  'RESPONSABLE_PLATEFORME',
+  'RESPONSABLE',
+  'SUPERADMIN',
+];
+
+/**
+ * Rôles des opportunités et des BL à corriger : `NEGOTIATION_OPPORTUNITY_ROLES` et
+ * `DELIVERY_NOTE_PRICING_ROLES` du web (RA, RAR, SUPERADMIN).
+ */
+const PARTNER_PURCHASE_ROLES: readonly AppUserRole[] = [
+  'RESPONSABLE_ACHAT',
+  'RESPONSABLE_ACHAT_REFERENT',
+  'SUPERADMIN',
+];
+
+/**
+ * Distributeur limité à ses DEP (`opportunityAccess = DEP_ONLY`) : le back renvoie
+ * `opportunityOpenAccess = false` (jamais pour un compte HUB). Absent = pas DEP_ONLY.
+ */
+export function isDepOnlyUser(user: PartnerAccessUser): boolean {
+  return user?.opportunityOpenAccess === false;
+}
+
+/** Produits (liste DEP, et standard si le catalogue est ouvert au compte). */
+export function canAccessPartnerProducts(role: AppUserRole): boolean {
+  return PARTNER_BUYER_ROLES.includes(role);
+}
+
+/** Segment « Standard » des Produits : fermé aux comptes dont `productsCatalogAccess` vaut `false`. */
+export function canAccessPartnerProductsCatalog(user: PartnerAccessUser): boolean {
+  return !!user && canAccessPartnerProducts(user.role) && user.productsCatalogAccess !== false;
+}
+
+/** Opportunités (standard et DEP). */
+export function canAccessPartnerOpportunities(role: AppUserRole): boolean {
+  return PARTNER_PURCHASE_ROLES.includes(role);
+}
+
+/** Segment « Standard » des opportunités : absent pour un distributeur DEP_ONLY. */
+export function canAccessPartnerOpportunitiesStandard(user: PartnerAccessUser): boolean {
+  return !!user && canAccessPartnerOpportunities(user.role) && !isDepOnlyUser(user);
+}
+
+/** Inter-agences : mêmes rôles que les produits, sauf distributeur DEP_ONLY. */
+export function canAccessPartnerInterAgency(user: PartnerAccessUser): boolean {
+  return !!user && canAccessPartnerProducts(user.role) && !isDepOnlyUser(user);
+}
+
+/** BL à corriger (écarts de prix d'achat). */
+export function canAccessPartnerDeliveryNotes(role: AppUserRole): boolean {
+  return PARTNER_PURCHASE_ROLES.includes(role);
+}
+
+/** Onglets du module PARTNER sur mobile, dans l'ordre de la barre. */
+export type PartnerTab = 'produits' | 'opportunites' | 'inter-agences' | 'bl';
+
+/** Onglets PARTNER auxquels le compte a droit ; vide = le module n'a rien à lui montrer sur mobile. */
+export function partnerTabsFor(user: PartnerAccessUser): PartnerTab[] {
+  if (!user) return [];
+  const tabs: PartnerTab[] = [];
+  if (canAccessPartnerProducts(user.role)) tabs.push('produits');
+  if (canAccessPartnerOpportunities(user.role)) tabs.push('opportunites');
+  if (canAccessPartnerInterAgency(user)) tabs.push('inter-agences');
+  if (canAccessPartnerDeliveryNotes(user.role)) tabs.push('bl');
+  return tabs;
+}
+
+/**
+ * Premier onglet PARTNER d'un compte, comme `getDefaultLandingPage` du web : les Produits, sauf un
+ * RA / RAR distributeur DEP_ONLY, qui arrive sur les Opportunités DEP.
+ */
+export function partnerLandingTab(user: PartnerAccessUser): PartnerTab | null {
+  const tabs = partnerTabsFor(user);
+  if (tabs.length === 0) return null;
+  if (isDepOnlyUser(user) && tabs.includes('opportunites')) return 'opportunites';
+  return tabs[0] ?? null;
+}

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 
 import type { BatipowerModule, CurrentUser } from '@/types/user';
 
-import { getLandingHref, getModuleHref } from './registry';
+import { getLandingHref, getModuleHref, type ModuleUser } from './registry';
 
 /** Hauteur d'une ligne du sélecteur (ligne + espacement). */
 export const MODULE_ROW_HEIGHT = 68;
@@ -42,7 +42,7 @@ export function goToLanding(user: CurrentUser) {
  */
 export function switchToModule(
   id: BatipowerModule,
-  user: Pick<CurrentUser, 'role'>,
+  user: ModuleUser,
   active: BatipowerModule | null,
 ) {
   router.dismissAll();

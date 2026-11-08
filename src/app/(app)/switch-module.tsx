@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Check } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { accessibleModules, isBatipowerModule, MODULES } from '@/modules/registry';
+import { accessibleModules, isBatipowerModule, isMobileAvailable, MODULES } from '@/modules/registry';
 import { MODULE_ROW_HEIGHT, switchToModule } from '@/modules/switchModule';
 import { fontSize, makeStyles, radius, spacing, typography, useTheme, withAlpha } from '@/theme';
 import type { BatipowerModule } from '@/types/user';
@@ -39,13 +39,14 @@ export default function SwitchModuleSheet() {
           const meta = MODULES[id];
           const Icon = meta.icon;
           const isActive = id === active;
+          const available = isMobileAvailable(id, user);
 
           return (
             <Pressable
               key={id}
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`${meta.fullName}${meta.mobileEnabled ? '' : ', bientôt disponible sur mobile'}`}
+              accessibilityLabel={`${meta.fullName}${available ? '' : ', bientôt disponible sur mobile'}`}
               onPress={() => {
                 void Haptics.selectionAsync().catch(() => undefined);
                 switchToModule(id, user, active);
@@ -72,7 +73,7 @@ export default function SwitchModuleSheet() {
                   {meta.tagline}
                 </Text>
               </View>
-              {!meta.mobileEnabled ? (
+              {!available ? (
                 <View style={styles.soon}>
                   <Text style={styles.soonText}>Bientôt</Text>
                 </View>

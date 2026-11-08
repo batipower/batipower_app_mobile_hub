@@ -10,7 +10,13 @@ import { ModuleBadge } from '@/components/modules/ModuleBadge';
 import { Button, Screen } from '@/components/ui';
 import { useAuth } from '@/auth/AuthProvider';
 import { openWebPage } from '@/lib/openWeb';
-import { accessibleModules, getModuleHref, isBatipowerModule, MODULES } from '@/modules/registry';
+import {
+  accessibleModules,
+  getModuleHref,
+  isBatipowerModule,
+  isMobileAvailable,
+  MODULES,
+} from '@/modules/registry';
 import { fontSize, makeStyles, radius, spacing, typography, useTheme } from '@/theme';
 
 /**
@@ -33,7 +39,7 @@ export default function ModuleComingSoonScreen() {
   const meta = isBatipowerModule(id) && owned.includes(id) ? MODULES[id] : null;
 
   // Module disponible sur mobile (lien profond, route obsolète) : on y va directement.
-  if (meta?.mobileEnabled) return <Redirect href={getModuleHref(meta.id, user)} />;
+  if (meta && isMobileAvailable(meta.id, user)) return <Redirect href={getModuleHref(meta.id, user)} />;
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -73,8 +79,8 @@ export default function ModuleComingSoonScreen() {
         <Text style={styles.tagline}>{meta ? meta.tagline : 'Application Batipower Pro'}</Text>
         <Text style={styles.description}>
           {meta
-            ? `Ce module n'est pas encore disponible sur mobile. Il sera ajouté dans une prochaine version ; en attendant, l'espace web reste accessible.`
-            : `Votre compte n'a pas encore accès à un module de l'application mobile. Pour l'instant, seuls Batipower HUB et Batipower ADMIN (réservé aux superadministrateurs) sont proposés.`}
+            ? `Ce module n'est pas disponible sur mobile pour votre compte. L'espace web reste accessible.`
+            : `Votre compte n'a pas encore accès à un module de l'application mobile. Pour l'instant, seuls Batipower HUB, Batipower PARTNER (achats) et Batipower ADMIN (réservé aux superadministrateurs) sont proposés.`}
         </Text>
       </View>
 

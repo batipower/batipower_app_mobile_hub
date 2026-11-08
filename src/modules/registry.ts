@@ -12,14 +12,23 @@ import {
   canAccessAdmin,
   canAccessHubCockpit,
   canAccessHubPreparation,
+  partnerLandingTab,
+  partnerTabsFor,
+  type PartnerTab,
 } from '@/auth/permissions';
-import type { AppUserRole, BatipowerModule, CurrentUser } from '@/types/user';
+import type { BatipowerModule, CurrentUser } from '@/types/user';
+
+/** Ce que le registre lit du compte pour choisir l'accueil d'un module. */
+export type ModuleUser = Pick<
+  CurrentUser,
+  'role' | 'opportunityOpenAccess' | 'productsCatalogAccess'
+>;
 
 /**
  * Registre des modules Batipower, porté de `front_externe_batipower/lib/modules.ts`
  * et `lib/module-access.ts`.
  *
- * `mobileEnabled` pilote ce qui est réellement proposé dans l'app : seul HUB l'est
+ * `mobileEnabled` pilote ce qui est réellement proposé dans l'app : HUB, ADMIN et PARTNER le sont
  * pour l'instant. Pour ouvrir un module : créer `src/app/(app)/<module>/_layout.tsx`
  * (+ ses écrans), faire pointer `landing` vers son écran d'accueil, puis passer
  * `mobileEnabled` à `true`. Le sélecteur de module (`switch-module`) l'intègre seul.
@@ -36,12 +45,24 @@ export interface ModuleMeta {
   fg: string;
   mobileEnabled: boolean;
   /**
-   * Écran d'accueil du module dans l'app, selon le rôle (un module peut proposer un
+   * Restreint un module ouvert sur mobile à certains comptes (ex. PARTNER : un compte sans
+   * aucun onglet accessible n'a rien à y faire). Absent = tous les comptes du module.
+   */
+  availableFor?: (user: ModuleUser) => boolean;
+  /**
+   * Écran d'accueil du module dans l'app, selon le compte (un module peut proposer un
    * premier écran différent selon les droits). Les modules non ouverts sur mobile
    * mènent à l'écran « bientôt disponible ».
    */
-  landing: (role: AppUserRole) => Href;
+  landing: (user: ModuleUser) => Href;
 }
+
+const PARTNER_TAB_HREFS: Record<PartnerTab, Href> = {
+  produits: '/partner/produits',
+  opportunites: '/partner/opportunites',
+  'inter-agences': '/partner/inter-agences',
+  bl: '/partner/bl',
+};
 
 /** Écran d'attente d'un module pas encore disponible sur mobile. */
 function comingSoonHref(id: BatipowerModule): Href {
@@ -57,8 +78,14 @@ export const MODULES: Record<BatipowerModule, ModuleMeta> = {
     icon: Handshake,
     accent: '#6C5CE7',
     fg: '#FFFFFF',
-    mobileEnabled: false,
-    landing: () => comingSoonHref('PARTNER'),
+    mobileEnabled: true,
+    // Un compte PARTNER sans onglet mobile (logistique, préparation, direction…) reste sur l'écran
+    // « bientôt disponible » : l'espace web couvre ses pages.
+    availableFor: (user) => partnerTabsFor(user).length > 0,
+    landing: (user) => {
+      const tab = partnerLandingTab(user);
+      return tab ? PARTNER_TAB_HREFS[tab] : comingSoonHref('PARTNER');
+    },
   },
   HUB: {
     id: 'HUB',
@@ -71,7 +98,7 @@ export const MODULES: Record<BatipowerModule, ModuleMeta> = {
     mobileEnabled: true,
     // Le SUPERADMIN ouvre le cockpit, la préparation est réservée aux opérations ; les autres
     // comptes HUB arrivent sur la recherche.
-    landing: (role) => {
+    landing: ({ role }) => {
       if (canAccessHubCockpit(role)) return '/hub/cockpit';
       return canAccessHubPreparation(role) ? '/hub/preparation' : '/hub/recherche';
     },
@@ -98,7 +125,8 @@ export const MODULES: Record<BatipowerModule, ModuleMeta> = {
     mobileEnabled: true,
     // Module réservé au SUPERADMIN : les autres rôles retombent sur « bientôt disponible » (la
     // garde de `admin/_layout.tsx` les renvoie de toute façon vers leur module).
-    landing: (role) => (canAccessAdmin(role) ? '/admin/utilisateurs' : comingSoonHref('ADMIN')),
+    landing: ({ role }) =>
+      canAccessAdmin(role) ? '/admin/utilisateurs' : comingSoonHref('ADMIN'),
   },
   POWER: {
     id: 'POWER',
@@ -138,14 +166,23 @@ export function accessibleModules(user: Pick<CurrentUser, 'role' | 'modules'>): 
   return MODULE_ORDER.filter((id) => owned.includes(id));
 }
 
+/** Vrai si le module est ouvert sur mobile et que ce compte y a de quoi faire. */
+export function isMobileAvailable(
+  id: BatipowerModule,
+  user: ModuleUser,
+): boolean {
+  const meta = MODULES[id];
+  return meta.mobileEnabled && (meta.availableFor?.(user) ?? true);
+}
+
 /** Modules à la fois autorisés pour l'utilisateur et activés dans l'app mobile. */
-export function mobileModules(user: Pick<CurrentUser, 'role' | 'modules'>): BatipowerModule[] {
-  return accessibleModules(user).filter((id) => MODULES[id].mobileEnabled);
+export function mobileModules(user: Pick<CurrentUser, 'modules'> & ModuleUser): BatipowerModule[] {
+  return accessibleModules(user).filter((id) => isMobileAvailable(id, user));
 }
 
 /** Écran d'accueil d'un module pour cet utilisateur. */
-export function getModuleHref(id: BatipowerModule, user: Pick<CurrentUser, 'role'>): Href {
-  return MODULES[id].landing(user.role);
+export function getModuleHref(id: BatipowerModule, user: ModuleUser): Href {
+  return MODULES[id].landing(user);
 }
 
 /**

@@ -68,6 +68,8 @@ export interface CurrentUser {
   impersonatedBy?: string | null;
   /** `false` pour un distributeur limité à ses DEP (jamais pour un compte HUB) ; absent = accès complet. */
   opportunityOpenAccess?: boolean;
+  /** `false` : le catalogue Produits standard est fermé au compte (seule la liste DEP reste ouverte) ; absent = ouvert. */
+  productsCatalogAccess?: boolean;
   subsidiaryId: string | null;
   subsidiary: PartnerRef | null;
   partnerDistributor: PartnerRef | null;

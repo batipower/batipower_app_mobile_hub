@@ -2,7 +2,7 @@
 
 Application mobile (React Native / Expo) du logiciel Batipower, pendant de
 `front_externe_batipower`. Première cible : **iPhone**, module **HUB**. La structure
-est prête pour accueillir les autres modules (PARTNER, MARQUE, ADMIN, POWER).
+accueille aujourd'hui les modules HUB, ADMIN et PARTNER ; MARQUE et POWER restent à venir.
 
 État actuel : connexion (email + mot de passe, vérification 2FA par email), session
 persistante, onglets HUB : **Préparation** (consultation des commandes à préparer et
@@ -186,6 +186,41 @@ Comportements à connaître :
   transferts d'entrepôt (Flévy / Dombasle), onglet Expédiés, miniatures produit.
 - Pas de route `/hub` seule : le module s'ouvre directement sur `/hub/preparation`
   (`NativeTabs` ne gère que les routes déclarées par un onglet).
+
+## Partenaires (module PARTNER)
+
+Pendant mobile des pages principales du module PARTNER du front web, en **consultation avec
+actions simples** (le reste se fait sur l'espace web). Quatre onglets
+(`src/app/(app)/partner/(tabs)`), chacun visible selon le rôle et le périmètre du compte
+(`partnerTabsFor` dans `auth/permissions.ts`, à garder synchronisé avec le web) :
+
+- **Produits** (ACHETEUR, CHEF_SERVICE, RA, RAR, RESPONSABLE_PLATEFORME, RESPONSABLE, SUPERADMIN) :
+  catalogue **Standard** (couverture, criticité, messages) et **DEP** (déstockage), filtres
+  (marque, criticité, réponse attendue, entrepôt DEP), fiche en lecture et fil de messages.
+  Un compte avec `productsCatalogAccess === false` n'a que la liste DEP.
+- **Opportunités** (RA, RAR, SUPERADMIN) : Standard et DEP, puces de statut avec compteurs,
+  filtres (marque, non lues), fiche (prix, propositions, notes), marquage **traitée / rouverte**
+  et **non lue**, lecture automatique à l'ouverture, fil de messages. Pas de proposition de prix.
+  Après la négociation, l'envoi est fermé aux RA / RAR (règle du back).
+- **Inter-agences** (rôles des Produits, hors compte « DEP uniquement ») : commandes confirmées
+  par la logistique, statut (à traiter, réalisée, impossible), filtres (mes commandes, entrepôt),
+  actions **réalisée** (agences prévenues + n° inter-agence), **pré-réception** et **impossible
+  d'honorer** (motif, alerte HUB), fils logistique et HUB.
+- **BL à corriger** (RA, RAR, SUPERADMIN) : lignes en écart de prix, vues À traiter / Traités avec
+  barre de progression, filtre marque, fiche du BL (lignes, totaux), **traiter / rouvrir**, fil
+  de messages. Ni PDF ni contrôle des BL traités sur mobile.
+
+Un compte « DEP uniquement » (`opportunityOpenAccess === false`) arrive sur les opportunités DEP et
+n'a pas les inter-agences. Le menu central (éclair) donne accès au profil et à l'espace web. Les
+pastilles des onglets (messages produit à traiter, opportunités à traiter, BL à traiter) sont
+recalées chaque minute.
+
+Code dans `src/features/partner/*` (un dossier par onglet, composants communs dans `shared/` :
+liste paginée, fil de discussion, feuilles de filtres), appels dans `src/api/partner*.ts` et
+clés de cache dans `features/partner/queryKeys.ts`. Les filtres de chaque liste sont un petit store
+de module, remis à zéro à la déconnexion (`features/partner/state.ts`). Les opportunités utilisent
+des puces de statut comme le web plutôt qu'un simple « À traiter / Traitées » : « traitée » n'existe
+que dans le statut « Ouvertes ».
 
 ## Administration (module ADMIN)
 
