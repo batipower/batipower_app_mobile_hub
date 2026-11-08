@@ -77,6 +77,27 @@ export function canAccessHubReturns(role: AppUserRole): boolean {
 }
 
 /**
+ * Contrôle des annulations du HUB (`/hub/controle-annulations` côté web) : SUPERADMIN et MANAGER.
+ * Le MANAGER re-vérifie ou ignore ; la validation des avoirs est réservée au SUPERADMIN.
+ */
+export function canAccessHubCancellationControl(role: AppUserRole): boolean {
+  return isHubOpsRole(role);
+}
+
+/** Re-vérifier / Ignorer une alerte d'annulation : mêmes rôles que le web (HUB et SUPERADMIN). */
+export function canRecheckOrIgnoreCancellation(role: AppUserRole): boolean {
+  return isHubOpsRole(role);
+}
+
+/**
+ * Valider l'avoir (facture antérieure), valider la déclaration « Avoir fait » ou la remettre à
+ * revoir : SUPERADMIN, comme les `@Roles` du back.
+ */
+export function canReviewCreditNote(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/**
  * Recherche et fiche produit du HUB : mêmes rôles que `canAccessHubProductSheet` côté
  * web, et que `HUB_PRODUCT_STOCK_ROLES` côté back (`hub-products.controller.ts`).
  * La recherche de commandes, elle, est ouverte à tout compte ayant le module HUB.

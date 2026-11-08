@@ -4,6 +4,7 @@ import {
   Percent,
   ScanSearch,
   Search,
+  ShieldAlert,
   Undo2,
   UserRound,
   type LucideIcon,
@@ -11,6 +12,7 @@ import {
 
 import {
   canAccessHubBrandMargin,
+  canAccessHubCancellationControl,
   canAccessHubCustomerQuotes,
   canAccessHubPricing,
   canAccessHubProductAnalyzer,
@@ -58,6 +60,15 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     icon: Undo2,
     href: '/hub/retours',
     visible: canAccessHubReturns,
+  },
+  {
+    // Le web la masque pour le SUPERADMIN (accès par la cloche, absente de l'app mobile).
+    id: 'controle-annulations',
+    section: 'Opérations',
+    label: 'Contrôle annulations',
+    icon: ShieldAlert,
+    href: '/hub/controle-annulations',
+    visible: canAccessHubCancellationControl,
   },
   {
     id: 'pricing',
