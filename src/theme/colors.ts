@@ -29,6 +29,12 @@ export const colors = {
  * Équivalent des opacités Tailwind du web (`white/[0.04]`, `bati-green/40`…).
  */
 export function withAlpha(hex: string, alpha: number): string {
+  // Les palettes claires contiennent aussi des jetons déjà en `rgba()` : on en reprend les
+  // composantes RGB et on remplace l'opacité.
+  const rgb = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*[\d.]+\s*)?\)$/i.exec(hex);
+  if (rgb) return `rgba(${rgb[1]},${rgb[2]},${rgb[3]},${alpha})`;
+  const short = /^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(hex);
+  if (short) return withAlpha(`#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`, alpha);
   const match = /^#?([0-9a-f]{6})$/i.exec(hex);
   if (!match?.[1]) throw new Error(`Couleur hexadécimale invalide : ${hex}`);
   const value = parseInt(match[1], 16);
