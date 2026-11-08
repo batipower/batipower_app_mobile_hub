@@ -27,6 +27,7 @@ import {
   type StoredTokens,
 } from '@/auth/tokenStorage';
 import { resetPricingState } from '@/features/pricing/filtersStore';
+import { resetReturnsState } from '@/features/returns/filtersStore';
 import { resetPaState } from '@/features/product-analyzer/filtersStore';
 import { clearSelection } from '@/features/product-analyzer/selectionStore';
 import { goToLanding } from '@/modules/switchModule';
@@ -117,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('signedOut');
     queryClient.clear();
     resetPricingState();
+    resetReturnsState();
     resetPaState();
     clearSelection();
   }, [queryClient, setTempToken]);

@@ -59,6 +59,15 @@ export function canAccessHubPreparation(role: AppUserRole): boolean {
 }
 
 /**
+ * Retours de commande du HUB (historique, réception) : SUPERADMIN et MANAGER, comme `@Roles` de
+ * `GET hub-app/returns/history`. Les actions de la fiche (réception, état, remarque) ne portent pas
+ * de `@Roles` côté back : c'est donc l'accès à la page qui les limite à ces deux rôles.
+ */
+export function canAccessHubReturns(role: AppUserRole): boolean {
+  return isHubOpsRole(role);
+}
+
+/**
  * Recherche et fiche produit du HUB : mêmes rôles que `canAccessHubProductSheet` côté
  * web, et que `HUB_PRODUCT_STOCK_ROLES` côté back (`hub-products.controller.ts`).
  * La recherche de commandes, elle, est ouverte à tout compte ayant le module HUB.

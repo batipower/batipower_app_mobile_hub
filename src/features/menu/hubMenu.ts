@@ -1,10 +1,18 @@
 import type { Href } from 'expo-router';
-import { BadgeEuro, ScanSearch, Search, UserRound, type LucideIcon } from 'lucide-react-native';
+import {
+  BadgeEuro,
+  ScanSearch,
+  Search,
+  Undo2,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react-native';
 
 import {
   canAccessHubCustomerQuotes,
   canAccessHubPricing,
   canAccessHubProductAnalyzer,
+  canAccessHubReturns,
 } from '@/auth/permissions';
 import type { AppUserRole } from '@/types/user';
 
@@ -40,6 +48,14 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     href: '/hub/recherche',
     tab: true,
     visible: canAccessHubCustomerQuotes,
+  },
+  {
+    id: 'retours',
+    section: 'Opérations',
+    label: 'Retours',
+    icon: Undo2,
+    href: '/hub/retours',
+    visible: canAccessHubReturns,
   },
   {
     id: 'pricing',
