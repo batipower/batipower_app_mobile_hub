@@ -70,6 +70,13 @@ struct HubSalePayload {
   let totalPaidTTC: Double?
   let margeEstimeeHT: Double?
   let tauxMarge: Double?
+  /// `true` : prix d'achat, poids ou grille de transport manquant, la marge n'est qu'une estimation.
+  let incomplete: Bool
+  /// `mobile`, `tablet` ou `desktop` ; `nil` si l'appareil du client est inconnu.
+  let device: String?
+  let promoUsed: Bool
+  let promoCode: String?
+  let promoDiscountTTC: Double?
 
   init(identifier: String, userInfo: [AnyHashable: Any]) {
     self.identifier = identifier
@@ -78,6 +85,12 @@ struct HubSalePayload {
     totalPaidTTC = HubSalePayload.number(userInfo, "totalPaidTTC")
     margeEstimeeHT = HubSalePayload.number(userInfo, "margeEstimeeHT")
     tauxMarge = HubSalePayload.number(userInfo, "tauxMarge")
+    // Absent d'un push d'une ancienne version du backend : on garde alors « MARGE EST. ».
+    incomplete = HubSalePayload.string(userInfo, "incomplete").map { $0 == "true" } ?? true
+    device = HubSalePayload.string(userInfo, "device")
+    promoUsed = HubSalePayload.string(userInfo, "promoUsed") == "true"
+    promoCode = HubSalePayload.string(userInfo, "promoCode")
+    promoDiscountTTC = HubSalePayload.number(userInfo, "promoDiscountTTC")
   }
 
   private static func lookup(_ userInfo: [AnyHashable: Any], _ key: String) -> Any? {
@@ -169,6 +182,26 @@ struct HubSaleView: View {
         marginCard
       }
 
+      if !badges.isEmpty {
+        HStack(spacing: 8) {
+          ForEach(badges) { badge in
+            HStack(spacing: 6) {
+              Image(systemName: badge.icon)
+                .font(.system(size: 12, weight: .semibold))
+              Text(badge.text)
+                .font(.system(size: 12, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color.white.opacity(0.1)))
+          }
+          Spacer(minLength: 0)
+        }
+      }
+
       Button(action: onOpen) {
         HStack(spacing: 8) {
           Text("Ouvrir dans le Cockpit")
@@ -234,7 +267,7 @@ struct HubSaleView: View {
   private var marginCard: some View {
     VStack(alignment: .leading, spacing: 4) {
       HStack(alignment: .center, spacing: 4) {
-        Text("MARGE EST.")
+        Text(payload.incomplete ? "MARGE EST." : "MARGE")
           .font(.system(size: 10, weight: .bold))
           .foregroundStyle(Color.white.opacity(0.6))
         Spacer(minLength: 0)
@@ -264,6 +297,31 @@ struct HubSaleView: View {
       RoundedRectangle(cornerRadius: 12, style: .continuous)
         .fill(Color(hex: 0x94C83E).opacity(0.14))
     )
+  }
+
+  /// Pastilles toujours visibles (non sensibles) : appareil du client et code promo utilisé.
+  private struct Badge: Identifiable {
+    let icon: String
+    let text: String
+    var id: String { text }
+  }
+
+  private var badges: [Badge] {
+    var items: [Badge] = []
+    switch payload.device {
+    case "mobile": items.append(Badge(icon: "iphone", text: "Smartphone"))
+    case "tablet": items.append(Badge(icon: "ipad", text: "Tablette"))
+    case "desktop": items.append(Badge(icon: "desktopcomputer", text: "Desktop"))
+    default: break
+    }
+    if payload.promoUsed {
+      var label = payload.promoCode.map { "Code promo : \($0)" } ?? "Code promo utilisé"
+      if let discount = payload.promoDiscountTTC, discount > 0 {
+        label += " (-\(Self.eur(discount)))"
+      }
+      items.append(Badge(icon: "tag", text: label))
+    }
+    return items
   }
 
   /// `•••• €` tant que l'oeil n'a pas été touché (même masque que le `MarginToggle` du Cockpit).
