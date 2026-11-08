@@ -1,6 +1,13 @@
 import { Stack } from 'expo-router';
 
+import { fallbackBackHeaderLeft } from '@/components/navigation/StackBackButton';
 import { useTheme } from '@/theme';
+
+/**
+ * Le tableau de bord est toujours placé sous les écrans poussés (notification, lien profond,
+ * autre onglet) : le retour natif existe alors même quand la fiche est ouverte de l'extérieur.
+ */
+export const unstable_settings = { anchor: 'index' };
 
 /**
  * Pile de l'onglet Cockpit : le tableau de bord (sans en-tête natif, il a le sien) et ses vues
@@ -25,8 +32,15 @@ export default function CockpitLayout() {
       <Stack.Screen name="site" options={{ headerShown: false, animation: 'fade' }} />
       <Stack.Screen name="partner" options={{ headerShown: false, animation: 'fade' }} />
       <Stack.Screen name="financier" options={{ headerShown: false, animation: 'fade' }} />
-      <Stack.Screen name="jour/[date]" options={{ title: 'Commandes du jour' }} />
-      <Stack.Screen name="commande/[reference]" options={{ title: 'Commande' }} />
+      {/* Retour de repli si l'écran se retrouve seul dans la pile (voir StackBackButton). */}
+      <Stack.Screen
+        name="jour/[date]"
+        options={{ title: 'Commandes du jour', headerLeft: fallbackBackHeaderLeft('/hub/cockpit') }}
+      />
+      <Stack.Screen
+        name="commande/[reference]"
+        options={{ title: 'Commande', headerLeft: fallbackBackHeaderLeft('/hub/cockpit') }}
+      />
     </Stack>
   );
 }

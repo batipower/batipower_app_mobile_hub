@@ -3,6 +3,9 @@ import { Stack } from 'expo-router';
 import { SHEET_DETENTS, sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
 
+/** La liste est toujours placée sous les fils ouverts de l'extérieur : le retour natif existe. */
+export const unstable_settings = { anchor: 'index' };
+
 /**
  * Pile de l'onglet Discussions : la liste (sans en-tête natif, elle a le sien comme Cockpit et
  * Préparation : titre, recherche et filtres dès le haut de l'écran), les fils Équipe et

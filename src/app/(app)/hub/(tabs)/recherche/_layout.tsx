@@ -1,7 +1,16 @@
 import { Stack } from 'expo-router';
 
 import { ModuleSwitcherButton } from '@/components/modules/ModuleSwitcherButton';
+import { fallbackBackHeaderLeft } from '@/components/navigation/StackBackButton';
 import { useTheme } from '@/theme';
+
+/**
+ * La recherche est toujours placée sous les fiches ouvertes depuis un autre onglet (Cockpit,
+ * Discussions, Pricing) : le retour natif existe alors même quand la fiche est seule.
+ */
+export const unstable_settings = { anchor: 'index' };
+
+const FALLBACK_HREF = '/hub/recherche';
 
 /**
  * Pile de l'onglet Recherche : l'écran de recherche (grand titre et barre de recherche
@@ -32,9 +41,19 @@ export default function SearchLayout() {
           headerRight: () => <ModuleSwitcherButton active="HUB" />,
         }}
       />
-      <Stack.Screen name="commandes" options={{ title: 'Commandes' }} />
-      <Stack.Screen name="commande/[reference]" options={{ title: 'Commande' }} />
-      <Stack.Screen name="produit/[reference]" options={{ title: 'Produit' }} />
+      {/* Retour de repli si l'écran se retrouve seul dans la pile (voir StackBackButton). */}
+      <Stack.Screen
+        name="commandes"
+        options={{ title: 'Commandes', headerLeft: fallbackBackHeaderLeft(FALLBACK_HREF) }}
+      />
+      <Stack.Screen
+        name="commande/[reference]"
+        options={{ title: 'Commande', headerLeft: fallbackBackHeaderLeft(FALLBACK_HREF) }}
+      />
+      <Stack.Screen
+        name="produit/[reference]"
+        options={{ title: 'Produit', headerLeft: fallbackBackHeaderLeft(FALLBACK_HREF) }}
+      />
     </Stack>
   );
 }
