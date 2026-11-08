@@ -6,11 +6,12 @@ import { ChevronRight, LayoutGrid, LogOut, UserCog } from 'lucide-react-native';
 
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
-import { canImpersonate } from '@/auth/permissions';
+import { canAccessHubCockpit, canImpersonate } from '@/auth/permissions';
 import { ModuleBadge } from '@/components/modules/ModuleBadge';
 import { Button, Card } from '@/components/ui';
 import { openImpersonation } from '@/features/impersonation/navigation';
 import { AppearanceSection } from '@/features/profile/components/AppearanceSection';
+import { SaleNotificationsSection } from '@/features/profile/components/SaleNotificationsSection';
 import { accessibleModules } from '@/modules/registry';
 import { roleLabel } from '@/modules/roles';
 import { openModuleSwitcher } from '@/modules/switchModule';
@@ -129,6 +130,8 @@ export default function ProfileScreen() {
       </Card>
 
       <AppearanceSection />
+
+      {isImpersonating || canAccessHubCockpit(user.role) ? <SaleNotificationsSection /> : null}
 
       {modules.length > 1 ? (
         <Pressable

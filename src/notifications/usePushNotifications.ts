@@ -4,8 +4,11 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 
+import { ApiError } from '@/api/client';
+
 import { HUB_SALE_CATEGORY } from './constants';
 import { registerPushToken, unregisterStoredPushToken } from './pushRegistration';
+import { registerPushSyncRunner, setPushStatus } from './pushStatus';
 
 /**
  * Les notifications push distantes ne tournent ni sur simulateur ni dans Expo Go : leur token
@@ -27,24 +30,46 @@ async function ensurePermission(): Promise<boolean> {
   return requested.granted;
 }
 
+function describeError(error: unknown): string {
+  if (error instanceof ApiError) return `${error.message} (HTTP ${error.status})`;
+  if (error instanceof Error) return error.message;
+  return 'Erreur inconnue';
+}
+
 /**
  * Obtient le token Expo Push et l'enregistre auprès du back. Renvoie le token enregistré, ou
- * `null` si la permission est refusée ou si l'appareil ne peut pas recevoir de push.
+ * `null` si la permission est refusée ou si l'appareil ne peut pas recevoir de push. Chaque issue
+ * est reportée dans `pushStatus` pour l'écran de diagnostic.
  */
 async function obtainAndRegisterToken(
   isCancelled: () => boolean,
   alreadyRegistered: string | null,
+  force: boolean,
 ): Promise<string | null> {
-  if (!(await ensurePermission()) || isCancelled()) return null;
+  if (!(await ensurePermission())) {
+    setPushStatus({
+      state: 'denied',
+      message: 'Notifications refusées : activez-les dans Réglages > Batipower Pro.',
+    });
+    return null;
+  }
+  if (isCancelled()) return null;
 
   // Catégorie portée par l'extension de contenu iOS (carte « Nouvelle vente »).
   await Notifications.setNotificationCategoryAsync(HUB_SALE_CATEGORY, []);
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-  if (!projectId) return null;
+  if (!projectId) {
+    setPushStatus({ state: 'noProject', message: 'Identifiant de projet EAS introuvable.' });
+    return null;
+  }
 
   const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
-  if (isCancelled() || token === alreadyRegistered) return alreadyRegistered;
+  if (isCancelled()) return alreadyRegistered;
+  if (token === alreadyRegistered && !force) {
+    setPushStatus({ state: 'ok', token });
+    return alreadyRegistered;
+  }
 
   await registerPushToken(token, Platform.OS === 'android' ? 'android' : 'ios');
   if (isCancelled()) {
@@ -52,6 +77,7 @@ async function obtainAndRegisterToken(
     await unregisterStoredPushToken();
     return null;
   }
+  setPushStatus({ state: 'ok', token });
   return token;
 }
 
@@ -68,7 +94,14 @@ async function obtainAndRegisterToken(
  */
 export function usePushNotifications(enabled: boolean) {
   useEffect(() => {
-    if (!enabled || !canReceivePush()) return;
+    if (!enabled) return;
+    if (!canReceivePush()) {
+      setPushStatus({
+        state: 'unavailable',
+        message: 'Push distant indisponible (simulateur ou Expo Go).',
+      });
+      return;
+    }
 
     let cancelled = false;
     let inFlight = false;
@@ -84,19 +117,23 @@ export function usePushNotifications(enabled: boolean) {
       }),
     });
 
-    const sync = async () => {
+    const sync = async (force = false) => {
       if (inFlight || cancelled) return;
       inFlight = true;
+      setPushStatus({ state: 'syncing' });
       try {
-        registeredToken = await obtainAndRegisterToken(() => cancelled, registeredToken);
+        registeredToken = await obtainAndRegisterToken(() => cancelled, registeredToken, force);
       } catch (error) {
         // Hors ligne ou serveur indisponible : nouvel essai au prochain retour au premier plan.
+        // L'erreur reste consultable dans le Profil, même sur un build de production.
+        setPushStatus({ state: 'error', message: describeError(error) });
         if (__DEV__) console.warn('[push] enregistrement du token impossible', error);
       } finally {
         inFlight = false;
       }
     };
 
+    registerPushSyncRunner(sync);
     void sync();
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') void sync();
@@ -104,6 +141,7 @@ export function usePushNotifications(enabled: boolean) {
 
     return () => {
       cancelled = true;
+      registerPushSyncRunner(null);
       subscription.remove();
     };
   }, [enabled]);
