@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, Path, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { colors, withAlpha } from '@/theme';
+import { colors, useTheme, withAlpha } from '@/theme';
 
 /**
  * Fond « futuriste » des écrans de connexion, repris du layout `(auth)` du front web :
@@ -34,6 +34,11 @@ export function AuthBackground() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
+  const t = useTheme();
+  const isDark = t.scheme === 'dark';
+  // En clair : vert de marque assombri (lisible sur fond clair) et halos un peu plus présents.
+  const lineColor = isDark ? colors.green : t.accentText;
+  const haloBoost = isDark ? 1 : 1.8;
   const [aurora] = useState(() => new Animated.Value(0));
   const [scan] = useState(() => new Animated.Value(0));
 
@@ -79,13 +84,13 @@ export function AuthBackground() {
     position: 'absolute' as const,
     width: 28,
     height: 28,
-    borderColor: withAlpha(colors.green, 0.25),
+    borderColor: withAlpha(lineColor, isDark ? 0.25 : 0.3),
   };
   const top = insets.top + 12;
   const bottom = insets.bottom + 12;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: isDark ? colors.black : t.bg }]}>
       <Animated.View
         style={[
           StyleSheet.absoluteFill,
@@ -104,15 +109,15 @@ export function AuthBackground() {
                 rx={halo.rx * width}
                 ry={halo.ry * height}
               >
-                <Stop offset="0" stopColor={halo.color} stopOpacity={halo.alpha} />
+                <Stop offset="0" stopColor={halo.color} stopOpacity={halo.alpha * haloBoost} />
                 <Stop offset="0.65" stopColor={halo.color} stopOpacity={0} />
               </RadialGradient>
             ))}
             <Pattern id="grid" width={60} height={60} patternUnits="userSpaceOnUse">
-              <Path d="M60 0H0V60" stroke={colors.green} strokeWidth={1} fill="none" />
+              <Path d="M60 0H0V60" stroke={lineColor} strokeWidth={1} fill="none" />
             </Pattern>
           </Defs>
-          <Rect width={width} height={height} fill="url(#grid)" opacity={0.035} />
+          <Rect width={width} height={height} fill="url(#grid)" opacity={isDark ? 0.035 : 0.06} />
           {HALOS.map((halo) => (
             <Rect key={halo.id} width={width} height={height} fill={`url(#${halo.id})`} />
           ))}
@@ -131,7 +136,7 @@ export function AuthBackground() {
         ]}
       >
         <LinearGradient
-          colors={['transparent', withAlpha(colors.green, 0.5), 'transparent']}
+          colors={['transparent', withAlpha(lineColor, isDark ? 0.5 : 0.35), 'transparent']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={StyleSheet.absoluteFill}
@@ -150,7 +155,6 @@ export function AuthBackground() {
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: colors.black,
     pointerEvents: 'none',
     overflow: 'hidden',
   },

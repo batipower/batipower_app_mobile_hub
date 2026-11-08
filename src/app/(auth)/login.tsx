@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,7 +14,7 @@ import { LogoMark } from '@/components/auth/LogoMark';
 import { ModuleBadge } from '@/components/modules/ModuleBadge';
 import { Button, Card, Screen, TextField, type TextInputHandle } from '@/components/ui';
 import { openWebPage } from '@/lib/openWeb';
-import { colors, fontSize, onDark, radius, spacing, typography, withAlpha } from '@/theme';
+import { fontSize, makeStyles, radius, spacing, typography, useTheme, withAlpha } from '@/theme';
 
 // Mêmes règles que le login web.
 const schema = z.object({
@@ -27,6 +27,8 @@ type FormData = z.infer<typeof schema>;
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const styles = useStyles();
+  const t = useTheme();
   const passwordRef = useRef<TextInputHandle>(null);
   const [submitting, setSubmitting] = useState(false);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
@@ -125,7 +127,7 @@ export default function LoginScreen() {
             label="Se connecter"
             loading={submitting}
             onPress={() => void onSubmit()}
-            trailingIcon={<ArrowRight size={18} color={colors.white} />}
+            trailingIcon={<ArrowRight size={18} color={t.onAccent} />}
             testID="login-submit"
           />
         </View>
@@ -133,7 +135,7 @@ export default function LoginScreen() {
 
       {passwordChangeRequired ? (
         <View style={styles.notice} accessibilityRole="alert">
-          <Info size={18} color={colors.green} style={styles.noticeIcon} />
+          <Info size={18} color={t.accentText} style={styles.noticeIcon} />
           <View style={styles.noticeBody}>
             <Text style={styles.noticeText}>
               Première connexion : vous devez définir un nouveau mot de passe depuis l&apos;espace
@@ -175,7 +177,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   content: { justifyContent: 'center', gap: spacing['2xl'] },
   header: { alignItems: 'center', gap: spacing.lg },
   brand: { alignItems: 'center', gap: spacing.xs + 2, marginTop: spacing.xs },
@@ -183,9 +185,9 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: '700',
     letterSpacing: 1.5,
-    color: colors.white,
+    color: t.text,
   },
-  subtitle: { fontSize: fontSize.sm, color: onDark.textSubtle, textAlign: 'center' },
+  subtitle: { fontSize: fontSize.sm, color: t.textMuted, textAlign: 'center' },
   form: { gap: spacing.xl },
   notice: {
     flexDirection: 'row',
@@ -193,20 +195,20 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: withAlpha(colors.green, 0.3),
-    backgroundColor: withAlpha(colors.green, 0.08),
+    borderColor: withAlpha(t.accent, 0.4),
+    backgroundColor: withAlpha(t.accent, t.scheme === 'dark' ? 0.08 : 0.14),
   },
   noticeIcon: { marginTop: 2 },
   noticeBody: { flex: 1, gap: spacing.sm },
-  noticeText: { fontSize: fontSize.sm, lineHeight: 20, color: onDark.textMuted },
-  noticeLink: { fontSize: fontSize.sm, fontWeight: '600', color: colors.green },
+  noticeText: { fontSize: fontSize.sm, lineHeight: 20, color: t.text },
+  noticeLink: { fontSize: fontSize.sm, fontWeight: '600', color: t.accentText },
   links: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.xs,
   },
-  link: { fontSize: fontSize.sm, color: onDark.textSubtle },
+  link: { fontSize: fontSize.sm, fontWeight: '600', color: t.accentText },
   footer: { alignItems: 'center', gap: 2, marginTop: spacing.sm },
-  footerText: { ...typography.caption, color: onDark.textFaint },
-  footerCopyright: { ...typography.caption, color: withAlpha(colors.white, 0.2) },
-});
+  footerText: { ...typography.caption, color: t.textSubtle },
+  footerCopyright: { ...typography.caption, color: t.textSubtle },
+}));

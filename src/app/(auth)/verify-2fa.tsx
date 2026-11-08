@@ -9,13 +9,15 @@ import { isTwoFactorSessionLost } from '@/api/auth';
 import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
 import { Button, Card, OtpInput, Screen } from '@/components/ui';
-import { colors, fontSize, onDark, radius, spacing, typography, withAlpha } from '@/theme';
+import { fontSize, makeStyles, radius, spacing, typography, useTheme, withAlpha } from '@/theme';
 
 const CODE_LENGTH = 6;
 const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function VerifyTwoFactorScreen() {
   const router = useRouter();
+  const styles = useStyles();
+  const t = useTheme();
   const { status, hasPendingTwoFactor, verifyTwoFactor, resendTwoFactorCode, cancelTwoFactor } =
     useAuth();
 
@@ -107,7 +109,7 @@ export default function VerifyTwoFactorScreen() {
     <Screen scroll backgroundColor="transparent" contentStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.iconTile}>
-          <ShieldCheck size={28} color={colors.green} />
+          <ShieldCheck size={28} color={t.accentText} />
         </View>
         <Text style={styles.title} accessibilityRole="header">
           Vérification en deux étapes
@@ -148,21 +150,21 @@ export default function VerifyTwoFactorScreen() {
               variant="ghost"
               disabled={resending || cooldown > 0}
               onPress={() => void handleResend()}
-              leadingIcon={<RefreshCw size={14} color={onDark.textMuted} />}
+              leadingIcon={<RefreshCw size={14} color={t.textMuted} />}
             />
           </View>
         </View>
       </Card>
 
       <Pressable onPress={backToLogin} accessibilityRole="button" hitSlop={12} style={styles.back}>
-        <ArrowLeft size={16} color={onDark.textSubtle} />
+        <ArrowLeft size={16} color={t.textMuted} />
         <Text style={styles.backText}>Retour à la connexion</Text>
       </Pressable>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => ({
   content: { justifyContent: 'center', gap: spacing['2xl'] },
   header: { alignItems: 'center', gap: spacing.md },
   iconTile: {
@@ -171,16 +173,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: withAlpha(colors.green, 0.1),
+    backgroundColor: withAlpha(t.accent, t.scheme === 'dark' ? 0.1 : 0.16),
     borderWidth: 1,
-    borderColor: withAlpha(colors.green, 0.2),
+    borderColor: withAlpha(t.accent, 0.3),
   },
-  title: { ...typography.title, color: colors.white, textAlign: 'center' },
+  title: { ...typography.title, color: t.text, textAlign: 'center' },
   description: {
     maxWidth: 300,
     fontSize: fontSize.sm,
     lineHeight: 20,
-    color: onDark.textSubtle,
+    color: t.textMuted,
     textAlign: 'center',
   },
   form: { gap: spacing['2xl'] },
@@ -189,14 +191,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingTop: spacing.lg,
     borderTopWidth: StyleSheet.hairlineWidth * 2,
-    borderTopColor: onDark.border,
+    borderTopColor: t.border,
   },
-  resendHint: { ...typography.caption, color: onDark.textFaint },
+  resendHint: { ...typography.caption, color: t.textSubtle },
   back: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs + 2,
   },
-  backText: { fontSize: fontSize.sm, color: onDark.textSubtle },
-});
+  backText: { fontSize: fontSize.sm, color: t.textMuted },
+}));

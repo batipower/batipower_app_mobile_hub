@@ -34,14 +34,20 @@ export function Card({ children, variant = 'flat', style, contentStyle }: CardPr
     );
   }
 
+  const isDark = t.scheme === 'dark';
+
+  // Sombre : verre dépoli translucide. Clair : carte blanche opaque, bordure et ombre
+  // (le flou n'apporte rien sur un fond clair et dégrade le contraste).
   return (
-    <View style={[styles.glass, style]}>
-      <BlurView intensity={30} tint={t.blurTint} style={StyleSheet.absoluteFill} />
+    <View style={[styles.glass, !isDark && styles.glassLight, style]}>
+      {isDark ? (
+        <BlurView intensity={30} tint={t.blurTint} style={StyleSheet.absoluteFill} />
+      ) : null}
       <View
         style={[
           StyleSheet.absoluteFill,
           styles.veil,
-          { backgroundColor: t.scheme === 'dark' ? onDark.surface : t.card },
+          { backgroundColor: isDark ? onDark.surface : t.card },
         ]}
       />
       <LinearGradient
@@ -70,7 +76,16 @@ const useStyles = makeStyles((t) => ({
     borderColor: t.border,
     overflow: 'hidden',
   },
-  veil: { pointerEvents: 'none' },
+  glassLight: {
+    // `overflow: hidden` supprimerait l'ombre sur iOS : le contenu reste de toute façon dans la carte.
+    overflow: 'visible',
+    backgroundColor: t.card,
+    ...shadow.sm,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  veil: { pointerEvents: 'none', borderRadius: radius.xl },
   accentLine: {
     pointerEvents: 'none',
     position: 'absolute',

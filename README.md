@@ -215,7 +215,7 @@ suit le réglage de l'iPhone ; le défaut est **Sombre**, l'identité historique
 - **Persistance** : `src/theme/preference.ts` (SecureStore, lecture synchrone au
   démarrage, donc sans flash) puis `Appearance.setColorScheme`. Les éléments natifs
   (barre d'onglets, feuilles, clavier, recherche) suivent automatiquement.
-- **Connexion** : `(auth)/_layout.tsx` force le thème sombre avec `ForcedTheme`.
+- **Connexion** : `(auth)/_layout.tsx` suit le thème courant (sombre, clair ou auto) ; fond animé, logo et carte `glass` ont une variante claire.
 
 ## Authentification
 

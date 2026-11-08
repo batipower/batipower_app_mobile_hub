@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 
-import { darkTheme, themeFor, type ColorScheme, type Theme } from './palettes';
+import { darkTheme, themeFor, type Theme } from './palettes';
 import {
   getThemePreference,
   setThemePreference,
@@ -20,11 +20,6 @@ const ThemeContext = createContext<Theme>(darkTheme);
  */
 export function AppThemeProvider({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
-  return <ThemeContext.Provider value={themeFor(scheme)}>{children}</ThemeContext.Provider>;
-}
-
-/** Impose un thème à une partie de l'app (écrans de connexion, toujours sombres). */
-export function ForcedTheme({ scheme, children }: { scheme: ColorScheme; children: ReactNode }) {
   return <ThemeContext.Provider value={themeFor(scheme)}>{children}</ThemeContext.Provider>;
 }
 

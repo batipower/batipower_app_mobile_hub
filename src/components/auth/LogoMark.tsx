@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 
 import { useReduceMotion } from '@/hooks/useReduceMotion';
-import { colors, withAlpha } from '@/theme';
+import { colors, useTheme, withAlpha } from '@/theme';
 
 type LogoMarkProps = {
   size?: number;
@@ -14,6 +14,8 @@ type LogoMarkProps = {
 /** Logo Batipower sur tuile blanche, avec halo vert : reprise du login web. */
 export function LogoMark({ size = 64, glow = true }: LogoMarkProps) {
   const reduceMotion = useReduceMotion();
+  const t = useTheme();
+  const isDark = t.scheme === 'dark';
   const [pulse] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -51,7 +53,10 @@ export function LogoMark({ size = 64, glow = true }: LogoMarkProps) {
             styles.glow,
             {
               borderRadius: radius,
-              opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] }),
+              opacity: pulse.interpolate({
+                inputRange: [0, 1],
+                outputRange: isDark ? [0.35, 0.9] : [0.25, 0.6],
+              }),
               transform: [
                 { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1.35, 1.6] }) },
               ],
@@ -59,7 +64,13 @@ export function LogoMark({ size = 64, glow = true }: LogoMarkProps) {
           ]}
         />
       ) : null}
-      <View style={[styles.tile, { borderRadius: radius }]}>
+      <View
+        style={[
+          styles.tile,
+          { borderRadius: radius },
+          !isDark && { backgroundColor: colors.white, borderColor: t.border, shadowOpacity: 0.12 },
+        ]}
+      >
         <Image
           source={require('../../../assets/logo-batipower.png')}
           style={{ width: size * 0.69, height: size * 0.69 }}

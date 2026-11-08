@@ -3,7 +3,6 @@ export { darkTheme, lightTheme, themeFor, type ColorScheme, type Theme } from '.
 export { THEME_PREFERENCES, type ThemePreference } from './preference';
 export {
   AppThemeProvider,
-  ForcedTheme,
   makeStyles,
   useTheme,
   useThemePreference,
