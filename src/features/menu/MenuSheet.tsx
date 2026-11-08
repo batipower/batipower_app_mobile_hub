@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight, LayoutGrid, LogOut, type LucideIcon } from 'lucide-react-native';
 
@@ -48,7 +49,7 @@ export function MenuSheet() {
       id: entry.id,
       label: entry.label,
       icon: entry.icon,
-      onPress: () => openFromMenu(entry.href),
+      onPress: () => openFromMenu(entry.tab ? () => router.navigate(entry.href) : entry.href),
     })),
   }));
 

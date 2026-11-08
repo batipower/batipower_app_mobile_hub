@@ -6,7 +6,7 @@ import * as Notifications from 'expo-notifications';
 
 import { ApiError } from '@/api/client';
 
-import { HUB_SALE_CATEGORY } from './constants';
+import { HUB_QUOTE_CATEGORY, HUB_SALE_CATEGORY } from './constants';
 import { registerPushToken, unregisterStoredPushToken } from './pushRegistration';
 import { registerPushSyncRunner, setPushStatus } from './pushStatus';
 
@@ -57,6 +57,8 @@ async function obtainAndRegisterToken(
 
   // Catégorie portée par l'extension de contenu iOS (carte « Nouvelle vente »).
   await Notifications.setNotificationCategoryAsync(HUB_SALE_CATEGORY, []);
+  // Pushs « Devis » : catégorie sans action (le toucher ouvre la demande ou le devis).
+  await Notifications.setNotificationCategoryAsync(HUB_QUOTE_CATEGORY, []);
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   if (!projectId) {

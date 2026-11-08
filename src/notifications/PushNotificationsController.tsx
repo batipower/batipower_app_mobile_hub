@@ -1,11 +1,17 @@
 import { useAuth } from '@/auth/AuthProvider';
-import { canAccessHubCockpit } from '@/auth/permissions';
+import { useQueryClient } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
 
+import { canAccessHubCockpit, canAccessHubCustomerQuotes } from '@/auth/permissions';
+import { QUOTES_ROOT_KEY } from '@/features/quotes/queryKeys';
+
+import { HUB_QUOTE_EVENT_TYPE, HUB_QUOTE_REQUEST_TYPE } from './constants';
 import { useNotificationNavigation } from './useNotificationNavigation';
 import { usePushNotifications } from './usePushNotifications';
 
 /**
- * Branche les notifications de vente sur la session. À monter sous `AuthProvider`.
+ * Branche les notifications (ventes, devis) sur la session. À monter sous `AuthProvider`.
  *
  * - Enregistrement du token : seulement si le compte *réel* est SUPERADMIN. Pendant une
  *   impersonation, `user` est le compte usurpé et `impersonatedBy` identifie le SUPERADMIN :
@@ -19,9 +25,24 @@ export function PushNotificationsController() {
 
   const realIsSuperAdmin = signedIn && (!!user.impersonatedBy || canAccessHubCockpit(user.role));
   const canOpenCockpit = signedIn && canAccessHubCockpit(user.role);
+  const canOpenQuotes = signedIn && canAccessHubCustomerQuotes(user.role);
+  const queryClient = useQueryClient();
 
   usePushNotifications(realIsSuperAdmin);
-  useNotificationNavigation(signedIn, canOpenCockpit);
+  useNotificationNavigation(signedIn, { cockpit: canOpenCockpit, quotes: canOpenQuotes });
+
+  // Un push « Devis » reçu app ouverte rafraîchit tout de suite le pipeline, les fiches et le badge
+  // de l'onglet Devis (sans attendre le prochain tour de relecture).
+  useEffect(() => {
+    if (!canOpenQuotes) return;
+    const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      const type = (notification.request.content.data as Record<string, unknown> | undefined)?.type;
+      if (type === HUB_QUOTE_REQUEST_TYPE || type === HUB_QUOTE_EVENT_TYPE) {
+        void queryClient.invalidateQueries({ queryKey: QUOTES_ROOT_KEY });
+      }
+    });
+    return () => subscription.remove();
+  }, [canOpenQuotes, queryClient]);
 
   return null;
 }

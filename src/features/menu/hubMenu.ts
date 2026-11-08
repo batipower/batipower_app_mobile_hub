@@ -1,7 +1,11 @@
 import type { Href } from 'expo-router';
-import { BadgeEuro, ScanSearch, UserRound, type LucideIcon } from 'lucide-react-native';
+import { BadgeEuro, ScanSearch, Search, UserRound, type LucideIcon } from 'lucide-react-native';
 
-import { canAccessHubPricing, canAccessHubProductAnalyzer } from '@/auth/permissions';
+import {
+  canAccessHubCustomerQuotes,
+  canAccessHubPricing,
+  canAccessHubProductAnalyzer,
+} from '@/auth/permissions';
 import type { AppUserRole } from '@/types/user';
 
 /** Sections du menu, nommées comme les groupes de la sidebar HUB du web. */
@@ -13,6 +17,8 @@ export type HubMenuEntry = {
   label: string;
   icon: LucideIcon;
   href: Href;
+  /** L'entrée est un onglet : on y bascule (`navigate`) au lieu de pousser une page par-dessus. */
+  tab?: boolean;
   /** Entrée visible pour ce rôle : une page interdite n'apparaît pas dans le menu. */
   visible: (role: AppUserRole) => boolean;
 };
@@ -25,6 +31,16 @@ export const HUB_MENU_SECTIONS: readonly HubMenuSection[] = ['Opérations', 'Pil
  * route dans `src/app/(app)/hub/` (déclarée dans son `_layout.tsx`).
  */
 export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
+  {
+    // Pour le SUPERADMIN, l'onglet Devis a pris la place de Recherche dans la barre.
+    id: 'recherche',
+    section: 'Opérations',
+    label: 'Recherche',
+    icon: Search,
+    href: '/hub/recherche',
+    tab: true,
+    visible: canAccessHubCustomerQuotes,
+  },
   {
     id: 'pricing',
     section: 'Pilotage',

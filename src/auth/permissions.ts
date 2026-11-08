@@ -85,3 +85,11 @@ export function canAttachRenegotiations(
 ): boolean {
   return !!user && user.opportunityOpenAccess !== false;
 }
+
+/**
+ * Devis clients du HUB (demandes, devis, envoi, commande PrestaShop) : SUPERADMIN uniquement
+ * pour l'instant, comme `@Roles(SUPERADMIN)` de `hub-customer-quotes.controller.ts`.
+ */
+export function canAccessHubCustomerQuotes(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
