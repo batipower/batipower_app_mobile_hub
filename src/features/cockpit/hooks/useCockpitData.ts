@@ -138,6 +138,24 @@ export function useScrapingAgents() {
   });
 }
 
+const FLEET_TARGET_REFRESH_MS = 60_000;
+
+/**
+ * Cible de la flotte de scrapers par pays (bots en route / optimal), actualisée chaque minute
+ * tant que l'écran est affiché. L'optimal change peu (cache 15 min côté back). Un échec ne
+ * relance pas la requête : les écrans retombent sur le simple nombre de scrapers connectés.
+ */
+export function useScrapingFleetTarget() {
+  const focused = useIsFocused();
+  return useQuery({
+    queryKey: [...HUB_DASHBOARD_KEY, 'scraping-fleet-target'],
+    queryFn: ({ signal }) => hubSupervisionApi.fleetTarget({ signal }),
+    refetchInterval: focused ? FLEET_TARGET_REFRESH_MS : false,
+    staleTime: 30_000,
+    retry: false,
+  });
+}
+
 /** Serveurs d'impression des entrepôts, actualisés toutes les 30 s. */
 export function usePrintServers() {
   const focused = useIsFocused();

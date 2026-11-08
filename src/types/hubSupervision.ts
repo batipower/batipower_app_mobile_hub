@@ -14,6 +14,31 @@ export interface ScrapingAgentsSnapshot {
   error?: string;
 }
 
+/** Bots en route (connectés hors pause) face au nombre de bots optimal, pour un pays. */
+export interface ScrapingFleetPool {
+  country: string;
+  running: number;
+  paused: number;
+  optimal: number;
+  demandPerDay: number;
+}
+
+/** Cible de la flotte de scrapers par pays (`hub-app/scraping/fleet-target`, optimal en cache 15 min côté back). */
+export interface ScrapingFleetTarget {
+  pools: ScrapingFleetPool[];
+  totalRunning: number;
+  totalOptimal: number;
+  /** Bots connectés sans pays de pool : comptés dans FR côté back, signalés à part. */
+  unspecializedAgents: number;
+  perAgentDailyThroughput: number;
+  targetUtilization: number;
+  usedFallbackThroughput: boolean;
+  windowDays: number;
+  computedAt: string;
+  status: string;
+  error?: string;
+}
+
 export type PrintServerStatus =
   | 'ONLINE'
   | 'OFFLINE'

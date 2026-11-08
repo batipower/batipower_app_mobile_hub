@@ -11,6 +11,7 @@ import { useTheme } from '@/theme';
  * - `(tabs)` : onglets avec la barre flottante Batipower (Cockpit, Préparation, Discussions,
  *   Recherche, et le bouton éclair central qui ouvre le menu).
  * - `menu` : feuille native à mi-écran ouverte par le bouton central (lignes de navigation).
+ * - `scraping-fleet` : feuille à mi-écran ouverte par la pastille des scrapers du cockpit.
  * - `pricing`, `product-analyzer`, `profil` : pages secondaires lancées depuis le menu, poussées par-dessus les
  *   onglets avec le bouton retour natif. Le profil est une page à part, pas un bloc du menu.
  */
@@ -42,6 +43,18 @@ export default function HubLayout() {
           sheetGrabberVisible: true,
           sheetCornerRadius: 16,
           // Fond de la feuille : suit le thème (clair/sombre), jamais figé.
+          contentStyle: { backgroundColor: t.bgElevated },
+        }}
+      />
+      <Stack.Screen
+        name="scraping-fleet"
+        options={{
+          headerShown: false,
+          presentation: 'formSheet',
+          sheetAllowedDetents: [0.5, 1],
+          sheetInitialDetentIndex: 0,
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 16,
           contentStyle: { backgroundColor: t.bgElevated },
         }}
       />

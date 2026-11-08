@@ -1,5 +1,9 @@
 import { apiClient } from '@/api/client';
-import type { PrintServersOverview, ScrapingAgentsSnapshot } from '@/types/hubSupervision';
+import type {
+  PrintServersOverview,
+  ScrapingAgentsSnapshot,
+  ScrapingFleetTarget,
+} from '@/types/hubSupervision';
 
 type ReadOptions = { signal?: AbortSignal };
 
@@ -10,6 +14,10 @@ type ReadOptions = { signal?: AbortSignal };
 export const hubSupervisionApi = {
   scrapingAgents({ signal }: ReadOptions = {}) {
     return apiClient.get<ScrapingAgentsSnapshot>('hub-app/scraping/ws-agents', { signal });
+  },
+
+  fleetTarget({ signal }: ReadOptions = {}) {
+    return apiClient.get<ScrapingFleetTarget>('hub-app/scraping/fleet-target', { signal });
   },
 
   printServers({ signal }: ReadOptions = {}) {
