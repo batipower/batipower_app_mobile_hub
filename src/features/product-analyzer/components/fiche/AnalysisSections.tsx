@@ -17,6 +17,7 @@ import {
   getAmazonUrl,
 } from '../../lib/constants';
 import { num, snapshotOf, str } from '../../lib/snapshot';
+import { SupplierStockDetail, offersWithStock } from '../SupplierStock';
 import { FicheSection, SectionHint } from './FicheSection';
 
 const COMMISSIONS = [13, 14, 15] as const;
@@ -417,6 +418,7 @@ export function StockSection({ item }: { item: StagingItem }) {
         <Text style={styles.stockLabel}>Stock total, tous entrepôts</Text>
         <Text style={styles.stockValue}>{total != null ? formatInteger(total) : '—'}</Text>
       </View>
+      <SupplierStockDetail offers={offersWithStock(item.distributorOffers)} itemWarehouse={warehouse} />
     </FicheSection>
   );
 }

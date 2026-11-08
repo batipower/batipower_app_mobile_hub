@@ -8,7 +8,16 @@ import { SearchBar } from '@/features/preparation/components/SearchBar';
 import { normalizeForSearch } from '@/features/preparation/orderHelpers';
 import { fontSize, hitTarget, makeStyles, spacing, useTheme } from '@/theme';
 
-export type PickerItem = { value: string; label: string };
+export type PickerItem = {
+  value: string;
+  label: string;
+  /** Deuxième ligne discrète (ex. fournisseur d'une affaire). */
+  detail?: string;
+  /** Deuxième ligne d'alerte, à la place de `detail` (ex. « fournisseur à choisir »). */
+  warning?: string;
+  /** Pastille de compteur à droite (ex. nombre de produits). */
+  count?: number;
+};
 
 const MAX_TAG_LENGTH = 30;
 
@@ -60,11 +69,13 @@ export function PickerList({
     const needle = normalizeForSearch(search);
     // Les valeurs choisies mais absentes de la liste (tags créés) restent affichées en tête.
     const known = new Set(items.map((item) => item.value));
-    const extra = selected
+    const extra: PickerItem[] = selected
       .filter((value) => !known.has(value))
       .map((value) => ({ value, label: value }));
-    const all = [...extra, ...items];
-    return needle ? all.filter((item) => normalizeForSearch(item.label).includes(needle)) : all;
+    const all: PickerItem[] = [...extra, ...items];
+    return needle
+      ? all.filter((item) => normalizeForSearch(`${item.label} ${item.detail ?? ''}`).includes(needle))
+      : all;
   }, [items, search, selected]);
 
   const candidate = creatable ? cleanTag(search) : '';
@@ -123,6 +134,9 @@ export function PickerList({
           renderItem={({ item }) => (
             <PickerRow
               label={item.label}
+              detail={item.detail}
+              warning={item.warning}
+              count={item.count}
               selected={selected.includes(item.value)}
               onPress={() => onToggle(item.value)}
             />
@@ -140,10 +154,16 @@ export function PickerList({
 
 function PickerRow({
   label,
+  detail,
+  warning,
+  count,
   selected,
   onPress,
 }: {
   label: string;
+  detail?: string;
+  warning?: string;
+  count?: number;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -156,9 +176,25 @@ function PickerRow({
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: t.surface }]}
     >
-      <Text style={styles.rowLabel} numberOfLines={1}>
-        {label}
-      </Text>
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel} numberOfLines={1}>
+          {label}
+        </Text>
+        {warning ? (
+          <Text style={[styles.rowDetail, { color: t.warning }]} numberOfLines={1}>
+            {warning}
+          </Text>
+        ) : detail ? (
+          <Text style={styles.rowDetail} numberOfLines={1}>
+            {detail}
+          </Text>
+        ) : null}
+      </View>
+      {count != null ? (
+        <View style={styles.count}>
+          <Text style={styles.countText}>{count}</Text>
+        </View>
+      ) : null}
       {selected ? <Check size={18} color={t.accentText} /> : null}
     </Pressable>
   );
@@ -177,5 +213,16 @@ const useStyles = makeStyles((t) => ({
     borderBottomWidth: StyleSheet.hairlineWidth * 2,
     borderBottomColor: t.border,
   },
-  rowLabel: { flex: 1, fontSize: fontSize.sm, fontWeight: '600', color: t.text },
+  rowText: { flex: 1, gap: 1 },
+  rowLabel: { fontSize: fontSize.sm, fontWeight: '600', color: t.text },
+  rowDetail: { fontSize: fontSize.xs, color: t.textMuted },
+  count: {
+    minWidth: 28,
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: t.surface,
+  },
+  countText: { fontSize: fontSize.xs, fontWeight: '700', color: t.textMuted },
 }));

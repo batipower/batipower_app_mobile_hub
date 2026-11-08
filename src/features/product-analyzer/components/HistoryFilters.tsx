@@ -1,15 +1,17 @@
 import { useMemo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { X } from 'lucide-react-native';
+import { Boxes, ChevronDown, Tag, X } from 'lucide-react-native';
 
 import { Chip } from '@/components/ui';
 import { FilterPill } from '@/components/sheet/FilterPill';
 import { VIAB_STATUS_CFG } from '@/features/product-analyzer/lib/constants';
 import { buildStagingFilterChips } from '@/features/product-analyzer/lib/filter-labels';
+import { stockFilterCount, stockFilterLabel } from '@/features/product-analyzer/lib/stock-filter';
 import { fontSize, makeStyles, radius, spacing, useTheme } from '@/theme';
 import type { StagingFilters, StagingStatus, ViabilityTab } from '@/types/hubProductAnalyzer';
 
 import { patchPaFilters, resetPaFilters, usePaFilters } from '../filtersStore';
+import { openPaPicker } from '../navigation';
 import { useDistributors } from '../hooks/useDistributors';
 import { useAffaires, type ViabilityCounts } from '../hooks/useStagingList';
 
@@ -57,6 +59,12 @@ export function QuickFilters() {
   const styles = useStyles();
   const t = useTheme();
   const f = usePaFilters();
+  const { byId: distributorById } = useDistributors({ enabled: f.stockDistributorIds.length > 0 });
+  const stockCount = stockFilterCount(f);
+  const stockNames = f.stockDistributorIds.map((id) => distributorById(id)?.name ?? id);
+  const affaireActive = f.affaire && !!f.affaireId;
+  const { data: affaires } = useAffaires(affaireActive);
+  const affaireName = affaireActive ? (affaires?.find((a) => a.uuid === f.affaireId)?.name ?? 'Affaire') : '';
   return (
     <ScrollView
       horizontal
@@ -64,6 +72,13 @@ export function QuickFilters() {
       contentContainerStyle={styles.row}
       keyboardShouldPersistTaps="handled"
     >
+      <FilterPill
+        label={affaireActive ? `Affaire : ${affaireName.length > 22 ? `${affaireName.slice(0, 21)}…` : affaireName}` : 'Affaire'}
+        state={affaireActive ? 'on' : 'off'}
+        icon={<Tag size={13} color={affaireActive ? t.accentText : t.textMuted} />}
+        trailing={<ChevronDown size={12} color={affaireActive ? t.accentText : t.textMuted} />}
+        onPress={() => openPaPicker('affaires')}
+      />
       <View style={styles.segment} accessibilityRole="tablist">
         {STATUS_PILLS.map((s) => {
           const active = f.status === s.value;
@@ -96,9 +111,11 @@ export function QuickFilters() {
         onPress={() => patchPaFilters({ needsNego: !f.needsNego, hasNego: false })}
       />
       <FilterPill
-        label="En stock"
-        state={f.inStock ? 'on' : 'off'}
-        onPress={() => patchPaFilters({ inStock: !f.inStock })}
+        label={stockFilterLabel(f, stockNames)}
+        state={stockCount > 0 ? 'on' : 'off'}
+        icon={<Boxes size={13} color={stockCount > 0 ? t.accentText : t.textMuted} />}
+        trailing={<ChevronDown size={12} color={stockCount > 0 ? t.accentText : t.textMuted} />}
+        onPress={() => openPaPicker('stock')}
       />
       <FilterPill
         label="Ventes MP"
@@ -117,21 +134,12 @@ export function ActiveChips() {
   const t = useTheme();
   const f = usePaFilters();
   const { byId } = useDistributors({ enabled: !!f.distributorId || f.stockDistributorIds.length > 0 });
-  const { data: affaires } = useAffaires(f.affaire && !!f.affaireId);
 
   const chips = useMemo<Chipish[]>(() => {
     const base: Chipish[] = buildStagingFilterChips(f, (id) => byId(id)?.name ?? id).filter(
       // Statut et viabilité ont leurs propres contrôles visibles.
       (c) => c.key !== 'search' && c.key !== 'viability' && c.key !== 'status',
     );
-    if (f.affaire && f.affaireId) {
-      const name = affaires?.find((a) => a.uuid === f.affaireId)?.name;
-      base.push({
-        key: 'affaire',
-        label: `Affaire : ${name ?? '…'}`,
-        clearPatch: { affaire: false, affaireId: '' },
-      });
-    }
     if (f.distributorId) {
       base.push({
         key: 'distributor',
@@ -150,7 +158,7 @@ export function ActiveChips() {
       base.push({ key: 'missingCode', label: 'Sans code fournisseur', clearPatch: { missingCode: false } });
     }
     return base;
-  }, [f, byId, affaires]);
+  }, [f, byId]);
 
   if (chips.length === 0) return null;
 

@@ -9,6 +9,7 @@ export type PaPickerKind =
   | 'tags'
   | 'distributors'
   | 'affaires'
+  | 'stock'
   | 'stock-suppliers'
   | 'bulk-affaire'
   | 'bulk-dep'

@@ -14,6 +14,7 @@ import { ChoiceField } from '@/features/pricing/components/FilterControls';
 import { fontSize, makeStyles, spacing } from '@/theme';
 
 import { assignItemsToAffaire, refreshAnalyzerData } from '../../bulkActions';
+import { patchPaFilters } from '../../filtersStore';
 import { useDistributors } from '../../hooks/useDistributors';
 import { useStagingDetail } from '../../hooks/useStagingDetail';
 import { patchStagingInCache } from '../../lib/cache';
@@ -450,7 +451,7 @@ const affaireSchema = z.object({
 });
 
 /** Crée une affaire (une par fournisseur) ; avec `uuid`, y rattache aussitôt le produit. */
-export function NewAffaireForm({ uuid }: { uuid?: string }) {
+export function NewAffaireForm({ uuid, selectAsFilter = false }: { uuid?: string; selectAsFilter?: boolean }) {
   const styles = useStyles();
   const queryClient = useQueryClient();
   const { distributors, withWarehouse } = useDistributors();
@@ -483,6 +484,8 @@ export function NewAffaireForm({ uuid }: { uuid?: string }) {
       } else {
         toast.success('Affaire créée');
       }
+      // Créée depuis le sélecteur de filtre : on la filtre aussitôt, comme sur le web.
+      if (selectAsFilter) patchPaFilters({ affaire: true, affaireId: created.uuid });
       router.back();
     }),
   );

@@ -26,6 +26,8 @@ type Params = {
   price?: string;
   label?: string;
   from?: string;
+  /** `1` : après création, l'affaire devient le filtre de l'historique. */
+  filter?: string;
 };
 
 /** Feuille d'édition (route `editer/[kind]`) : un formulaire par type de modification d'un produit ou d'une affaire. */
@@ -66,7 +68,7 @@ export function EditSheet() {
     case 'affaire-brand':
       return p.id ? <AffaireBrandForm affaireId={p.id} /> : null;
     case 'new-affaire':
-      return <NewAffaireForm uuid={uuid} />;
+      return <NewAffaireForm uuid={uuid} selectAsFilter={p.filter === '1'} />;
     default:
       return (
         <SheetScreen title="Édition">

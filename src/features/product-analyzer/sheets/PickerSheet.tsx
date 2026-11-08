@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react-native';
 import { toast } from 'sonner-native';
 
 import { hubProductAnalyzerApi } from '@/api/hubProductAnalyzer';
@@ -9,7 +10,7 @@ import { PickerList } from '@/components/sheet/PickerList';
 import { SheetScreen } from '@/components/sheet/SheetScreen';
 import { Button } from '@/components/ui';
 import { SegmentedControl } from '@/features/preparation/components/SegmentedControl';
-import { fontSize, makeStyles, spacing } from '@/theme';
+import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 
 import { applyDepToItems, assignItemsToAffaire } from '../bulkActions';
 import { patchLauncherDraft, useLauncherDraft } from '../launcherStore';
@@ -18,13 +19,14 @@ import { useDistributors } from '../hooks/useDistributors';
 import { useAffaires, useBrands, useStagingList, useTags } from '../hooks/useStagingList';
 import { apiErrorMessage } from '../lib/errors';
 import { patchStagingInCache } from '../lib/cache';
-import type { PaPickerKind } from '../navigation';
+import { dismissThen, openPaEdit, type PaPickerKind } from '../navigation';
 import { PA_TAGS_KEY, paStagingKey } from '../queryKeys';
 import { getSelectedItems, useSelection } from '../selectionStore';
 
 import { BulkActionsSheet } from './BulkActionsSheet';
 import { BulkLaunchSheet } from './BulkLaunchSheet';
 import { ItemActionsSheet } from './ItemActionsSheet';
+import { StockFilterSheet } from './StockFilterSheet';
 
 const MAX_TAGS = 10;
 
@@ -69,13 +71,18 @@ function TagsPicker() {
 }
 
 function AffairesPicker() {
+  const t = useTheme();
   const f = usePaFilters();
   const affaires = useAffaires();
   const items = useMemo(
     () =>
       (affaires.data ?? []).map((a) => ({
         value: a.uuid,
-        label: a.distributorName ? `${a.name} · ${a.distributorName}` : a.name,
+        label: a.name,
+        count: a.stagingCount,
+        ...(a.distributorName
+          ? { detail: `Fournisseur ${a.distributorName}` }
+          : { warning: 'Fournisseur à choisir (affaire historique)' }),
       })),
     [affaires.data],
   );
@@ -88,7 +95,15 @@ function AffairesPicker() {
       loading={affaires.isPending}
       error={affaires.error}
       multiple={false}
-      noneLabel="Toutes les affaires"
+      noneLabel="Toutes les analyses"
+      footer={
+        <Button
+          label="Créer une affaire"
+          variant="outline"
+          leadingIcon={<Plus size={16} color={t.text} />}
+          onPress={() => dismissThen(() => openPaEdit('new-affaire', { filter: '1' }))}
+        />
+      }
       onRetry={() => void affaires.refetch()}
       onToggle={(value) => {
         const next = value && value !== f.affaireId ? value : '';
@@ -314,6 +329,8 @@ export function PickerSheet() {
       return <LauncherAffairePicker field="reserveAffaireId" />;
     case 'distributors':
       return <DistributorsPicker />;
+    case 'stock':
+      return <StockFilterSheet />;
     case 'stock-suppliers':
       return <StockSuppliersPicker />;
     case 'bulk-affaire':

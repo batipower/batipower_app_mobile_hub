@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Check, Layers, Scale } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui';
+import { usePaFilters } from '@/features/product-analyzer/filtersStore';
 import { VIAB_STATUS_CFG } from '@/features/product-analyzer/lib/constants';
 import { getViab } from '@/features/product-analyzer/lib/helpers';
 import type { NegotiationOpportunitySummary } from '@/features/product-analyzer/lib/negotiation-api';
@@ -14,6 +15,7 @@ import { CountryChips } from './CountryChips';
 import { MpBars } from './MpBars';
 import { StatusBadge } from './StatusBadge';
 import { StockBadge } from './StockBadge';
+import { SupplierStockLines, offersWithStock } from './SupplierStock';
 
 type StagingCardProps = {
   item: StagingItem;
@@ -63,6 +65,8 @@ function StagingCardBase({
 }: StagingCardProps) {
   const styles = useStyles();
   const t = useTheme();
+  const { stockDistributorIds } = usePaFilters();
+  const stockOffers = offersWithStock(item.distributorOffers);
 
   const analyzed = item.viabilityStatus != null || item.marginPercent != null;
   const viab = analyzed ? getViab(item.marginPercent, item.viabilityStatus) : null;
@@ -150,6 +154,10 @@ function StagingCardBase({
         />
         <MpBars sales={item.salesAnalysis} asin={item.asin} />
       </View>
+
+      {stockOffers.length > 0 ? (
+        <SupplierStockLines offers={stockOffers} highlightIds={stockDistributorIds} />
+      ) : null}
 
       <View style={styles.badges}>
         <StockBadge readiness={item.stockReadiness} quantity={item.stockWarehouse} />

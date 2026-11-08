@@ -150,6 +150,8 @@ export function HistoryScreen() {
         placeholder="Désignation, EAN, code eBat, marque"
         autoCapitalize="none"
         tintColor={t.accentText}
+        // « automatic » place la recherche en bas sur iOS 26, sous le bouton Analyser et la barre de sélection.
+        placement="stacked"
         hideWhenScrolling={false}
         obscureBackground={false}
         onChangeText={(event) => setText(event.nativeEvent.text)}

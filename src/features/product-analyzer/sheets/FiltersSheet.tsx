@@ -1,14 +1,13 @@
-import { useState } from 'react';
 import { router } from 'expo-router';
 
 import { SheetScreen, SheetSection } from '@/components/sheet/SheetScreen';
-import { Button, TextField } from '@/components/ui';
+import { Button } from '@/components/ui';
 import {
   ChoiceField,
   LinkRow,
   TriStateField,
 } from '@/features/pricing/components/FilterControls';
-import { SR_CFG, SR_FILTER_ORDER } from '@/features/product-analyzer/lib/constants';
+import { stockFilterCount, stockFilterLabel } from '../lib/stock-filter';
 import { formatInteger } from '@/lib/format';
 import type {
   ConditioningFilter,
@@ -61,9 +60,13 @@ const CONDITIONING_OPTIONS: { value: ConditioningFilter; label: string }[] = [
   { value: 'simple', label: 'Simple' },
   { value: 'multiple', label: 'Multiple' },
 ];
-const STOCK_READINESS_OPTIONS = [
-  { value: '', label: 'Toutes' },
-  ...SR_FILTER_ORDER.map((key) => ({ value: key, label: SR_CFG[key].shortLabel })),
+const SALES_OPTIONS = [
+  { value: 'all', label: 'Tous' },
+  { value: 'yes', label: 'Ventes > 0' },
+];
+const MISSING_CODE_OPTIONS = [
+  { value: 'all', label: 'Tous' },
+  { value: 'missing', label: 'Code manquant' },
 ];
 const OFFER_TRACK_OPTIONS: { value: StagingFilters['offerTrack']; label: string }[] = [
   { value: '', label: 'Toutes' },
@@ -88,22 +91,15 @@ export function FiltersSheet() {
   const list = useStagingList(f);
   const { byId } = useDistributors();
   const { data: affaires } = useAffaires();
-  const [minStockText, setMinStockText] = useState(f.minStockWh);
   const active = countPaFilters(f);
 
   const nego: NegoMode = f.hasNego ? 'has' : f.needsNego ? 'needs' : 'all';
   const affaireName =
     f.affaire && f.affaireId ? (affaires?.find((a) => a.uuid === f.affaireId)?.name ?? 'Affaire') : 'Toutes';
   const distributorName = f.distributorId ? (byId(f.distributorId)?.name ?? 'Fournisseur') : 'Tous';
-  const stockSuppliers =
-    f.stockDistributorIds.length === 0
-      ? 'Entrepôt principal'
-      : summarize(f.stockDistributorIds.map((id) => byId(id)?.name ?? id), 'Entrepôt principal');
+  const stockNames = f.stockDistributorIds.map((id) => byId(id)?.name ?? id);
 
-  const reset = () => {
-    resetPaFilters();
-    setMinStockText('');
-  };
+  const reset = () => resetPaFilters();
 
   const total = list.total;
   const footerLabel =
@@ -147,11 +143,11 @@ export function FiltersSheet() {
           value={nego}
           onChange={(mode) => patchPaFilters({ hasNego: mode === 'has', needsNego: mode === 'needs' })}
         />
-        <TriStateField
+        <ChoiceField
           label="Ventes marketplace"
-          labels={['Tous', 'Ventes > 0', 'Sans']}
-          value={f.minSales ? true : null}
-          onChange={(v) => patchPaFilters({ minSales: v === true })}
+          options={SALES_OPTIONS}
+          value={f.minSales ? 'yes' : 'all'}
+          onChange={(v) => patchPaFilters({ minSales: v === 'yes' })}
         />
       </SheetSection>
 
@@ -186,36 +182,10 @@ export function FiltersSheet() {
       </SheetSection>
 
       <SheetSection title="Stock">
-        <TriStateField
-          label="Stock quelque part"
-          labels={['Tous', 'En stock', 'Sans']}
-          value={f.inStock ? true : null}
-          onChange={(v) => patchPaFilters({ inStock: v === true })}
-        />
-        <ChoiceField
-          label="Disponibilité"
-          options={STOCK_READINESS_OPTIONS}
-          value={f.stockReadiness}
-          onChange={(stockReadiness) =>
-            patchPaFilters({ stockReadiness: stockReadiness as StagingFilters['stockReadiness'] })
-          }
-        />
         <LinkRow
-          label="Stock chez"
-          value={stockSuppliers}
-          onPress={() => openPaPicker('stock-suppliers')}
-        />
-        <TextField
-          label={f.stockDistributorIds.length > 0 ? 'Quantité minimale (entrepôt fournisseur)' : 'Quantité minimale (entrepôt principal)'}
-          value={minStockText}
-          onChangeText={(text) => {
-            const digits = text.replace(/\D/g, '');
-            setMinStockText(digits);
-            patchPaFilters({ minStockWh: digits });
-          }}
-          placeholder="Aucune"
-          keyboardType="number-pad"
-          returnKeyType="done"
+          label="Disponibilité et quantités"
+          value={stockFilterCount(f) > 0 ? stockFilterLabel(f, stockNames) : 'Tous'}
+          onPress={() => openPaPicker('stock')}
         />
       </SheetSection>
 
@@ -233,11 +203,11 @@ export function FiltersSheet() {
               value={f.offerTrack}
               onChange={(offerTrack) => patchPaFilters({ offerTrack })}
             />
-            <TriStateField
+            <ChoiceField
               label="Code fournisseur"
-              labels={['Tous', 'Manquant', 'Présent']}
-              value={f.missingCode ? true : null}
-              onChange={(v) => patchPaFilters({ missingCode: v === true })}
+              options={MISSING_CODE_OPTIONS}
+              value={f.missingCode ? 'missing' : 'all'}
+              onChange={(v) => patchPaFilters({ missingCode: v === 'missing' })}
             />
           </>
         ) : null}
