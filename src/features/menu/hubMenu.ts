@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 import {
   BadgeEuro,
+  Percent,
   ScanSearch,
   Search,
   Undo2,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-react-native';
 
 import {
+  canAccessHubBrandMargin,
   canAccessHubCustomerQuotes,
   canAccessHubPricing,
   canAccessHubProductAnalyzer,
@@ -64,6 +66,14 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     icon: BadgeEuro,
     href: '/hub/pricing',
     visible: canAccessHubPricing,
+  },
+  {
+    id: 'marges-marques',
+    section: 'Pilotage',
+    label: 'Marges marques',
+    icon: Percent,
+    href: '/hub/marges-marques',
+    visible: canAccessHubBrandMargin,
   },
   {
     id: 'product-analyzer',

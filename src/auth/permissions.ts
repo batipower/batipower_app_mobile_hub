@@ -46,6 +46,15 @@ export function canAccessHubPricing(role: AppUserRole): boolean {
 }
 
 /**
+ * Page « Marges marques » du HUB (marge par marque, produits, commandes, SAV) : SUPERADMIN
+ * uniquement, comme `canAccessHubBrandMargin` côté web et `@Roles(SUPERADMIN)` de
+ * `hub-brand-margin.controller.ts`.
+ */
+export function canAccessHubBrandMargin(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/**
  * Product Analyzer du HUB (analyse de produits, historique, négociation) : SUPERADMIN uniquement,
  * comme `canAccessHubProductAnalyzer` côté web.
  */

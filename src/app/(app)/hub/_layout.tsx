@@ -13,7 +13,7 @@ import { useTheme } from '@/theme';
  *   Recherche, et le bouton éclair central qui ouvre le menu).
  * - `menu` : feuille native à mi-écran ouverte par le bouton central (lignes de navigation).
  * - `scraping-fleet` : feuille à mi-écran ouverte par la pastille des scrapers du cockpit.
- * - `retours`, `pricing`, `product-analyzer`, `profil` : pages secondaires lancées depuis le menu,
+ * - `retours`, `pricing`, `marges-marques`, `product-analyzer`, `profil` : pages secondaires lancées depuis le menu,
  *   poussées par-dessus les onglets avec le bouton retour natif. Le profil est une page à part, pas
  *   un bloc du menu.
  */
@@ -45,6 +45,7 @@ export default function HubLayout() {
       />
       <Stack.Screen name="retours" options={{ headerShown: false }} />
       <Stack.Screen name="pricing" options={{ headerShown: false }} />
+      <Stack.Screen name="marges-marques" options={{ headerShown: false }} />
       <Stack.Screen name="product-analyzer" options={{ headerShown: false }} />
       <Stack.Screen name="profil" options={{ title: 'Profil' }} />
     </Stack>

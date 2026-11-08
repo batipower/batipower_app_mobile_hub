@@ -27,6 +27,7 @@ import {
   type StoredTokens,
 } from '@/auth/tokenStorage';
 import { resetPricingState } from '@/features/pricing/filtersStore';
+import { resetBrandMarginState } from '@/features/brandMargin/filtersStore';
 import { resetReturnsState } from '@/features/returns/filtersStore';
 import { resetPaState } from '@/features/product-analyzer/filtersStore';
 import { clearSelection } from '@/features/product-analyzer/selectionStore';
@@ -119,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryClient.clear();
     resetPricingState();
     resetReturnsState();
+    resetBrandMarginState();
     resetPaState();
     clearSelection();
   }, [queryClient, setTempToken]);
