@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Printer, Radar, ShoppingCart } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
@@ -6,10 +6,17 @@ import { formatInteger, formatPercent } from '@/lib/format';
 import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 
 import { formatMonthLabel } from '../dates';
-import { useOrdersMonthTrend, usePrintServers, useScrapingAgents } from '../hooks/useCockpitData';
-
-/** En dessous de ce nombre de scrapers en route (libres + actifs), la pastille passe en alerte. */
-const SCRAPING_AGENTS_LOW_THRESHOLD = 2;
+import {
+  useOrdersMonthTrend,
+  usePrintServers,
+  useScrapingAgents,
+  useScrapingFleetTarget,
+} from '../hooks/useCockpitData';
+import {
+  formatScrapingFleetDetail,
+  openScrapingFleet,
+  scrapingFleetTone,
+} from '../scrapingFleet';
 
 /** Sous ce seuil (en valeur absolue, en %), la variation des commandes est jugée stable. */
 const ORDERS_FLAT_THRESHOLD = 0.5;
@@ -22,9 +29,11 @@ type PillProps = {
   value: string;
   tone: Tone;
   accessibilityLabel: string;
+  /** Rend la pastille cliquable (ex. détail par pays des scrapers). */
+  onPress?: () => void;
 };
 
-function StatusPill({ Icon, value, tone, accessibilityLabel }: PillProps) {
+function StatusPill({ Icon, value, tone, accessibilityLabel, onPress }: PillProps) {
   const styles = useStyles();
   const t = useTheme();
   const color =
@@ -36,18 +45,36 @@ function StatusPill({ Icon, value, tone, accessibilityLabel }: PillProps) {
           ? t.danger
           : t.neutral; // hexadécimal dans les deux thèmes, contrairement aux textes translucides
 
-  return (
-    <View
-      accessible
-      accessibilityLabel={accessibilityLabel}
-      style={[
-        styles.pill,
-        { borderColor: withAlpha(color, 0.35), backgroundColor: withAlpha(color, 0.1) },
-      ]}
-    >
+  const pillStyle = [
+    styles.pill,
+    { borderColor: withAlpha(color, 0.35), backgroundColor: withAlpha(color, 0.1) },
+  ];
+  const content = (
+    <>
       <Icon size={13} color={color} />
       <Text style={[styles.value, { color }]}>{value}</Text>
       <View style={[styles.dot, { backgroundColor: color }]} />
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint="Ouvre le détail par pays"
+        hitSlop={6}
+        onPress={onPress}
+        style={({ pressed }) => [pillStyle, pressed && styles.pressed]}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View accessible accessibilityLabel={accessibilityLabel} style={pillStyle}>
+      {content}
     </View>
   );
 }
@@ -63,32 +90,46 @@ function formatComparisonPeriod(month: string, lastDay: number): string {
 }
 
 /**
- * Trois petites pastilles visuelles (sans action) : scrapers connectés, serveurs d'impression
- * en ligne, et commandes du mois avec leur évolution face à la même période du mois précédent.
- * Rouge = alerte (ou baisse), vert = hausse, orange = aucun scraper libre, gris = état
- * indisponible (ou variation stable). Chaque pastille apparaît dès que ses propres données sont
+ * Trois petites pastilles visuelles : scrapers en route face au nombre nécessaire (touchable :
+ * ouvre le détail par pays), serveurs d'impression en ligne, et commandes du mois avec leur
+ * évolution face à la même période du mois précédent. Rouge = alerte (ou baisse), vert = hausse
+ * ou optimal atteint, orange = sous l'optimal, gris = état indisponible (ou variation stable).
+ * Si la cible de flotte est indisponible, la pastille des scrapers n'affiche que le nombre connecté. Chaque pastille apparaît dès que ses propres données sont
  * arrivées.
  */
 export function SystemStatusPills() {
   const styles = useStyles();
   const agents = useScrapingAgents();
+  const fleet = useScrapingFleetTarget();
   const printers = usePrintServers();
   const orders = useOrdersMonthTrend();
 
   const agentsData = agents.isError || agents.data?.status === 'error' ? null : agents.data;
+  const fleetData = fleet.isError || fleet.data?.status === 'error' ? null : fleet.data;
   const printersData = printers.isError || printers.data?.status === 'error' ? null : printers.data;
 
   // Pas de pastille grise pendant le premier chargement : on attend la réponse de chacune.
   let scraperPill: PillProps | null = null;
-  if (!agents.isPending) {
-    if (agentsData) {
+  if (!agents.isPending && !fleet.isPending) {
+    if (fleetData) {
+      const { totalRunning: running, totalOptimal: optimal } = fleetData;
+      const idle = agentsData?.idleAgents ?? running;
+      const detail = formatScrapingFleetDetail(fleetData.pools);
+      scraperPill = {
+        Icon: Radar,
+        value: `${running}/${optimal}`,
+        tone: scrapingFleetTone(running, optimal, idle),
+        accessibilityLabel: `Scrapers : ${plural(running, 'bot')} en route sur ${optimal} nécessaire${optimal > 1 ? 's' : ''}${detail ? `, ${detail}` : ''}`,
+        onPress: openScrapingFleet,
+      };
+    } else if (agentsData) {
       const idle = agentsData.idleAgents;
       const busy = agentsData.busyAgents;
       const running = idle + busy;
       scraperPill = {
         Icon: Radar,
         value: String(running),
-        tone: running < SCRAPING_AGENTS_LOW_THRESHOLD ? 'alert' : idle === 0 ? 'warning' : 'ok',
+        tone: scrapingFleetTone(running, null, idle),
         accessibilityLabel: `Scrapers : ${running} en route, ${plural(idle, 'disponible')}, ${plural(busy, 'actif')}`,
       };
     } else {
@@ -185,4 +226,5 @@ const useStyles = makeStyles(() => ({
   },
   value: { fontSize: fontSize.xs, fontWeight: '700', fontVariant: ['tabular-nums'] },
   dot: { width: 6, height: 6, borderRadius: 3 },
+  pressed: { opacity: 0.6 },
 }));
