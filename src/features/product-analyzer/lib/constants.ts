@@ -144,6 +144,8 @@ export const SR_FILTER_ORDER: StockReadiness[] = ['STOCK_OK', 'TRANSFER_NEARBY',
  * Vocabulaire unique des prix d'achat (PA) de la liste.
  * Côté API, `recommendedBuyPrice` = PA d'équilibre : prix d'achat HT maximum pour ne pas perdre d'argent
  * (commission Amazon 15 % + frais de service, transport, marge 0 %).
+ * Un produit n'est « Viable » qu'avec au moins 7 % de marge au départ (`viableBuyPrice` côté API) ;
+ * en dessous, il est « À négocier ».
  */
 export const PA_LABELS = {
   current: 'PA actuel',
@@ -158,7 +160,7 @@ export const PA_DEFINITIONS = {
   current: "Prix d'achat HT confirmé par le fournisseur (EbatPro).",
   estimated: "Prix d'achat HT non confirmé (aucune référence EbatPro rattachée) : à confirmer.",
   max: "Prix d'achat HT maximum à ne pas dépasser pour ne pas perdre d'argent : prix de vente HT − commission Amazon 15 % (+3 % de frais de service) − transport.",
-  gap: 'PA actuel − PA max : ce qu’il faut obtenir de baisse auprès du fournisseur pour atteindre l’équilibre.',
+  gap: 'PA actuel − PA viable (marge de 7 % au départ) : ce qu’il faut obtenir de baisse auprès du fournisseur pour que le produit devienne viable.',
   nego: 'Prix brut demandé dans la négociation en cours (cliquer pour le modifier).',
 } as const;
 
