@@ -111,3 +111,11 @@ export function canAttachRenegotiations(
 export function canAccessHubCustomerQuotes(role: AppUserRole): boolean {
   return role === 'SUPERADMIN';
 }
+
+/**
+ * Module ADMIN (comptes, inscriptions, plateforme, distributeurs) : SUPERADMIN uniquement, comme
+ * `canAccessRoute('/super-admin/*')` côté web et `@Roles(SUPERADMIN)` des contrôleurs `buyer-app/admin/*`.
+ */
+export function canAccessAdmin(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}

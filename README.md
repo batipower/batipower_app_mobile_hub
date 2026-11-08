@@ -187,6 +187,25 @@ Comportements à connaître :
 - Pas de route `/hub` seule : le module s'ouvre directement sur `/hub/preparation`
   (`NativeTabs` ne gère que les routes déclarées par un onglet).
 
+## Administration (module ADMIN)
+
+Pendant mobile des pages d'administration du front web, réservé aux `SUPERADMIN`
+(`canAccessAdmin`, masqué pendant une impersonation). Quatre onglets (`src/app/(app)/admin/(tabs)`) :
+
+- **Utilisateurs** : liste, filtres (rôle, entrepôt, filiale, catégories), fiche, actions
+  rapides, création / modification et mode vacances. Le menu du module donne aussi accès à **Activité**.
+- **Inscriptions** : demandes en attente (badge sur l'onglet), feuilles Approuver / Refuser.
+- **Distributeurs** : distributeurs, entrepôts, filiales, comptes eBatPro, interrupteurs
+  d'affectation, marges (recalcul suivi toutes les secondes) et logos (PNG, JPG, WebP, SVG ≤ 2 Mo).
+- **Plateforme** : maintenance, horaires du support, RIB des devis et clés API.
+
+Code dans `src/features/admin/*`, appels dans `src/api/admin*.ts`, clés de cache dans
+`features/admin/queryKeys.ts`. Les règles métier partagées (modules, entrepôts, filiales, accès
+marque) sont dans `features/admin/shared/accessRules.ts` : à garder synchronisées avec le web.
+Points d'attention : la clé API émise à l'approbation n'est affichée qu'une fois (état local de la
+feuille, jamais en cache ni dans l'URL) et les comptes eBatPro sont en lecture seule quand le serveur
+n'a pas la clé de chiffrement (`encryptionAvailable=false`). Prism n'est pas porté sur mobile.
+
 ### Ajouter un module
 
 1. Dans `src/modules/registry.ts`, passer `mobileEnabled: true` et faire pointer

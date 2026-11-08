@@ -74,7 +74,7 @@ export default function ModuleComingSoonScreen() {
         <Text style={styles.description}>
           {meta
             ? `Ce module n'est pas encore disponible sur mobile. Il sera ajouté dans une prochaine version ; en attendant, l'espace web reste accessible.`
-            : `Votre compte n'a pas encore accès à un module de l'application mobile. Pour l'instant, seul Batipower HUB est proposé.`}
+            : `Votre compte n'a pas encore accès à un module de l'application mobile. Pour l'instant, seuls Batipower HUB et Batipower ADMIN (réservé aux superadministrateurs) sont proposés.`}
         </Text>
       </View>
 

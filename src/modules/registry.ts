@@ -8,7 +8,11 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-import { canAccessHubCockpit, canAccessHubPreparation } from '@/auth/permissions';
+import {
+  canAccessAdmin,
+  canAccessHubCockpit,
+  canAccessHubPreparation,
+} from '@/auth/permissions';
 import type { AppUserRole, BatipowerModule, CurrentUser } from '@/types/user';
 
 /**
@@ -91,8 +95,10 @@ export const MODULES: Record<BatipowerModule, ModuleMeta> = {
     icon: ShieldCheck,
     accent: '#DC2626',
     fg: '#FFFFFF',
-    mobileEnabled: false,
-    landing: () => comingSoonHref('ADMIN'),
+    mobileEnabled: true,
+    // Module réservé au SUPERADMIN : les autres rôles retombent sur « bientôt disponible » (la
+    // garde de `admin/_layout.tsx` les renvoie de toute façon vers leur module).
+    landing: (role) => (canAccessAdmin(role) ? '/admin/utilisateurs' : comingSoonHref('ADMIN')),
   },
   POWER: {
     id: 'POWER',

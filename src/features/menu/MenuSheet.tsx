@@ -7,11 +7,12 @@ import { ChevronRight, LayoutGrid, LogOut, type LucideIcon } from 'lucide-react-
 
 import { useAuth } from '@/auth/AuthProvider';
 import { accessibleModules } from '@/modules/registry';
+import type { AppUserRole, BatipowerModule } from '@/types/user';
 import { openModuleSwitcher } from '@/modules/switchModule';
 import { fontSize, makeStyles, radius, spacing, typography, useTheme, withAlpha } from '@/theme';
 
-import { menuSectionsFor, type HubMenuSection } from './hubMenu';
 import { openFromMenu } from './navigation';
+import type { MenuSectionGroup } from './types';
 
 /**
  * Taille des icônes du menu. Les icônes de la barre d'onglets natifs font ~24 pt : celles du
@@ -27,15 +28,22 @@ type MenuRow = {
   onPress: () => void;
 };
 
-type MenuGroup = { section: HubMenuSection; rows: MenuRow[] };
+type MenuGroup = { section: string; rows: MenuRow[] };
+
+type MenuSheetProps = {
+  /** Module dont le menu est affiché (le sélecteur de module y repart de celui-ci). */
+  module: BatipowerModule;
+  /** Pages du module accessibles au rôle, groupées par section. */
+  sectionsFor: (role: AppUserRole) => MenuSectionGroup[];
+};
 
 /**
- * Menu du HUB, présenté en feuille native à mi-écran : uniquement des lignes de navigation
+ * Menu d'un module (HUB, ADMIN), présenté en feuille native à mi-écran : uniquement des lignes de navigation
  * (pages, changement de module) et la déconnexion. Il suit le thème de l'app (clair, sombre ou
  * auto) ; le contenu du profil (identité, infos du compte, apparence, impersonation) vit dans la
  * page `Profil`, simple destination du menu.
  */
-export function MenuSheet() {
+export function MenuSheet({ module, sectionsFor }: MenuSheetProps) {
   const styles = useStyles();
   const t = useTheme();
   const insets = useSafeAreaInsets();
@@ -43,13 +51,17 @@ export function MenuSheet() {
   const [loggingOut, setLoggingOut] = useState(false);
   if (!user) return null;
 
-  const groups: MenuGroup[] = menuSectionsFor(user.role).map((group) => ({
+  const groups: MenuGroup[] = sectionsFor(user.role).map((group) => ({
     section: group.section,
     rows: group.entries.map((entry) => ({
       id: entry.id,
       label: entry.label,
       icon: entry.icon,
-      onPress: () => openFromMenu(entry.tab ? () => router.navigate(entry.href) : entry.href),
+      onPress: () => {
+        const { action, href } = entry;
+        if (action) openFromMenu(action);
+        else if (href) openFromMenu(entry.tab ? () => router.navigate(href) : href);
+      },
     })),
   }));
 
@@ -59,7 +71,7 @@ export function MenuSheet() {
       id: 'modules',
       label: 'Changer de module',
       icon: LayoutGrid,
-      onPress: () => openFromMenu(() => openModuleSwitcher('HUB')),
+      onPress: () => openFromMenu(() => openModuleSwitcher(module)),
     };
     const account = groups.find((group) => group.section === 'Compte');
     if (account) account.rows.push(moduleRow);
