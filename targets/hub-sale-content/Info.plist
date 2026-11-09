@@ -9,7 +9,11 @@
 		<key>NSExtensionAttributes</key>
 		<dict>
 			<key>UNNotificationExtensionCategory</key>
-			<string>HUB_SALE</string>
+			<array>
+				<string>HUB_SALE</string>
+				<string>HUB_OPPORTUNITY</string>
+				<string>HUB_DEPLOYMENT</string>
+			</array>
 			<key>UNNotificationExtensionDefaultContentHidden</key>
 			<true/>
 			<key>UNNotificationExtensionUserInteractionEnabled</key>

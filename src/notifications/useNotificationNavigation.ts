@@ -2,9 +2,17 @@ import { useEffect } from 'react';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 
+import { deployedPricesFromPush, openDeployment } from '@/features/deployment/navigation';
+import { openOpportunityFromLink } from '@/features/partner/navigation';
 import { openQuoteFromLink } from '@/features/quotes/navigation';
 
-import { HUB_QUOTE_EVENT_TYPE, HUB_QUOTE_REQUEST_TYPE, HUB_SALE_TYPE } from './constants';
+import {
+  HUB_DEPLOYMENT_TYPE,
+  HUB_OPPORTUNITY_EVENT_TYPE,
+  HUB_QUOTE_EVENT_TYPE,
+  HUB_QUOTE_REQUEST_TYPE,
+  HUB_SALE_TYPE,
+} from './constants';
 
 const DAY_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
@@ -26,7 +34,8 @@ type NotificationAccess = { cockpit: boolean; quotes: boolean };
 
 /**
  * Ouvre l'écran cible d'une notification, selon son `data.type` : les commandes du jour d'une
- * vente (Cockpit, la marge y reste derrière son oeil), la fiche d'une nouvelle demande de devis
+ * vente (Cockpit, la marge y reste derrière son oeil), la fiche d'une opportunité acceptée ou
+ * refusée, la page Déploiement d'un produit, la fiche d'une nouvelle demande de devis
  * ou l'éditeur d'un devis dont le statut a changé. Un type inconnu, ou un compte sans le droit
  * correspondant, n'ouvre rien.
  */
@@ -42,6 +51,20 @@ function openFromNotification(response: Notifications.NotificationResponse, acce
     // `navigate` d'abord : à froid, la pile du Cockpit contient ainsi sa liste sous le jour ouvert.
     router.navigate('/hub/cockpit');
     router.push({ pathname: '/hub/cockpit/jour/[date]', params: { date } });
+    return;
+  }
+
+  // Opportunités et déploiements : réservés au SUPERADMIN, comme le Cockpit.
+  if (type === HUB_OPPORTUNITY_EVENT_TYPE && access.cockpit) {
+    if (typeof data?.opportunityUuid === 'string' && data.opportunityUuid) {
+      openOpportunityFromLink(data.opportunityUuid);
+    }
+    return;
+  }
+  if (type === HUB_DEPLOYMENT_TYPE && access.cockpit) {
+    if (typeof data?.reference === 'string' && data.reference) {
+      openDeployment(data.reference, deployedPricesFromPush(data.deploy));
+    }
     return;
   }
 

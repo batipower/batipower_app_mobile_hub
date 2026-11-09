@@ -159,9 +159,15 @@ function effectiveModules(modules: BatipowerModule[] | null | undefined): Batipo
   return modules && modules.length > 0 ? modules : ['PARTNER'];
 }
 
-/** Modules auxquels l'utilisateur a droit. Le SUPERADMIN les possède tous. */
+/** Le SUPERADMIN arrive d'abord sur le HUB (pilotage), puis les autres modules dans l'ordre usuel. */
+const SUPERADMIN_MODULE_ORDER: readonly BatipowerModule[] = [
+  'HUB',
+  ...MODULE_ORDER.filter((id) => id !== 'HUB'),
+];
+
+/** Modules auxquels l'utilisateur a droit. Le SUPERADMIN les possède tous, HUB en premier. */
 export function accessibleModules(user: Pick<CurrentUser, 'role' | 'modules'>): BatipowerModule[] {
-  if (user.role === 'SUPERADMIN') return [...MODULE_ORDER];
+  if (user.role === 'SUPERADMIN') return [...SUPERADMIN_MODULE_ORDER];
   const owned = effectiveModules(user.modules);
   return MODULE_ORDER.filter((id) => owned.includes(id));
 }
@@ -186,13 +192,16 @@ export function getModuleHref(id: BatipowerModule, user: ModuleUser): Href {
 }
 
 /**
- * Page d'atterrissage après connexion : le module par défaut du compte s'il est
- * disponible sur mobile, sinon le premier module disponible, sinon l'écran
- * « bientôt disponible » du module par défaut (ou du premier module du compte).
+ * Page d'atterrissage après connexion : le HUB pour un SUPERADMIN (quel que soit son module par
+ * défaut), sinon le module par défaut du compte s'il est disponible sur mobile, sinon le premier
+ * module disponible, sinon l'écran « bientôt disponible » du module par défaut (ou du premier
+ * module du compte).
  */
 export function getLandingHref(user: CurrentUser): Href {
   const available = mobileModules(user);
-  const target = available.includes(user.defaultModule) ? user.defaultModule : available[0];
+  const preferred: BatipowerModule =
+    user.role === 'SUPERADMIN' && available.includes('HUB') ? 'HUB' : user.defaultModule;
+  const target = available.includes(preferred) ? preferred : available[0];
   if (target) return getModuleHref(target, user);
 
   const owned = accessibleModules(user);
