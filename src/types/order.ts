@@ -3,8 +3,8 @@
  * `front_externe_batipower/lib/api/hub-orders.ts` (routes `hub-app/orders/*`).
  *
  * Seuls les champs affichés par l'app mobile sont modélisés. Les données financières
- * (marges, prix d'achat, rentabilité) ne sont volontairement pas typées : l'app ne les
- * affiche pas, même si le back les renvoie à un SUPERADMIN.
+ * (prix d'achat, rentabilité) ne sont typées que pour la page « Candidats palette »
+ * (`HubOrder.rentability`…), seule à les afficher, derrière l'oeil de masquage.
  */
 
 export interface HubCustomer {
@@ -163,6 +163,17 @@ export interface HubOrder {
   rows: HubOrderRow[];
   warehouseOrder: HubWarehouseOrder | null;
   carrier: { name: string } | null;
+  /** Statut du flux palette (`CANDIDATE`, `QUOTE_REQUESTED`, `ACCEPTED`, `REFUSED`), null = flux classique. */
+  palletFlowStatus?: string | null;
+  /** Entrepôt « naturel » de la commande, avant son parking QG pour le flux palette. */
+  palletNaturalWarehouse?: string | null;
+  /**
+   * Marges (€ HT) et coût transport, renvoyés au seul SUPERADMIN. Utilisés uniquement par la page
+   * « Candidats palette » (derrière l'oeil de masquage), jamais par la fiche commande.
+   */
+  rentability?: number | null;
+  rentabilityRealWithOurPrice?: number | null;
+  carrierCostHT?: number | null;
 }
 
 /** Commande du même split manuel ou du même panier site (la commande courante incluse). */

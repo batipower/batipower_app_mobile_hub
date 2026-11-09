@@ -9,6 +9,7 @@ import { ApiError } from '@/api/client';
 import {
   HUB_DEPLOYMENT_CATEGORY,
   HUB_OPPORTUNITY_CATEGORY,
+  HUB_PALLET_CANDIDATE_CATEGORY,
   HUB_QUOTE_CATEGORY,
   HUB_SALE_CATEGORY,
 } from './constants';
@@ -67,6 +68,8 @@ async function obtainAndRegisterToken(
   // Opportunités et déploiements : catégories portées par l'extension de contenu iOS (cartes détaillées).
   await Notifications.setNotificationCategoryAsync(HUB_OPPORTUNITY_CATEGORY, []);
   await Notifications.setNotificationCategoryAsync(HUB_DEPLOYMENT_CATEGORY, []);
+  // Candidats palette : catégorie sans action (le toucher ouvre la page d'arbitrage).
+  await Notifications.setNotificationCategoryAsync(HUB_PALLET_CANDIDATE_CATEGORY, []);
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   if (!projectId) {

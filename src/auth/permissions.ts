@@ -62,6 +62,15 @@ export function canAccessHubProductAnalyzer(role: AppUserRole): boolean {
   return role === 'SUPERADMIN';
 }
 
+/**
+ * Candidats palette du HUB (arbitrage palette ou flux classique, avec marge de la commande) :
+ * SUPERADMIN uniquement, comme `canAccessHubPalletRecap` côté web et `@Roles(SUPERADMIN)` de
+ * `hub-pallet-candidates.controller.ts`. Le push « Commande à arbitrer » ne part qu'aux SUPERADMIN.
+ */
+export function canAccessHubPalletFlow(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
 /** Page Préparation du HUB : mêmes rôles que `canAccessHubPreparation` côté web. */
 export function canAccessHubPreparation(role: AppUserRole): boolean {
   return isHubOpsRole(role);

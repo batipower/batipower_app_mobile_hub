@@ -24,3 +24,9 @@ export const HUB_DEPLOYMENT_CATEGORY = 'HUB_DEPLOYMENT';
 
 /** `data.type` du push d'un déploiement de produit. */
 export const HUB_DEPLOYMENT_TYPE = 'HUB_DEPLOYMENT';
+
+/** Catégorie des pushs « Commande à arbitrer — flux palette » (SUPERADMIN). */
+export const HUB_PALLET_CANDIDATE_CATEGORY = 'HUB_PALLET_CANDIDATE';
+
+/** `data.type` du push d'un candidat palette (cf. `notifyPalletCandidate` de `agent-affectation.service.ts` du back). */
+export const HUB_PALLET_CANDIDATE_TYPE = 'HUB_PALLET_CANDIDATE';

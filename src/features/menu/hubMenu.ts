@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 import {
   BadgeEuro,
+  PackageCheck,
   Percent,
   ScanSearch,
   Search,
@@ -14,6 +15,7 @@ import {
   canAccessHubBrandMargin,
   canAccessHubCancellationControl,
   canAccessHubCustomerQuotes,
+  canAccessHubPalletFlow,
   canAccessHubPricing,
   canAccessHubProductAnalyzer,
   canAccessHubReturns,
@@ -69,6 +71,14 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     icon: ShieldAlert,
     href: '/hub/controle-annulations',
     visible: canAccessHubCancellationControl,
+  },
+  {
+    id: 'candidats-palette',
+    section: 'Opérations',
+    label: 'Candidats palette',
+    icon: PackageCheck,
+    href: '/hub/candidats-palette',
+    visible: canAccessHubPalletFlow,
   },
   {
     id: 'pricing',

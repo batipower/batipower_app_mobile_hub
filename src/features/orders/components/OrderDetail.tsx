@@ -30,14 +30,16 @@ type OrderDetailProps = {
   data: NonNullable<HubLogisticsDetail['data']>;
   /** Les fiches produit sont réservées aux rôles qui voient le stock (SUPERADMIN, MANAGER). */
   onOpenProduct?: (reference: string) => void;
+  /** Masque la mention « lecture seule » (page qui porte elle-même des actions). */
+  hideFootnote?: boolean;
 };
 
 /**
  * Contenu d'une fiche commande, en lecture seule : identité, annulation éventuelle, client,
  * articles, montants, expédition, commandes liées, retours et litiges. Aucune donnée
- * financière interne (marges, prix d'achat) n'est affichée.
+ * financière interne (marges, prix d'achat) n'est affichée ici.
  */
-export function OrderDetail({ data, onOpenProduct }: OrderDetailProps) {
+export function OrderDetail({ data, onOpenProduct, hideFootnote = false }: OrderDetailProps) {
   const styles = useStyles();
   const { order, paymentInfo, warehouseInfo, relatedOrders, returnLabels, disputes } = data;
   const cancellation = data.latestCancellationRequest;
@@ -53,9 +55,11 @@ export function OrderDetail({ data, onOpenProduct }: OrderDetailProps) {
       <RelatedOrdersSection orders={relatedOrders ?? []} />
       <ReturnLabelsSection labels={returnLabels ?? []} />
       <DisputesSection disputes={disputes ?? []} />
-      <Text style={styles.footnote}>
-        Consultation en lecture seule. Les modifications se font depuis l&apos;espace web.
-      </Text>
+      {hideFootnote ? null : (
+        <Text style={styles.footnote}>
+          Consultation en lecture seule. Les modifications se font depuis l&apos;espace web.
+        </Text>
+      )}
     </>
   );
 }

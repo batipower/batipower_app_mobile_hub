@@ -5,12 +5,14 @@ import { useEffect } from 'react';
 
 import { canAccessHubCockpit, canAccessHubCustomerQuotes } from '@/auth/permissions';
 import { DEPLOYMENT_ROOT_KEY } from '@/features/deployment/queryKeys';
+import { PALLET_FLOW_ROOT_KEY } from '@/features/palletFlow/queryKeys';
 import { PARTNER_OPPORTUNITIES_KEY } from '@/features/partner/queryKeys';
 import { QUOTES_ROOT_KEY } from '@/features/quotes/queryKeys';
 
 import {
   HUB_DEPLOYMENT_TYPE,
   HUB_OPPORTUNITY_EVENT_TYPE,
+  HUB_PALLET_CANDIDATE_TYPE,
   HUB_QUOTE_EVENT_TYPE,
   HUB_QUOTE_REQUEST_TYPE,
 } from './constants';
@@ -51,7 +53,7 @@ export function PushNotificationsController() {
     return () => subscription.remove();
   }, [canOpenQuotes, queryClient]);
 
-  // Un push « Opportunité » ou « Déploiement » reçu app ouverte rafraîchit les fiches concernées.
+  // Un push « Opportunité », « Déploiement » ou « Candidat palette » reçu app ouverte rafraîchit les fiches concernées.
   useEffect(() => {
     if (!canOpenCockpit) return;
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
@@ -60,6 +62,8 @@ export function PushNotificationsController() {
         void queryClient.invalidateQueries({ queryKey: PARTNER_OPPORTUNITIES_KEY });
       } else if (type === HUB_DEPLOYMENT_TYPE) {
         void queryClient.invalidateQueries({ queryKey: DEPLOYMENT_ROOT_KEY });
+      } else if (type === HUB_PALLET_CANDIDATE_TYPE) {
+        void queryClient.invalidateQueries({ queryKey: PALLET_FLOW_ROOT_KEY });
       }
     });
     return () => subscription.remove();
