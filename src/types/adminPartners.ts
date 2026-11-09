@@ -119,6 +119,10 @@ export interface AdminDistributor extends PartnerLogo {
   depDiscountPct?: number;
   depDiscountUpdatedAt?: string | null;
   depDiscountUpdatedBy?: string | null;
+  /** Remise SUPPLÉMENTAIRE (%) du prix d'achat demandé de ses DEP (distributeur DEP_ONLY), défaut 5. */
+  depOnlyAskedDiscountPct?: number;
+  depOnlyAskedDiscountUpdatedAt?: string | null;
+  depOnlyAskedDiscountUpdatedBy?: string | null;
   ebatproSetup?: {
     ready: boolean;
     missing: ('WAREHOUSE' | 'EBAT_ACCOUNT')[];

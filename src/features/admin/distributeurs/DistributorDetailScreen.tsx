@@ -167,7 +167,7 @@ function DistributorDetail({
 
       {d.negoMarginPct !== undefined || d.depDiscountPct !== undefined ? (
         <DetailSection title="Marges d'affichage">
-          {(['nego', 'dep'] as const).map((kind) => (
+          {(d.opportunityAccess === 'DEP_ONLY' ? (['nego', 'dep', 'depOnly'] as const) : (['nego', 'dep'] as const)).map((kind) => (
             <MarginRow key={kind} kind={kind} distributor={d} />
           ))}
           {job && job.status === 'RUNNING' ? (
@@ -275,7 +275,12 @@ function SwitchRow({
 function MarginRow({ kind, distributor }: { kind: MarginKind; distributor: AdminDistributor }) {
   const styles = useStyles();
   const t = useTheme();
-  const raw = kind === 'nego' ? distributor.negoMarginPct : distributor.depDiscountPct;
+  const raw =
+    kind === 'nego'
+      ? distributor.negoMarginPct
+      : kind === 'dep'
+        ? distributor.depDiscountPct
+        : distributor.depOnlyAskedDiscountPct;
   if (raw === undefined) return null;
   return (
     <Pressable
@@ -290,7 +295,10 @@ function MarginRow({ kind, distributor }: { kind: MarginKind; distributor: Admin
         <Text style={styles.sub}>
           {kind === 'nego'
             ? formatTrace(distributor.negoMarginUpdatedAt, distributor.negoMarginUpdatedBy) ?? 'Marge cible cachée hors DEP'
-            : formatTrace(distributor.depDiscountUpdatedAt, distributor.depDiscountUpdatedBy) ?? 'Remise appliquée au prix demandé des DEP'}
+            : kind === 'dep'
+              ? formatTrace(distributor.depDiscountUpdatedAt, distributor.depDiscountUpdatedBy) ?? 'Remise appliquée au prix demandé des DEP'
+              : formatTrace(distributor.depOnlyAskedDiscountUpdatedAt, distributor.depOnlyAskedDiscountUpdatedBy) ??
+                "Remise supplémentaire du prix d'achat demandé (DEP only)"}
         </Text>
       </View>
       <Text style={styles.value}>{formatPct(currentMargin(kind, distributor))}</Text>

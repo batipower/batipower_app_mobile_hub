@@ -16,6 +16,7 @@ import { adminNegoMarginJobKey } from '../queryKeys';
 import { Notice } from '../shared/components/FormParts';
 import { useDistributor, useRefreshPartners } from './hooks';
 import {
+  DEFAULT_DEP_ONLY_PCT,
   DEFAULT_TARGET_MARGIN_PCT,
   MARGIN_COPY,
   MARGIN_PRESETS,
@@ -27,11 +28,11 @@ import {
 } from './margin';
 import { formatPct } from './utils';
 
-/** Feuille de réglage de la marge des opportunités (`kind=nego`) ou de la remise DEP (`kind=dep`). */
+/** Feuille de réglage de la marge des opportunités (`kind=nego`), de la remise DEP (`kind=dep`) ou de la remise DEP only (`kind=depOnly`). */
 export function MarginSheet() {
   const { id, kind } = useLocalSearchParams<{ id: string; kind?: string }>();
   const { distributor } = useDistributor(id);
-  const marginKind: MarginKind = kind === 'dep' ? 'dep' : 'nego';
+  const marginKind: MarginKind = kind === 'dep' ? 'dep' : kind === 'depOnly' ? 'depOnly' : 'nego';
   if (!distributor) {
     return (
       <SheetScreen title={MARGIN_COPY[marginKind].pill}>
@@ -58,7 +59,8 @@ function MarginForm({ distributor, kind }: { distributor: AdminDistributor; kind
   const mutation = useMutation({
     mutationFn: async (value: number): Promise<NegoMarginJob | null> => {
       if (kind === 'nego') return (await adminPartnersApi.setNegoMargin(distributor.id, value)).job;
-      await adminPartnersApi.setDepDiscount(distributor.id, value);
+      if (kind === 'depOnly') await adminPartnersApi.setDepOnlyDiscount(distributor.id, value);
+      else await adminPartnersApi.setDepDiscount(distributor.id, value);
       return null;
     },
     onSuccess: async (job) => {
@@ -66,7 +68,9 @@ function MarginForm({ distributor, kind }: { distributor: AdminDistributor; kind
         queryClient.setQueryData(adminNegoMarginJobKey(distributor.id), job);
         toast.success('Marge enregistrée : recalcul des prix en cours');
       } else {
-        toast.success(kind === 'nego' ? 'Marge enregistrée' : 'Remise DEP enregistrée');
+        toast.success(
+          kind === 'nego' ? 'Marge enregistrée' : kind === 'dep' ? 'Remise DEP enregistrée' : 'Remise DEP only enregistrée',
+        );
       }
       await refresh();
       router.back();
@@ -101,7 +105,7 @@ function MarginForm({ distributor, kind }: { distributor: AdminDistributor; kind
         {MARGIN_PRESETS.map((p) => (
           <FilterPill
             key={p}
-            label={`${p} %${p === DEFAULT_TARGET_MARGIN_PCT ? ' (défaut)' : ''}`}
+            label={`${p} %${p === (kind === 'depOnly' ? DEFAULT_DEP_ONLY_PCT : DEFAULT_TARGET_MARGIN_PCT) ? ' (défaut)' : ''}`}
             state={parsed === p ? 'on' : 'off'}
             onPress={() => setInput(String(p))}
           />
