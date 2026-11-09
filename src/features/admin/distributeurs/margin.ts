@@ -13,7 +13,10 @@ export const DEFAULT_TARGET_MARGIN_PCT = 10;
 export const MARGIN_PRESETS = [0, 3, 5, 7, 10] as const;
 export const MARGIN_MAX_PCT = 30;
 
-export type MarginKind = 'nego' | 'dep';
+/** Remise DEP only par défaut (alignée sur le back). */
+export const DEFAULT_DEP_ONLY_PCT = 5;
+
+export type MarginKind = 'nego' | 'dep' | 'depOnly';
 
 export const MARGIN_COPY: Record<
   MarginKind,
@@ -37,6 +40,15 @@ export const MARGIN_COPY: Record<
     hint: 'Le prix brut saisi reste en base : revenir à 10 % rétablit exactement l’affichage précédent.',
     apply: 'Appliquer',
   },
+  depOnly: {
+    pill: 'Remise DEP only',
+    title: "Remise DEP only (prix d'achat demandé)",
+    description: (name) =>
+      `Remise supplémentaire retirée, après la remise DEP, du prix demandé des DEP de « ${name} » (distributeur DEP only : il ne voit qu'un prix d'achat demandé, pas de marge). Effet immédiat sur toutes ses DEP affichées ; aucune opportunité n'est réécrite.`,
+    label: 'Remise (%)',
+    hint: 'Exemple : 10,00 € brut, remise DEP 10 % puis remise DEP only 5 % : 8,55 € demandés.',
+    apply: 'Appliquer',
+  },
 };
 
 export function clampMarginPct(raw: number): number {
@@ -52,8 +64,9 @@ export function parseMarginInput(raw: string): number | null {
 }
 
 export function currentMargin(kind: MarginKind, d: AdminDistributor): number {
-  const raw = kind === 'nego' ? d.negoMarginPct : d.depDiscountPct;
-  return typeof raw === 'number' && Number.isFinite(raw) ? raw : DEFAULT_TARGET_MARGIN_PCT;
+  const raw = kind === 'nego' ? d.negoMarginPct : kind === 'dep' ? d.depDiscountPct : d.depOnlyAskedDiscountPct;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  return kind === 'depOnly' ? DEFAULT_DEP_ONLY_PCT : DEFAULT_TARGET_MARGIN_PCT;
 }
 
 export function jobPercent(job: NegoMarginJob): number | null {

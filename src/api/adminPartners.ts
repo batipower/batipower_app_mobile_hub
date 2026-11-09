@@ -72,6 +72,14 @@ export const adminPartnersApi = {
       depDiscountUpdatedAt: string | null;
       depDiscountUpdatedBy: string | null;
     }>(`${PARTNERS}/distributors/${enc(id)}/dep-discount`, { discountPct }),
+  /** Remise supplémentaire du prix d'achat demandé des DEP d'un distributeur DEP only (effet immédiat). */
+  setDepOnlyDiscount: (id: string, discountPct: number) =>
+    apiClient.patch<{
+      id: string;
+      depOnlyAskedDiscountPct: number;
+      depOnlyAskedDiscountUpdatedAt: string | null;
+      depOnlyAskedDiscountUpdatedBy: string | null;
+    }>(`${PARTNERS}/distributors/${enc(id)}/dep-only-discount`, { discountPct }),
 
   addWarehouse: (
     distributorId: string,
