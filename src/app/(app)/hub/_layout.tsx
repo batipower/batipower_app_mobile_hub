@@ -48,6 +48,7 @@ export default function HubLayout() {
       <Stack.Screen name="pricing" options={{ headerShown: false }} />
       <Stack.Screen name="marges-marques" options={{ headerShown: false }} />
       <Stack.Screen name="product-analyzer" options={{ headerShown: false }} />
+      <Stack.Screen name="deploiement/[reference]" options={{ title: 'Déploiement' }} />
       <Stack.Screen name="profil" options={{ title: 'Profil' }} />
     </Stack>
   );

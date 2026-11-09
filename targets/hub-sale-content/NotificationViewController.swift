@@ -3,27 +3,49 @@ import UIKit
 import UserNotifications
 import UserNotificationsUI
 
-/// Carte « Nouvelle vente » affichée à l'appui long sur la notification (catégorie `HUB_SALE`).
+/// Carte affichée à l'appui long sur une notification du Hub, selon sa catégorie :
+/// - `HUB_SALE` : « Nouvelle vente » ;
+/// - `HUB_OPPORTUNITY` : acceptation / refus d'une opportunité (prix attendu, proposé, par qui) ;
+/// - `HUB_DEPLOYMENT` : produit déployé (statut et prix par canal, négociation).
 ///
 /// La marge n'est jamais dans le texte de la notification (visible écran verrouillé) : elle voyage
 /// dans `data` et n'est affichée ici qu'après un appui sur l'oeil, puis re-masquée à chaque nouvelle
 /// notification.
 final class NotificationViewController: UIViewController, UNNotificationContentExtension {
-  private var hostingController: UIHostingController<HubSaleRoot>?
+  private var hostingController: UIHostingController<AnyView>?
 
   func didReceive(_ notification: UNNotification) {
     let content = notification.request.content
-    let image = content.attachments.first.flatMap { Self.loadImage(from: $0) }
-    let payload = HubSalePayload(
-      identifier: notification.request.identifier,
-      userInfo: content.userInfo
-    )
+    let onOpen: () -> Void = { [weak self] in self?.extensionContext?.performNotificationDefaultAction() }
+    let identifier = notification.request.identifier
 
-    let root = HubSaleRoot(
-      payload: payload,
-      image: image,
-      onOpen: { [weak self] in self?.extensionContext?.performNotificationDefaultAction() }
-    )
+    let root: AnyView
+    switch content.categoryIdentifier {
+    case "HUB_OPPORTUNITY":
+      root = AnyView(
+        HubOpportunityRoot(
+          payload: HubOpportunityPayload(identifier: identifier, userInfo: content.userInfo),
+          onOpen: onOpen
+        )
+      )
+    case "HUB_DEPLOYMENT":
+      root = AnyView(
+        HubDeploymentRoot(
+          payload: HubDeploymentPayload(identifier: identifier, userInfo: content.userInfo),
+          onOpen: onOpen
+        )
+      )
+    default:
+      let image = content.attachments.first.flatMap { Self.loadImage(from: $0) }
+      root = AnyView(
+        HubSaleRoot(
+          payload: HubSalePayload(identifier: identifier, userInfo: content.userInfo),
+          image: image,
+          onOpen: onOpen
+        )
+      )
+    }
+
     if let hostingController {
       hostingController.rootView = root
       updatePreferredSize()
@@ -93,39 +115,12 @@ struct HubSalePayload {
     promoDiscountTTC = HubSalePayload.number(userInfo, "promoDiscountTTC")
   }
 
-  private static func lookup(_ userInfo: [AnyHashable: Any], _ key: String) -> Any? {
-    if let value = userInfo[key] { return value }
-    if let nested = dict(userInfo, "body"), let value = nested[key] { return value }
-    if let nested = dict(userInfo, "data"), let value = nested[key] { return value }
-    return nil
-  }
-
-  private static func dict(_ userInfo: [AnyHashable: Any], _ key: String) -> [AnyHashable: Any]? {
-    if let value = userInfo[key] as? [AnyHashable: Any] { return value }
-    if let raw = userInfo[key] as? String,
-       let data = raw.data(using: .utf8),
-       let parsed = try? JSONSerialization.jsonObject(with: data) as? [AnyHashable: Any] {
-      return parsed
-    }
-    return nil
-  }
-
   private static func string(_ userInfo: [AnyHashable: Any], _ key: String) -> String? {
-    guard let value = lookup(userInfo, key) else { return nil }
-    if let value = value as? String, !value.isEmpty { return value }
-    if let value = value as? NSNumber { return value.stringValue }
-    return nil
+    PushPayload.string(userInfo, key)
   }
 
   private static func number(_ userInfo: [AnyHashable: Any], _ key: String) -> Double? {
-    guard let value = lookup(userInfo, key) else { return nil }
-    if let value = value as? Double { return value }
-    if let value = value as? Int { return Double(value) }
-    if let value = value as? NSNumber { return value.doubleValue }
-    if let value = value as? String {
-      return Double(value.replacingOccurrences(of: ",", with: "."))
-    }
-    return nil
+    PushPayload.number(userInfo, key)
   }
 }
 
@@ -340,16 +335,5 @@ struct HubSaleView: View {
   private static func pct(_ value: Double) -> String {
     let formatted = String(format: "%.1f", value).replacingOccurrences(of: ".", with: ",")
     return "\(formatted) %"
-  }
-}
-
-private extension Color {
-  init(hex: UInt, opacity: Double = 1) {
-    self.init(
-      red: Double((hex >> 16) & 0xFF) / 255,
-      green: Double((hex >> 8) & 0xFF) / 255,
-      blue: Double(hex & 0xFF) / 255,
-      opacity: opacity
-    )
   }
 }

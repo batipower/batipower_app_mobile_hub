@@ -31,6 +31,15 @@ export function openOpportunity(uuid: string) {
   router.push({ pathname: '/partner/opportunites/opportunite/[uuid]', params: { uuid } });
 }
 
+/**
+ * Ouvre une opportunité depuis l'extérieur (notification) : la liste des opportunités est d'abord
+ * mise dessous, pour que « Retour » ramène à la liste et non à l'écran précédent.
+ */
+export function openOpportunityFromLink(uuid: string) {
+  router.navigate('/partner/opportunites');
+  openOpportunity(uuid);
+}
+
 export function openOpportunityConversation(uuid: string) {
   router.push({ pathname: '/partner/opportunites/conversation/[uuid]', params: { uuid } });
 }
