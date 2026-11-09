@@ -27,7 +27,6 @@ import { useBrandMarginOverview } from './hooks/useBrandMarginOverview';
 import { formatIsoDate, formatRate, marginColor, viewLabel } from './lib/display';
 import {
   PERIOD_PRESETS,
-  currentRateOf,
   filterByOrigin,
   marginOf,
   originLabel,
@@ -88,7 +87,8 @@ function BrandMarginList() {
 
   const totals = scope?.totals ?? null;
   const margin = totals ? marginOf(totals, filters.view) : null;
-  const currentRate = totals ? currentRateOf(totals, filters.view) : null;
+  // Le taux site ne dépend pas du filtre marketplace : il n'a de sens que sur toutes les marques.
+  const siteRate = filters.origin ? null : (overview.data?.site?.marginRate ?? null);
 
   return (
     <>
@@ -182,8 +182,8 @@ function BrandMarginList() {
                   label={`Marge ${filters.view === 'net' ? 'nette' : 'brute'}`}
                   value={formatEuroWhole(margin.value)}
                   hint={
-                    currentRate?.rate != null
-                      ? `${formatRate(margin.rate)} · actuel ${formatRate(currentRate.rate)}`
+                    siteRate != null
+                      ? `${formatRate(margin.rate)} · site ${formatRate(siteRate)}`
                       : formatRate(margin.rate)
                   }
                   color={marginColor(t, margin.value)}

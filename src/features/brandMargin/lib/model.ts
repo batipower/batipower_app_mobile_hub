@@ -3,6 +3,7 @@ import type {
   HubBrandMarginFigures,
   HubBrandMarginOverview,
   HubBrandMarginSavCause,
+  HubBrandMarginSiteFigures,
 } from '@/types/hubBrandMargin';
 
 export type MarginView = 'net' | 'gross';
@@ -125,6 +126,8 @@ export interface BrandMarginRow {
   brand: string;
   totals: HubBrandMarginFigures;
   byOrigin: ({ origin: string } & HubBrandMarginFigures)[];
+  /** Marge catalogue du site (marque entière). */
+  site?: HubBrandMarginSiteFigures | null;
 }
 
 /** Données de la vue d'ensemble restreintes à une marketplace (`null` = toutes). */
@@ -136,7 +139,7 @@ export function filterByOrigin(
   const totals = data.byOrigin.find((entry) => entry.origin === origin);
   const rows = data.brands.flatMap((brand: HubBrandMarginBrand) => {
     const entry = brand.byOrigin.find((item) => item.origin === origin);
-    return entry ? [{ brand: brand.brand, totals: entry, byOrigin: [entry] }] : [];
+    return entry ? [{ brand: brand.brand, totals: entry, byOrigin: [entry], site: brand.site }] : [];
   });
   rows.sort((a, b) => b.totals.caHT - a.totals.caHT);
   return { totals: totals ?? emptyFigures(), rows };
@@ -161,7 +164,7 @@ export function emptyFigures(): HubBrandMarginFigures {
   };
 }
 
-export type SortKey = 'caHT' | 'margin' | 'rate' | 'currentRate' | 'savImpact' | 'brand';
+export type SortKey = 'caHT' | 'margin' | 'rate' | 'siteRate' | 'savImpact' | 'brand';
 
 export function sortRows(
   rows: BrandMarginRow[],
@@ -177,8 +180,8 @@ export function sortRows(
         return marginOf(row.totals, view).value;
       case 'rate':
         return marginOf(row.totals, view).rate ?? Number.NEGATIVE_INFINITY;
-      case 'currentRate':
-        return currentRateOf(row.totals, view)?.rate ?? Number.NEGATIVE_INFINITY;
+      case 'siteRate':
+        return row.site?.marginRate ?? Number.NEGATIVE_INFINITY;
       case 'savImpact':
         return row.totals.sav.totalHT;
       default:

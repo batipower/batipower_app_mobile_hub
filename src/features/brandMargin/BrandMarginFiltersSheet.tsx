@@ -20,7 +20,7 @@ const SORT_OPTIONS: readonly { key: SortKey; label: string; defaultDesc: boolean
   { key: 'caHT', label: "Chiffre d'affaires", defaultDesc: true },
   { key: 'margin', label: 'Marge', defaultDesc: true },
   { key: 'rate', label: 'Taux de marge', defaultDesc: true },
-  { key: 'currentRate', label: 'Taux de marge actuel', defaultDesc: true },
+  { key: 'siteRate', label: 'Taux de marge site', defaultDesc: true },
   { key: 'savImpact', label: 'Impact SAV', defaultDesc: true },
   { key: 'brand', label: 'Nom de la marque', defaultDesc: false },
 ];

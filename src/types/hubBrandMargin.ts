@@ -61,10 +61,27 @@ export interface HubBrandMarginFigures {
 
 export type HubBrandMarginOriginFigures = { origin: string } & HubBrandMarginFigures;
 
+/**
+ * Marge catalogue du site : produits actuellement en ligne sur batipower.fr, à leur prix site actuel
+ * et prix d'achat actuel (sans transport ni commission, indépendante de la période).
+ */
+export interface HubBrandMarginSiteFigures {
+  marginRate: number | null;
+  /** Somme des prix site HT des produits valorisés. */
+  caHT: number;
+  marginHT: number;
+  /** Produits en ligne valorisés. */
+  products: number;
+  /** Produits en ligne sans prix site ou sans prix d'achat. */
+  excluded: number;
+}
+
 export interface HubBrandMarginBrand {
   brand: string;
   totals: HubBrandMarginFigures;
   byOrigin: HubBrandMarginOriginFigures[];
+  /** Absent d'une API plus ancienne. */
+  site?: HubBrandMarginSiteFigures | null;
 }
 
 /** `GET hub-app/brand-margin` : toutes les marques sur la période. */
@@ -74,6 +91,8 @@ export interface HubBrandMarginOverview {
   totals: HubBrandMarginFigures;
   byOrigin: HubBrandMarginOriginFigures[];
   brands: HubBrandMarginBrand[];
+  /** Marge catalogue du site, toutes marques. */
+  site?: HubBrandMarginSiteFigures | null;
   coverage: {
     incompleteOrders: number;
     unattributedSlipsHT: number;
