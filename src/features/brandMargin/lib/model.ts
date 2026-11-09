@@ -30,6 +30,66 @@ export const SAV_CAUSE_LABELS: Record<HubBrandMarginSavCause, string> = {
   RESEND: 'Renvois',
 };
 
+/** Causes d'impact SAV regroupées par colonne (reprise de `SAV_CAUSE_GROUPS` du web). */
+export const SAV_CAUSE_GROUPS: readonly {
+  id: string;
+  label: string;
+  /** Libellé court (en-tête de colonne, pastille). */
+  short: string;
+  causes: readonly HubBrandMarginSavCause[];
+  title: string;
+}[] = [
+  { id: 'transport', label: 'Casse transport', short: 'Casse', causes: ['BAD_TRANSPORT'], title: 'Retours reçus cassés par le transport' },
+  { id: 'technical', label: 'Panne technique', short: 'Panne', causes: ['TECHNICAL_FAILURE'], title: 'Retours reçus cassés (panne technique)' },
+  { id: 'dispute', label: 'Litige', short: 'Litige', causes: ['CARRIER_DISPUTE'], title: 'Litiges transporteur' },
+  { id: 'loss', label: 'Perte totale', short: 'Perte', causes: ['FULL_LOSS'], title: 'Remboursements sans retour' },
+  {
+    id: 'handling',
+    label: 'Manutention',
+    short: 'Manut.',
+    causes: ['HANDLING_RESTRICTION'],
+    title: 'Annulations de produits trop fragiles ou trop volumineux',
+  },
+  { id: 'resend', label: 'Renvois', short: 'Renvois', causes: ['RESEND'], title: 'Coût des renvois (achats + transport)' },
+  {
+    id: 'customerReturn',
+    label: 'Retour client',
+    short: 'Retour',
+    causes: ['CUSTOMER_RETURN'],
+    title:
+      'Retours client reçus cassés ou invendables, sans cause « casse transport » ni « panne technique » renseignée',
+  },
+  {
+    id: 'unqualified',
+    label: 'Non qualifié',
+    short: 'À qualifier',
+    causes: ['UNQUALIFIED'],
+    title: 'Avoirs sans aucune trace dans le HUB : cause à qualifier',
+  },
+];
+
+/** Montant d'une cause groupée (somme de ses causes) ; 0 quand rien. */
+export function savGroupAmount(
+  figures: Pick<HubBrandMarginFigures, 'sav'>,
+  group: (typeof SAV_CAUSE_GROUPS)[number],
+): number {
+  return group.causes.reduce((sum, cause) => sum + (figures.sav.byCause[cause] ?? 0), 0);
+}
+
+/** Taux d'un montant en % du CA HT ; `null` sans CA. */
+export function rateOfCa(amount: number, caHT: number): number | null {
+  return caHT > 0 ? (amount / caHT) * 100 : null;
+}
+
+/** Causes de SAV non nulles d'un périmètre, par montant décroissant. */
+export function savCauseEntries(
+  figures: Pick<HubBrandMarginFigures, 'sav'>,
+): [HubBrandMarginSavCause, number][] {
+  return (Object.entries(figures.sav.byCause) as [HubBrandMarginSavCause, number][])
+    .filter(([, amount]) => Math.abs(amount) >= 0.005)
+    .sort((a, b) => b[1] - a[1]);
+}
+
 export function originLabel(origin: string): string {
   return ORIGIN_LABELS[origin] ?? origin;
 }
@@ -39,46 +99,83 @@ export interface PeriodRange {
   to: string;
 }
 
-export type PeriodPresetId = 'thisMonth' | 'lastMonth' | '3m' | '6m' | '12m';
+export type PeriodPresetId =
+  | 'month'
+  | 'prevMonth'
+  | 'last3m'
+  | 'last12m'
+  | 'ytd'
+  | 'prevYear'
+  | 'custom';
 
-export const PERIOD_PRESETS: { id: PeriodPresetId; label: string }[] = [
-  { id: 'thisMonth', label: 'Ce mois' },
-  { id: 'lastMonth', label: 'Mois dernier' },
-  { id: '3m', label: '3 mois' },
-  { id: '6m', label: '6 mois' },
-  { id: '12m', label: '12 mois' },
+/** Périodes du web (`BRAND_MARGIN_PERIOD_PRESETS`) : libellé complet et libellé court des puces. */
+export const PERIOD_PRESETS: { id: PeriodPresetId; label: string; short: string }[] = [
+  { id: 'month', label: 'Mois en cours', short: 'Ce mois' },
+  { id: 'prevMonth', label: 'Mois précédent', short: 'Mois -1' },
+  { id: 'last3m', label: '3 derniers mois', short: '3 mois' },
+  { id: 'last12m', label: '12 derniers mois', short: '12 mois' },
+  { id: 'ytd', label: 'Année en cours', short: 'Année' },
+  { id: 'prevYear', label: 'Année précédente', short: 'Année -1' },
+  { id: 'custom', label: 'Dates personnalisées', short: 'Dates' },
 ];
 
-function ymd(date: Date): string {
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isIsoDate(value: string | null | undefined): value is string {
+  if (!value || !ISO_DATE.test(value)) return false;
+  const [y = 0, m = 0, d = 0] = value.split('-').map(Number);
+  const parsed = new Date(y, m - 1, d);
+  return parsed.getFullYear() === y && parsed.getMonth() === m - 1 && parsed.getDate() === d;
+}
+
+export function ymd(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
-/** Période d'un préréglage, en jours calendaires locaux (`YYYY-MM-DD`, bornes incluses). */
-export function presetRange(id: PeriodPresetId, now: Date = new Date()): PeriodRange {
+/** Date locale d'un `YYYY-MM-DD` (minuit local). */
+export function parseYmd(value: string): Date {
+  const [y = 0, m = 1, d = 1] = value.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/**
+ * Période d'un préréglage, en jours calendaires locaux (`YYYY-MM-DD`, bornes incluses). `custom`
+ * utilise les dates fournies (repli : aujourd'hui), remises dans l'ordre.
+ */
+export function presetRange(
+  id: PeriodPresetId,
+  now: Date = new Date(),
+  custom?: { from: string; to: string },
+): PeriodRange {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMonth = (back: number) => ymd(new Date(today.getFullYear(), today.getMonth() - back, 1));
   switch (id) {
-    case 'thisMonth':
-      return { from: ymd(new Date(today.getFullYear(), today.getMonth(), 1)), to: ymd(today) };
-    case 'lastMonth':
+    case 'month':
+      return { from: startOfMonth(0), to: ymd(today) };
+    case 'prevMonth':
       return {
-        from: ymd(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
+        from: startOfMonth(1),
         to: ymd(new Date(today.getFullYear(), today.getMonth(), 0)),
       };
-    case '3m':
-      return { from: ymd(new Date(today.getFullYear(), today.getMonth() - 2, 1)), to: ymd(today) };
-    case '6m':
-      return { from: ymd(new Date(today.getFullYear(), today.getMonth() - 5, 1)), to: ymd(today) };
-    case '12m':
-      return { from: ymd(new Date(today.getFullYear(), today.getMonth() - 11, 1)), to: ymd(today) };
+    case 'last3m':
+      return { from: startOfMonth(2), to: ymd(today) };
+    case 'last12m':
+      return { from: startOfMonth(11), to: ymd(today) };
+    case 'ytd':
+      return { from: `${today.getFullYear()}-01-01`, to: ymd(today) };
+    case 'prevYear':
+      return { from: `${today.getFullYear() - 1}-01-01`, to: `${today.getFullYear() - 1}-12-31` };
+    case 'custom': {
+      const from = isIsoDate(custom?.from) ? custom.from : ymd(today);
+      const to = isIsoDate(custom?.to) ? custom.to : ymd(today);
+      return from <= to ? { from, to } : { from: to, to: from };
+    }
   }
 }
 
-export function activePreset(range: PeriodRange, now: Date = new Date()): PeriodPresetId | null {
-  const found = PERIOD_PRESETS.find((preset) => {
-    const candidate = presetRange(preset.id, now);
-    return candidate.from === range.from && candidate.to === range.to;
-  });
-  return found?.id ?? null;
+/** Libellé court de la période (puce de la liste). */
+export function periodShortLabel(id: PeriodPresetId): string {
+  return PERIOD_PRESETS.find((preset) => preset.id === id)?.short ?? 'Période';
 }
 
 /** Période valide : dates renseignées, ordonnées et d'au plus 366 jours (limite de l'API). */

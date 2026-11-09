@@ -1,5 +1,9 @@
 import { apiClient } from '@/api/client';
-import type { HubBrandMarginDetail, HubBrandMarginOverview } from '@/types/hubBrandMargin';
+import type {
+  HubBrandMarginDetail,
+  HubBrandMarginOverview,
+  HubBrandStockQg,
+} from '@/types/hubBrandMargin';
 
 /**
  * Marge par marque du HUB (`hub-app/brand-margin*`), SUPERADMIN. Contrat repris de
@@ -11,11 +15,20 @@ export interface HubBrandMarginPeriod {
   to: string;
 }
 
+/** Filtre « filiales » : codes d'entrepôt triés et séparés par des virgules ; absent = toutes. */
+function warehousesQuery(warehouses: readonly string[]): { warehouses?: string } {
+  return warehouses.length > 0 ? { warehouses: [...warehouses].sort().join(',') } : {};
+}
+
 export const hubBrandMarginApi = {
   /** Marge (avec / sans SAV) de toutes les marques sur la période. */
-  overview: (period: HubBrandMarginPeriod, options?: { signal?: AbortSignal }) =>
+  overview: (
+    period: HubBrandMarginPeriod,
+    warehouses: readonly string[],
+    options?: { signal?: AbortSignal },
+  ) =>
     apiClient.get<HubBrandMarginOverview>('hub-app/brand-margin', {
-      query: { from: period.from, to: period.to },
+      query: { from: period.from, to: period.to, ...warehousesQuery(warehouses) },
       signal: options?.signal,
     }),
 
@@ -24,10 +37,24 @@ export const hubBrandMarginApi = {
     name: string,
     period: HubBrandMarginPeriod,
     origin: string | null,
+    warehouses: readonly string[],
     options?: { signal?: AbortSignal },
   ) =>
     apiClient.get<HubBrandMarginDetail>('hub-app/brand-margin/brand', {
-      query: { name, from: period.from, to: period.to, origin },
+      query: {
+        name,
+        from: period.from,
+        to: period.to,
+        origin,
+        ...warehousesQuery(warehouses),
+      },
+      signal: options?.signal,
+    }),
+
+  /** Stock QG Batipower d'une marque : références en stock, coût et valeur, à l'instant t. */
+  stockQg: (name: string, options?: { signal?: AbortSignal }) =>
+    apiClient.get<HubBrandStockQg>('hub-app/brand-margin/stock-qg', {
+      query: { name },
       signal: options?.signal,
     }),
 };

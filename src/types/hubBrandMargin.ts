@@ -43,6 +43,8 @@ export interface HubBrandMarginFigures {
   grossMarginRate: number | null;
   sav: {
     creditSlipsHT: number;
+    /** Avoirs des retours client revendables (rentrée de stock) : informatif, hors impact SAV. */
+    resellableReturnsHT?: number;
     /** Valeur d'achat des produits remis en stock (coût récupéré). */
     restockRecoveredHT: number;
     resendCostHT: number;
@@ -85,6 +87,22 @@ export interface HubBrandMarginBrand {
 }
 
 /** `GET hub-app/brand-margin` : toutes les marques sur la période. */
+export interface HubBrandMarginNeutralizedCancellations {
+  orders: number;
+  /** CA HT des commandes neutralisées (exclu des chiffres de marge). */
+  caHT: number;
+}
+
+/** Réserves de couverture du calcul (pied de page des écrans). */
+export interface HubBrandMarginCoverage {
+  incompleteOrders: number;
+  unattributedSlipsHT: number;
+  /** Avoirs au-delà du montant payé de leur commande (doublons), ignorés. */
+  excessSlipsHT?: number;
+  /** Commandes avec une annulation validée : sorties du calcul (CA, coûts et SAV à 0). */
+  neutralizedCancellations?: HubBrandMarginNeutralizedCancellations;
+}
+
 export interface HubBrandMarginOverview {
   period: { from: string; to: string };
   productCount: number;
@@ -93,17 +111,36 @@ export interface HubBrandMarginOverview {
   brands: HubBrandMarginBrand[];
   /** Marge catalogue du site, toutes marques. */
   site?: HubBrandMarginSiteFigures | null;
-  coverage: {
-    incompleteOrders: number;
-    unattributedSlipsHT: number;
-  };
+  coverage: HubBrandMarginCoverage;
 }
 
 export type HubBrandMarginMonthly = { month: string } & HubBrandMarginFigures;
 
+/** Taux de marge site d'un produit en ligne : prix site HT actuel face au prix d'achat HT actuel. */
+export interface HubBrandMarginSiteProduct {
+  /** `null` : prix site ou prix d'achat manquant. */
+  marginRate: number | null;
+  priceHT: number | null;
+  purchaseHT: number | null;
+}
+
+/** Monitoring par pays et contraintes d'expédition marketplace d'un produit. */
+export interface HubBrandMarginProductTraits {
+  /** Pays où le repricing Amazon est actif (FR, BE, ES, IT, DE). */
+  amazonCountries: string[];
+  /** Pays où le repricing ManoMano est actif (FR, ES, IT). */
+  manoManoCountries: string[];
+  tooVoluminous: boolean;
+  tooFragile: boolean;
+}
+
 export type HubBrandMarginProduct = {
   reference: string;
   designation: string | null;
+  /** Taux de marge site ; `null` : produit pas en ligne ; absent : API pas à jour. */
+  site?: HubBrandMarginSiteProduct | null;
+  /** Absent d'une API pas à jour ou si la fiche est introuvable. */
+  traits?: HubBrandMarginProductTraits | null;
 } & HubBrandMarginFigures;
 
 /** Marge d'une commande sur le périmètre de la marque (lignes des autres marques exclues). */
@@ -126,6 +163,8 @@ export interface HubBrandMarginDetail {
   /** Marketplace filtrée (`null` = toutes). */
   origin: string | null;
   totals: HubBrandMarginFigures;
+  /** Marge catalogue du site de la marque, indépendante de la période et du canal. */
+  site?: HubBrandMarginSiteFigures | null;
   /** Ventilation par marketplace de la marque, jamais filtrée. */
   byOrigin: HubBrandMarginOriginFigures[];
   monthly: HubBrandMarginMonthly[];
@@ -138,8 +177,31 @@ export interface HubBrandMarginDetail {
   /** Commandes au plus fort impact SAV (décroissant), tronquées par l'API. */
   savOrders: HubBrandMarginOrder[];
   savOrdersTotal: number;
-  coverage: {
-    incompleteOrders: number;
-    unattributedSlipsHT: number;
-  };
+  coverage: HubBrandMarginCoverage;
+}
+
+/** Une référence de la marque en stock au QG Batipower. */
+export interface HubBrandStockQgLine {
+  reference: string;
+  designation: string | null;
+  stock: number;
+  /** Coût unitaire HT retenu ; `null` si aucun coût exploitable (valeur nulle). */
+  unitCostHT: number | null;
+  valueHT: number;
+  /** `qg-average` : coût moyen pondéré du stock QG ; `fix-price` : repli sur le prix d'achat fixé. */
+  costSource: 'qg-average' | 'fix-price' | 'none';
+}
+
+/** `GET hub-app/brand-margin/stock-qg` : stock QG d'une marque à l'instant t (hors période). */
+export interface HubBrandStockQg {
+  brand: string;
+  valueHT: number;
+  units: number;
+  productsWithStock: number;
+  unpricedProducts: number;
+  unpricedUnits: number;
+  /** Triées par valeur décroissante. */
+  lines: HubBrandStockQgLine[];
+  /** ISO 8601. */
+  computedAt: string;
 }

@@ -34,6 +34,7 @@ import type { HubPricingRow, PricingMarketplaceKey } from '@/types/hubPricing';
 
 import { usePricingState } from './filtersStore';
 import { usePricingRow } from './hooks/usePricingRow';
+import { useProductColis } from './hooks/useProductColis';
 import { useUpdatePricingRow } from './hooks/useUpdatePricingRow';
 import { openPricingEdit, openPricingPicker, type PricingEditField } from './navigation';
 import {
@@ -203,6 +204,7 @@ function PricingDetailBody({ row, country }: { row: HubPricingRow; country: stri
   const styles = useStyles();
   const t = useTheme();
   const update = useUpdatePricingRow();
+  const colis = useProductColis(row.reference);
   const uri = thumbnailUri(row.thumbnailBase64);
   const margin = websiteMargin(row, country);
   const carrier = resolveCarrierCostHT(row.transport.costCarrierHT, country);
@@ -346,6 +348,18 @@ function PricingDetailBody({ row, country }: { row: HubPricingRow; country: stri
               ? `${formatInteger(row.transport.weightInGrams)} g`
               : '—'
           }
+        />
+        <EditableRow
+          label="Pièces par colis"
+          value={
+            colis.nbPieceByColis === undefined
+              ? '…'
+              : colis.nbPieceByColis != null
+                ? formatInteger(colis.nbPieceByColis)
+                : '1 unité = 1 colis'
+          }
+          reference={row.reference}
+          field="nbPieceByColis"
         />
         <InfoRow label="Achat Flevy HT" value={formatEuro(row.purchase.flevyHT)} />
         <InfoRow label="Achat Dombasle HT" value={formatEuro(row.purchase.dombasleHT)} />

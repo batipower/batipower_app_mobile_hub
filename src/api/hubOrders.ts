@@ -2,6 +2,7 @@ import { apiClient } from '@/api/client';
 import type {
   HubLogisticsDetail,
   HubOrdersByProductResult,
+  HubOrderTransportComparison,
   HubSavSearchResult,
 } from '@/types/order';
 
@@ -48,5 +49,14 @@ export const hubOrdersApi = {
       `hub-app/orders/logistics-detail/${encodeURIComponent(reference)}`,
       { signal },
     );
+  },
+
+  /** Coûts transport estimés d'une commande, colis par colis (SUPERADMIN). */
+  getTransportComparison(reference: string, signal?: AbortSignal) {
+    return apiClient.get<{
+      success: boolean;
+      message: string;
+      data: HubOrderTransportComparison | null;
+    }>(`hub-app/orders/${encodeURIComponent(reference)}/transport-comparison`, { signal });
   },
 };

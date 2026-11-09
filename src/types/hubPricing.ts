@@ -339,6 +339,8 @@ export interface HubPricingFilters {
 /** Champs modifiables depuis le mobile via `PATCH hub-app/products/:reference`. */
 export interface UpdateHubProductPayload {
   fixPriceHT?: number | null;
+  /** Pièces par colis (entier ≥ 1) ; `null` : 1 unité = 1 colis. */
+  nbPieceByColis?: number | null;
   previSalesByMonth?: number | null;
   targetPriceAmazon?: number | null;
   targetPriceManoMano?: number | null;

@@ -255,3 +255,42 @@ export interface HubLogisticsDetail {
     paymentInfo?: HubOrderPaymentInfo | null;
   } | null;
 }
+
+export type HubComparedCarrier = 'GLS' | 'DPD' | 'GLS_RELAIS';
+
+export interface HubOrderTransportComparisonRow {
+  carrier: HubComparedCarrier;
+  label: string;
+  /** Coût transport HT (grille x colis + malus) ; `null` sans grille pour ce transporteur. */
+  costHT: number | null;
+  deltaVsGlsHT: number | null;
+  deltaVsRecordedHT: number | null;
+}
+
+/**
+ * `GET hub-app/orders/:reference/transport-comparison` (SUPERADMIN) : coûts transport estimés de la
+ * commande, colis par colis pour la grille utilisée dans la marge.
+ */
+export interface HubOrderTransportComparison {
+  weightGrams: number;
+  nbColis: number;
+  malusTransportHT: number;
+  /** Coût transport enregistré sur la commande, déduit de la marge. */
+  recordedCarrierCostHT: number | null;
+  /** Transporteur dont la grille alimente la marge (celui de la commande, repli GLS sans grille). */
+  usedInMarginCarrier: HubComparedCarrier;
+  /** Nom du transporteur de la commande quand la grille GLS a servi de repli. */
+  marginFallbackFrom?: string | null;
+  /** Tranche de la grille utilisée ; `null` sans tranche. */
+  usedTier?: {
+    perParcelWeightG: number;
+    weightMinG: number;
+    weightMaxG: number;
+    perParcelCostHT: number;
+  } | null;
+  /** Colis estimés (poids en g et coût de grille). Absent d'une API plus ancienne. */
+  parcels?: { weightG: number; costHT: number }[];
+  chosenCarrier: HubComparedCarrier | null;
+  chosenCarrierName: string | null;
+  carriers: HubOrderTransportComparisonRow[];
+}

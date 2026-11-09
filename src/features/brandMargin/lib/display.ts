@@ -47,3 +47,12 @@ export function formatIsoDate(value: string | undefined): string {
   const [y, m, d] = (value ?? '').split('-');
   return y && m && d ? `${d}/${m}/${y}` : (value ?? '');
 }
+
+/** « +8,2 % » / « -1,0 % » : écart en pourcentage, signé. */
+export function formatSignedPercent(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  const rounded = Math.round(value * 10) / 10;
+  if (rounded === 0) return '0 %';
+  const text = Math.abs(rounded).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+  return `${rounded > 0 ? '+' : '-'}${text} %`;
+}

@@ -13,7 +13,15 @@ import {
   COST_LINE_LABELS,
 } from '../lib/diagnostic';
 import { formatPoints, formatRate, marginColor } from '../lib/display';
-import { marginOf, originLabel, type BrandMarginRow, type MarginView } from '../lib/model';
+import {
+  SAV_CAUSE_GROUPS,
+  marginOf,
+  originLabel,
+  rateOfCa,
+  savGroupAmount,
+  type BrandMarginRow,
+  type MarginView,
+} from '../lib/model';
 import type { HubBrandMarginFigures } from '@/types/hubBrandMargin';
 import { AlertBadges } from './primitives';
 
@@ -22,6 +30,8 @@ type BrandCardProps = {
   /** Moyenne de toutes les marques sur le même périmètre (comparaisons et alertes). */
   average: HubBrandMarginFigures;
   view: MarginView;
+  /** Affiche le détail de l'impact SAV par cause sous les coûts. */
+  showSavCauses?: boolean;
   /** Ouvre la fiche de la marque. */
   onPress: (brand: string) => void;
 };
@@ -31,7 +41,7 @@ type BrandCardProps = {
  * postes de coût en % du CA et alertes de diagnostic. Un appui déplie la marge de chaque canal ; le
  * bouton « Fiche » ouvre le détail de la marque.
  */
-function BrandCardBase({ row, average, view, onPress }: BrandCardProps) {
+function BrandCardBase({ row, average, view, showSavCauses = false, onPress }: BrandCardProps) {
   const styles = useStyles();
   const t = useTheme();
   const [expanded, setExpanded] = useState(false);
@@ -41,24 +51,27 @@ function BrandCardBase({ row, average, view, onPress }: BrandCardProps) {
   const ratios = costRatios(row.totals);
   const alerts = brandAlerts(row.totals, average, view);
   const color = marginColor(t, margin.value);
-  const expandable = row.byOrigin.length > 1;
+  const savCauses = showSavCauses
+    ? SAV_CAUSE_GROUPS.map((group) => ({
+        id: group.id,
+        label: group.label,
+        amount: savGroupAmount(row.totals, group),
+      })).filter((cause) => Math.abs(cause.amount) >= 0.005)
+    : [];
 
+  // Toute marque se déplie, même avec un seul canal (comme sur le web).
   const onCardPress = useCallback(() => {
-    if (!expandable) {
-      onPress(row.brand);
-      return;
-    }
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded((value) => !value);
-  }, [expandable, onPress, row.brand]);
+  }, []);
 
   return (
     <View style={styles.card}>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={expandable ? { expanded } : undefined}
+        accessibilityState={{ expanded }}
         accessibilityLabel={`${row.brand}, chiffre d'affaires ${formatEuroWhole(row.totals.caHT)}, marge ${formatEuroWhole(margin.value)}, taux ${formatRate(margin.rate)}, taux site ${formatRate(siteRate)}`}
-        accessibilityHint={expandable ? 'Affiche la marge de chaque canal' : 'Ouvre la fiche de la marque'}
+        accessibilityHint="Affiche la marge de chaque canal"
         onPress={onCardPress}
         style={({ pressed }) => [styles.body, pressed && styles.pressed]}
       >
@@ -66,14 +79,10 @@ function BrandCardBase({ row, average, view, onPress }: BrandCardProps) {
           <Text style={styles.brand} numberOfLines={1}>
             {row.brand}
           </Text>
-          {expandable ? (
-            expanded ? (
-              <ChevronUp size={16} color={t.textFaint} />
-            ) : (
-              <ChevronDown size={16} color={t.textFaint} />
-            )
+          {expanded ? (
+            <ChevronUp size={16} color={t.textFaint} />
           ) : (
-            <ChevronRight size={16} color={t.textFaint} />
+            <ChevronDown size={16} color={t.textFaint} />
           )}
         </View>
 
@@ -114,6 +123,24 @@ function BrandCardBase({ row, average, view, onPress }: BrandCardProps) {
             '  ·  ',
           )}
         </Text>
+
+        {savCauses.length > 0 ? (
+          <View style={styles.savCauses}>
+            {savCauses.map((cause) => {
+              const rate = rateOfCa(cause.amount, row.totals.caHT);
+              return (
+                <View key={cause.id} style={styles.savCause}>
+                  <Text style={styles.savCauseLabel} numberOfLines={1}>
+                    {cause.label}
+                  </Text>
+                  <Text style={styles.savCauseValue}>
+                    {`${formatEuroWhole(cause.amount)}${rate != null ? ` · ${formatRate(rate)}` : ''}`}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
 
         <AlertBadges alerts={alerts} />
       </Pressable>
@@ -197,6 +224,10 @@ const useStyles = makeStyles((t) => ({
   value: { fontSize: fontSize.base, fontWeight: '700', color: t.text },
   gap: { fontSize: 11, fontWeight: '600' },
   costs: { fontSize: fontSize.xs, color: t.textMuted },
+  savCauses: { gap: 2 },
+  savCause: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  savCauseLabel: { flex: 1, fontSize: fontSize.xs, color: t.textMuted },
+  savCauseValue: { fontSize: fontSize.xs, fontWeight: '600', color: t.danger },
   origins: {
     gap: spacing.xs,
     paddingHorizontal: spacing.lg,

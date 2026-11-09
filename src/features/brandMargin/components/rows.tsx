@@ -8,7 +8,44 @@ import { fontSize, makeStyles, monoFontFamily, radius, shadow, spacing, useTheme
 import type { HubBrandMarginOrder, HubBrandMarginProduct } from '@/types/hubBrandMargin';
 
 import { formatRate, marginColor } from '../lib/display';
-import { currentRateGap, currentRateOf, marginOf, originLabel, type MarginView } from '../lib/model';
+import {
+  SAV_CAUSE_GROUPS,
+  marginOf,
+  originLabel,
+  rateOfCa,
+  savGroupAmount,
+  type MarginView,
+} from '../lib/model';
+import { ProductTraitBadges } from './ProductTraits';
+
+/** Causes d'impact SAV d'un périmètre : « Casse 120 € · 2,1 % » par cause non nulle. */
+function SavCauseLines({ figures }: { figures: Pick<HubBrandMarginProduct, 'sav' | 'caHT'> }) {
+  const styles = useStyles();
+  const t = useTheme();
+  const causes = SAV_CAUSE_GROUPS.map((group) => ({
+    id: group.id,
+    label: group.label,
+    amount: savGroupAmount(figures, group),
+  })).filter((cause) => Math.abs(cause.amount) >= 0.005);
+  if (causes.length === 0) return null;
+  return (
+    <View style={styles.causes}>
+      {causes.map((cause) => {
+        const rate = rateOfCa(cause.amount, figures.caHT);
+        return (
+          <View key={cause.id} style={styles.cause}>
+            <Text style={styles.causeLabel} numberOfLines={1}>
+              {cause.label}
+            </Text>
+            <Text style={[styles.causeValue, { color: t.danger }]}>
+              {`${formatEuroWhole(cause.amount)}${rate != null ? ` · ${formatRate(rate)}` : ''}`}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 /** Nombre d'éléments ajoutés à chaque appui sur « Voir plus ». */
 export const SHOW_MORE_STEP = 25;
@@ -66,19 +103,23 @@ function Figure({ label, value, color, highlight }: FigureProps) {
   );
 }
 
-type ProductRowProps = { product: HubBrandMarginProduct; view: MarginView };
+type ProductRowProps = {
+  product: HubBrandMarginProduct;
+  view: MarginView;
+  /** Détaille l'impact SAV par cause. */
+  showSavCauses?: boolean;
+};
 
 /** Produit de la marque : désignation, référence, ventes, marge et taux. */
-function ProductRowBase({ product, view }: ProductRowProps) {
+function ProductRowBase({ product, view, showSavCauses = false }: ProductRowProps) {
   const styles = useStyles();
   const t = useTheme();
   const margin = marginOf(product, view);
   const color = marginColor(t, margin.value);
-  const current = currentRateOf(product, view);
-  const currentGap = currentRateGap(product, view);
+  const siteRate = product.site?.marginRate ?? null;
   return (
     <RowShell
-      label={`${product.designation ?? product.reference}, marge ${formatEuroWhole(margin.value)}, taux ${formatRate(margin.rate)}, taux actuel ${formatRate(current?.rate)}`}
+      label={`${product.designation ?? product.reference}, marge ${formatEuroWhole(margin.value)}, taux ${formatRate(margin.rate)}, taux site ${formatRate(siteRate)}`}
     >
       <Text style={styles.title} numberOfLines={2}>
         {product.designation ?? product.reference}
@@ -92,12 +133,14 @@ function ProductRowBase({ product, view }: ProductRowProps) {
         <Figure label="Marge" value={formatEuroWhole(margin.value)} color={color} />
         <Figure label="Taux" value={formatRate(margin.rate)} color={color} highlight />
         <Figure
-          label="Actuel"
-          value={formatRate(current?.rate)}
-          color={currentGap != null && currentGap < -0.05 ? t.danger : undefined}
+          label="Taux site"
+          value={product.site === undefined || product.site === null ? '—' : formatRate(siteRate)}
+          color={siteRate != null && siteRate < 0 ? t.danger : t.info}
           highlight
         />
       </View>
+      <ProductTraitBadges product={product} />
+      {showSavCauses ? <SavCauseLines figures={product} /> : null}
     </RowShell>
   );
 }
@@ -147,6 +190,7 @@ function OrderRowBase({ order, view, mode, onPress }: OrderRowProps) {
           color={color}
         />
       </View>
+      {mode === 'sav' ? <SavCauseLines figures={order} /> : null}
       {order.negativeMargin || order.incomplete || order.lossMakingLines > 0 ? (
         <View style={styles.badges}>
           {order.negativeMargin ? <Badge label="Marge négative" tone="red" /> : null}
@@ -197,4 +241,8 @@ const useStyles = makeStyles((t) => ({
   caption: { fontSize: 11, fontWeight: '600', color: t.textMuted, textTransform: 'uppercase' },
   value: { fontSize: fontSize.base, fontWeight: '700', color: t.text },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  causes: { gap: 2 },
+  cause: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  causeLabel: { flex: 1, fontSize: fontSize.xs, color: t.textMuted },
+  causeValue: { fontSize: fontSize.xs, fontWeight: '600' },
 }));

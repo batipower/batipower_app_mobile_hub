@@ -3,13 +3,14 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { PackageX } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { canAccessHubProductSheet } from '@/auth/permissions';
+import { canAccessHubBrandMargin, canAccessHubProductSheet } from '@/auth/permissions';
 import { EmptyState, ErrorBanner, ListSkeleton } from '@/features/preparation/components/ListState';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
 import { openProduct } from '@/features/search/navigation';
 import { makeStyles, spacing, useTheme } from '@/theme';
 
 import { OrderDetail } from './components/OrderDetail';
+import { OrderTransportSection } from './components/OrderTransportSection';
 import { useOrderDetail } from './hooks/useOrderDetail';
 
 /**
@@ -17,7 +18,7 @@ import { useOrderDetail } from './hooks/useOrderDetail';
  * Ouverte à tout compte HUB ; le lien vers la fiche produit n'apparaît que pour les rôles
  * qui peuvent la consulter.
  */
-export function OrderDetailScreen() {
+export function OrderDetailScreen({ showTransportMargin = false }: { showTransportMargin?: boolean }) {
   const styles = useStyles();
   const t = useTheme();
   const { reference } = useLocalSearchParams<{ reference: string }>();
@@ -26,6 +27,8 @@ export function OrderDetailScreen() {
   const { refreshing, onRefresh } = usePullToRefresh(refetch);
 
   const canOpenProducts = !!user && canAccessHubProductSheet(user.role);
+  // Détail colis par colis du transport : SUPERADMIN, ouvert depuis Marges marques.
+  const canSeeTransport = showTransportMargin && !!user && canAccessHubBrandMargin(user.role);
 
   return (
     <>
@@ -61,6 +64,7 @@ export function OrderDetailScreen() {
         {detail ? (
           <OrderDetail data={detail} onOpenProduct={canOpenProducts ? openProduct : undefined} />
         ) : null}
+        {detail && canSeeTransport && reference ? <OrderTransportSection reference={reference} /> : null}
       </ScrollView>
     </>
   );

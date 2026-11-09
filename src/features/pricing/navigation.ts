@@ -27,6 +27,7 @@ export function openPricingPicker(kind: PricingPickerKind, reference?: string) {
 
 export type PricingEditField =
   | 'fixPriceHT'
+  | 'nbPieceByColis'
   | 'previSalesByMonth'
   | 'targetPriceAmazon'
   | 'targetPriceManoMano'

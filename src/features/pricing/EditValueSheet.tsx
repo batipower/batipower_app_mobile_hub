@@ -9,6 +9,7 @@ import type { HubPricingRow, UpdateHubProductPayload } from '@/types/hubPricing'
 
 import { SheetScreen } from '@/components/sheet/SheetScreen';
 import { usePricingRow } from './hooks/usePricingRow';
+import { useProductColis } from './hooks/useProductColis';
 import { useUpdatePricingRow } from './hooks/useUpdatePricingRow';
 import type { PricingEditField } from './navigation';
 
@@ -19,6 +20,8 @@ type FieldMeta = {
   read: (row: HubPricingRow) => number | null;
   /** Valeur entière attendue (potentiel mensuel). */
   integer?: boolean;
+  /** Valeur minimale acceptée (0 par défaut). */
+  min?: number;
 };
 
 const FIELDS: Record<PricingEditField, FieldMeta> = {
@@ -27,6 +30,15 @@ const FIELDS: Record<PricingEditField, FieldMeta> = {
     unit: '€',
     hint: "Prix d'achat de référence utilisé pour toutes les marges.",
     read: (row) => row.fixPriceHT,
+  },
+  nbPieceByColis: {
+    label: 'Pièces par colis',
+    unit: 'pièce(s)',
+    hint: "Sert à estimer le nombre de colis (et le transport) dans la marge. Vide : 1 unité = 1 colis (produits de moins de 5 kg regroupés jusqu'à 30 kg).",
+    // Absente de la ligne Pricing : lue sur la fiche produit (voir `useProductColis`).
+    read: () => null,
+    integer: true,
+    min: 1,
   },
   previSalesByMonth: {
     label: 'Potentiel mensuel',
@@ -72,11 +84,11 @@ export function isPricingEditField(value: string | undefined): value is PricingE
 }
 
 /** Analyse une saisie « 12,5 » ; `undefined` si invalide, `null` si vide (valeur effacée). */
-function parseInput(text: string, integer: boolean): number | null | undefined {
+function parseInput(text: string, integer: boolean, min = 0): number | null | undefined {
   const trimmed = text.trim().replace(',', '.');
   if (trimmed === '') return null;
   const value = Number(trimmed);
-  if (!Number.isFinite(value) || value < 0) return undefined;
+  if (!Number.isFinite(value) || value < min) return undefined;
   if (integer && !Number.isInteger(value)) return undefined;
   return value;
 }
@@ -93,10 +105,13 @@ function EditValue({ reference, field }: { reference: string; field: PricingEdit
   const meta = FIELDS[field];
   const { row } = usePricingRow(reference);
   const update = useUpdatePricingRow();
-  const current = row ? meta.read(row) : null;
+  const colis = useProductColis(reference, field === 'nbPieceByColis');
+  const isColis = field === 'nbPieceByColis';
+  const current = isColis ? (colis.nbPieceByColis ?? null) : row ? meta.read(row) : null;
+  const ready = isColis ? colis.nbPieceByColis !== undefined : !!row;
   const [text, setText] = useState<string | null>(null);
   const value = text ?? (current != null ? String(current).replace('.', ',') : '');
-  const parsed = parseInput(value, !!meta.integer);
+  const parsed = parseInput(value, !!meta.integer, meta.min);
   const invalid = parsed === undefined;
   const unchanged = parsed === current;
 
@@ -114,7 +129,7 @@ function EditValue({ reference, field }: { reference: string; field: PricingEdit
         <Button
           label="Enregistrer"
           loading={update.isPending}
-          disabled={invalid || unchanged || !row}
+          disabled={invalid || unchanged || !ready}
           onPress={save}
         />
       }
@@ -128,7 +143,13 @@ function EditValue({ reference, field }: { reference: string; field: PricingEdit
         keyboardType={meta.integer ? 'number-pad' : 'decimal-pad'}
         returnKeyType="done"
         autoFocus
-        error={invalid ? 'Saisissez un nombre positif.' : undefined}
+        error={
+          invalid
+            ? meta.min
+              ? `Saisissez un entier d'au moins ${meta.min}.`
+              : 'Saisissez un nombre positif.'
+            : undefined
+        }
         onSubmitEditing={save}
       />
       <Text style={styles.hint}>{meta.hint}</Text>

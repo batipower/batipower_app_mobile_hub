@@ -2,21 +2,28 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { hubBrandMarginApi } from '@/api/hubBrandMargin';
 
-import type { PeriodPresetId } from '../lib/model';
+import type { PeriodRange } from '../lib/model';
 import { BRAND_MARGIN_KEY } from '../queryKeys';
-import { usePeriodRange } from './useBrandMarginOverview';
 
-/** Détail d'une marque (`GET hub-app/brand-margin/brand`) sur la période et la marketplace filtrées. */
+/** Détail d'une marque (`GET hub-app/brand-margin/brand`) sur la période, la marketplace et les filiales filtrées. */
 export function useBrandMarginDetail(
   brand: string,
-  preset: PeriodPresetId,
+  range: PeriodRange,
   origin: string | null,
+  warehouses: readonly string[],
   enabled: boolean,
 ) {
-  const range = usePeriodRange(preset);
   const query = useQuery({
-    queryKey: [...BRAND_MARGIN_KEY, 'brand', brand, range.from, range.to, origin],
-    queryFn: ({ signal }) => hubBrandMarginApi.brand(brand, range, origin, { signal }),
+    queryKey: [
+      ...BRAND_MARGIN_KEY,
+      'brand',
+      brand,
+      range.from,
+      range.to,
+      origin,
+      [...warehouses].sort(),
+    ],
+    queryFn: ({ signal }) => hubBrandMarginApi.brand(brand, range, origin, warehouses, { signal }),
     placeholderData: keepPreviousData,
     enabled: enabled && brand.length > 0,
     staleTime: 60_000,
@@ -24,10 +31,11 @@ export function useBrandMarginDetail(
 
   return {
     data: query.data ?? null,
-    range,
-    loading: query.isPending,
+    loading: query.isPending && query.fetchStatus !== 'idle',
     error: query.error,
     refetch: query.refetch,
     isRefetching: query.isFetching && !query.isPending,
+    isPlaceholder: query.isPlaceholderData,
+    isError: query.isError,
   };
 }

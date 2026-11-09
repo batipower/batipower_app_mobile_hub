@@ -6,6 +6,7 @@ import { hubProductsApi } from '@/api/hubProducts';
 import type { HubPricingPage, HubPricingRow, UpdateHubProductPayload } from '@/types/hubPricing';
 
 import { PRICING_LIST_KEY } from '../queryKeys';
+import { productColisKey } from './useProductColis';
 import { pricingRowKey } from './usePricingRow';
 
 type ListData = InfiniteData<HubPricingPage>;
@@ -83,6 +84,9 @@ export function useUpdatePricingRow() {
     },
     onSuccess: (_data, variables) => {
       toast.success('Ligne mise à jour');
+      if (variables.payload.nbPieceByColis !== undefined) {
+        void queryClient.invalidateQueries({ queryKey: productColisKey(variables.reference) });
+      }
       if (variables.payload.productTags !== undefined) {
         // Les tags proposés par le filtre et le sélecteur changent avec l'édition.
         void queryClient.invalidateQueries({ queryKey: ['hub-pricing', 'tags'] });

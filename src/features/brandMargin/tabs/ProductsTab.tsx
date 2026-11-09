@@ -4,6 +4,8 @@ import { PackageSearch } from 'lucide-react-native';
 
 import { FilterPill } from '@/components/sheet/FilterPill';
 import { EmptyState } from '@/features/preparation/components/ListState';
+import { SearchBar } from '@/features/preparation/components/SearchBar';
+import { normalizeForSearch } from '@/features/preparation/orderHelpers';
 import { formatInteger } from '@/lib/format';
 import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 import type { HubBrandMarginProduct } from '@/types/hubBrandMargin';
@@ -11,12 +13,14 @@ import type { HubBrandMarginProduct } from '@/types/hubBrandMargin';
 import { ProductRow, ShowMoreButton, useShowMore } from '../components/rows';
 import { marginOf, type MarginView } from '../lib/model';
 
-type ProductSort = 'worst' | 'margin' | 'caHT';
+type ProductSort = 'worst' | 'margin' | 'caHT' | 'siteRate' | 'sav';
 
 const SORTS: readonly { key: ProductSort; label: string }[] = [
   { key: 'worst', label: 'Pires marges' },
   { key: 'margin', label: 'Meilleures marges' },
   { key: 'caHT', label: 'CA' },
+  { key: 'siteRate', label: 'Taux site' },
+  { key: 'sav', label: 'Impact SAV' },
 ];
 
 type ProductsTabProps = {
@@ -24,12 +28,17 @@ type ProductsTabProps = {
   view: MarginView;
 };
 
-/** Marge par produit de la marque : pires marges d'abord, option « à perte seulement ». */
+/**
+ * Marge par produit de la marque : pires marges d'abord, recherche par référence ou désignation,
+ * option « marge négative », taux de marge site, monitoring, expédition et SAV par cause.
+ */
 export function ProductsTab({ products, view }: ProductsTabProps) {
   const styles = useStyles();
   const t = useTheme();
   const [sort, setSort] = useState<ProductSort>('worst');
   const [lossOnly, setLossOnly] = useState(false);
+  const [savCauses, setSavCauses] = useState(false);
+  const [search, setSearch] = useState('');
 
   const lossCount = useMemo(
     () => products.filter((product) => marginOf(product, view).value < 0).length,
@@ -37,20 +46,35 @@ export function ProductsTab({ products, view }: ProductsTabProps) {
   );
 
   const rows = useMemo(() => {
-    const list = lossOnly
-      ? products.filter((product) => marginOf(product, view).value < 0)
-      : [...products];
-    const value = (product: HubBrandMarginProduct) =>
-      sort === 'caHT' ? product.caHT : marginOf(product, view).value;
-    return list.sort((a, b) =>
-      sort === 'margin' || sort === 'caHT' ? value(b) - value(a) : value(a) - value(b),
-    );
-  }, [products, view, sort, lossOnly]);
+    const needle = normalizeForSearch(search);
+    const list = products.filter((product) => {
+      if (lossOnly && marginOf(product, view).value >= 0) return false;
+      if (!needle) return true;
+      return (
+        normalizeForSearch(product.reference).includes(needle) ||
+        normalizeForSearch(product.designation ?? '').includes(needle)
+      );
+    });
+    const value = (product: HubBrandMarginProduct) => {
+      switch (sort) {
+        case 'caHT':
+          return product.caHT;
+        case 'siteRate':
+          return product.site?.marginRate ?? Number.NEGATIVE_INFINITY;
+        case 'sav':
+          return product.sav.totalHT;
+        default:
+          return marginOf(product, view).value;
+      }
+    };
+    return list.sort((a, b) => (sort === 'worst' ? value(a) - value(b) : value(b) - value(a)));
+  }, [products, view, sort, lossOnly, search]);
 
   const more = useShowMore(rows);
 
   return (
     <View style={styles.root}>
+      <SearchBar value={search} onChangeText={setSearch} placeholder="Référence ou désignation" />
       <View style={styles.chips}>
         {SORTS.map((option) => (
           <FilterPill
@@ -61,25 +85,39 @@ export function ProductsTab({ products, view }: ProductsTabProps) {
           />
         ))}
         <FilterPill
-          label={`À perte (${lossCount})`}
+          label={`Marge négative (${lossCount})`}
           state={lossOnly ? 'negative' : 'off'}
           onPress={() => setLossOnly((current) => !current)}
         />
+        <FilterPill
+          label="SAV par cause"
+          state={savCauses ? 'on' : 'off'}
+          onPress={() => setSavCauses((current) => !current)}
+        />
       </View>
-      <Text
-        style={styles.count}
-      >{`${formatInteger(rows.length)} produit${rows.length > 1 ? 's' : ''}`}</Text>
+      <Text style={styles.count}>
+        {`${formatInteger(rows.length)} produit${rows.length > 1 ? 's' : ''} sur ${formatInteger(products.length)}`}
+      </Text>
 
       {rows.length === 0 ? (
         <EmptyState
           icon={<PackageSearch size={24} color={t.textMuted} />}
           title="Aucun produit"
-          text={lossOnly ? 'Aucun produit vendu à perte.' : 'Aucune vente sur cette période.'}
+          text={
+            lossOnly || search
+              ? 'Aucun produit ne correspond à ces filtres.'
+              : 'Aucune vente sur cette période.'
+          }
         />
       ) : (
         <>
           {more.visible.map((product) => (
-            <ProductRow key={product.reference} product={product} view={view} />
+            <ProductRow
+              key={product.reference}
+              product={product}
+              view={view}
+              showSavCauses={savCauses}
+            />
           ))}
           {more.hasMore ? (
             <ShowMoreButton remaining={more.remaining} onPress={more.showMore} />

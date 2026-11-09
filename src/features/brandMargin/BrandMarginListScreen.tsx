@@ -16,20 +16,24 @@ import { formatEuroWhole, formatInteger } from '@/lib/format';
 import { fontSize, hitTarget, makeStyles, radius, spacing, useTheme } from '@/theme';
 
 import { BrandCard } from './components/BrandCard';
-import { Kpi, KpiGrid } from './components/primitives';
+import { BrandMarginFootnote } from './components/Footnote';
+import { BrandMarginKpis } from './components/MarginKpis';
 import {
   countActiveBrandMarginFilters,
   patchBrandMarginFilters,
   resetBrandMarginFilters,
   useBrandMarginFilters,
 } from './filtersStore';
+import { useOverviewComparison } from './hooks/useBrandMarginComparison';
 import { useBrandMarginOverview } from './hooks/useBrandMarginOverview';
-import { formatIsoDate, formatRate, marginColor, viewLabel } from './lib/display';
+import { useBrandMarginRange } from './hooks/useBrandMarginRange';
+import { brandAlerts } from './lib/diagnostic';
+import { formatIsoDate, viewLabel } from './lib/display';
 import {
-  PERIOD_PRESETS,
   filterByOrigin,
   marginOf,
   originLabel,
+  periodShortLabel,
   sortRows,
   type BrandMarginRow,
   type MarginView,
@@ -64,31 +68,59 @@ function BrandMarginList() {
   const [text, setText] = useState('');
   const term = useDebouncedTerm(text);
 
-  const overview = useBrandMarginOverview(filters.period, true);
+  const { range, error: periodProblem } = useBrandMarginRange(filters);
+  const enabled = periodProblem == null;
+  const overview = useBrandMarginOverview(range, filters.warehouses, enabled);
   const { refreshing, onRefresh } = usePullToRefresh(overview.refetch);
   const activeCount = countActiveBrandMarginFilters(filters);
-  const periodLabel = PERIOD_PRESETS.find((preset) => preset.id === filters.period)?.label;
+  const periodLabel = periodShortLabel(filters.period);
 
   const scope = useMemo(
     () => (overview.data ? filterByOrigin(overview.data, filters.origin) : null),
     [overview.data, filters.origin],
   );
 
+  const totals = scope?.totals ?? null;
+  const comparison = useOverviewComparison(
+    range,
+    totals,
+    filters.origin,
+    filters.warehouses,
+    enabled,
+  );
+
   const rows = useMemo(() => {
     if (!scope) return [];
     const needle = normalizeForSearch(term);
-    const matching = needle
+    let matching = needle
       ? scope.rows.filter((row) => normalizeForSearch(row.brand).includes(needle))
       : scope.rows;
+    if (filters.alertsOnly) {
+      matching = matching.filter(
+        (row) => brandAlerts(row.totals, scope.totals, filters.view).length > 0,
+      );
+    }
     return sortRows(matching, filters.sort, filters.desc, filters.view);
-  }, [scope, term, filters.sort, filters.desc, filters.view]);
+  }, [scope, term, filters.sort, filters.desc, filters.view, filters.alertsOnly]);
+
+  // Marques à marge négative (et montant perdu) et marques en alerte, sur tout le périmètre.
+  const summary = useMemo(() => {
+    if (!scope) return { negative: 0, flagged: 0, lostHT: 0 };
+    let negative = 0;
+    let flagged = 0;
+    let lostHT = 0;
+    for (const row of scope.rows) {
+      const margin = marginOf(row.totals, filters.view).value;
+      if (margin < 0) {
+        negative += 1;
+        lostHT += margin;
+      }
+      if (brandAlerts(row.totals, scope.totals, filters.view).length > 0) flagged += 1;
+    }
+    return { negative, flagged, lostHT };
+  }, [scope, filters.view]);
 
   const open = useCallback((brand: string) => openBrand(brand), []);
-
-  const totals = scope?.totals ?? null;
-  const margin = totals ? marginOf(totals, filters.view) : null;
-  // Le taux site ne dépend pas du filtre marketplace : il n'a de sens que sur toutes les marques.
-  const siteRate = filters.origin ? null : (overview.data?.site?.marginRate ?? null);
 
   return (
     <>
@@ -130,6 +162,7 @@ function BrandMarginList() {
               row={item}
               average={totals ?? item.totals}
               view={filters.view}
+              showSavCauses={filters.showSavCauses}
               onPress={open}
             />
           </View>
@@ -157,11 +190,15 @@ function BrandMarginList() {
             />
 
             <View style={styles.chips}>
-              <FilterPill
-                label={periodLabel ?? 'Période'}
-                state="off"
-                onPress={openBrandMarginFilters}
-              />
+              <FilterPill label={periodLabel} state="off" onPress={openBrandMarginFilters} />
+              {filters.warehouses.length > 0 ? (
+                <FilterPill
+                  label={`${filters.warehouses.length} filiale${filters.warehouses.length > 1 ? 's' : ''}`}
+                  state="on"
+                  onPress={() => patchBrandMarginFilters({ warehouses: [] })}
+                  trailing={<X size={12} color={t.accentText} />}
+                />
+              ) : null}
               {filters.origin ? (
                 <FilterPill
                   label={originLabel(filters.origin)}
@@ -175,35 +212,38 @@ function BrandMarginList() {
               ) : null}
             </View>
 
-            {totals && margin ? (
-              <KpiGrid>
-                <Kpi label="CA HT" value={formatEuroWhole(totals.caHT)} />
-                <Kpi
-                  label={`Marge ${filters.view === 'net' ? 'nette' : 'brute'}`}
-                  value={formatEuroWhole(margin.value)}
-                  hint={
-                    siteRate != null
-                      ? `${formatRate(margin.rate)} · site ${formatRate(siteRate)}`
-                      : formatRate(margin.rate)
-                  }
-                  color={marginColor(t, margin.value)}
-                />
-                <Kpi
-                  label="Impact SAV"
-                  value={formatEuroWhole(totals.sav.totalHT)}
-                  hint={`${formatInteger(totals.orders)} commandes`}
-                />
-                <Kpi
-                  label="Marques"
-                  value={formatInteger(scope?.rows.length)}
-                  hint={
-                    overview.data
-                      ? `${formatIsoDate(overview.data.period.from)} → ${formatIsoDate(overview.data.period.to)}`
-                      : undefined
-                  }
-                />
-              </KpiGrid>
+            {periodProblem ? <Text style={styles.problem}>{periodProblem}</Text> : null}
+
+            {totals ? (
+              <BrandMarginKpis totals={totals} view={filters.view} comparison={comparison} />
             ) : null}
+
+            {overview.data && scope ? (
+              <Text style={styles.coverage}>
+                {`${formatInteger(overview.data.productCount)} produits vendus · du ${formatIsoDate(overview.data.period.from)} au ${formatIsoDate(overview.data.period.to)}${filters.origin ? ` · ${originLabel(filters.origin)}` : ''} · `}
+                <Text style={summary.negative > 0 ? styles.bad : styles.strong}>
+                  {`${formatInteger(summary.negative)} à marge négative`}
+                </Text>
+                {summary.negative > 0 ? ` (${formatEuroWhole(summary.lostHT)})` : ''}
+                {' · '}
+                <Text style={summary.flagged > 0 ? styles.warn : styles.strong}>
+                  {`${formatInteger(summary.flagged)} en alerte`}
+                </Text>
+              </Text>
+            ) : null}
+
+            <View style={styles.chips}>
+              <FilterPill
+                label="Seulement les marques en alerte"
+                state={filters.alertsOnly ? 'on' : 'off'}
+                onPress={() => patchBrandMarginFilters({ alertsOnly: !filters.alertsOnly })}
+              />
+              <FilterPill
+                label="SAV par cause"
+                state={filters.showSavCauses ? 'on' : 'off'}
+                onPress={() => patchBrandMarginFilters({ showSavCauses: !filters.showSavCauses })}
+              />
+            </View>
 
             <View style={styles.summary}>
               <Text style={styles.total}>
@@ -224,15 +264,19 @@ function BrandMarginList() {
                 onRetry={() => void onRefresh()}
               />
             ) : null}
-            {overview.data && overview.data.coverage.incompleteOrders > 0 ? (
-              <Text style={styles.coverage}>
-                {`${formatInteger(overview.data.coverage.incompleteOrders)} commandes sans prix d'achat, poids ou grille de transport : marge estimée.`}
-              </Text>
-            ) : null}
           </View>
         }
+        ListFooterComponent={
+          overview.data ? (
+            <View style={styles.footer}>
+              <BrandMarginFootnote coverage={overview.data.coverage} />
+            </View>
+          ) : undefined
+        }
         ListEmptyComponent={
-          overview.loading ? (
+          periodProblem ? (
+            <></>
+          ) : overview.loading ? (
             <View style={styles.cardWrap}>
               <ListSkeleton rows={4} height={140} />
             </View>
@@ -249,7 +293,7 @@ function BrandMarginList() {
               icon={<Tags size={24} color={t.textMuted} />}
               title="Aucune marque"
               text={
-                term || filters.origin
+                term || filters.origin || filters.alertsOnly || filters.warehouses.length > 0
                   ? 'Aucune marque ne correspond à ces filtres.'
                   : "Aucune vente n'a été trouvée sur cette période."
               }
@@ -274,6 +318,11 @@ const useStyles = makeStyles((t) => ({
   summary: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   total: { flex: 1, fontSize: fontSize.base, fontWeight: '700', color: t.text },
   coverage: { fontSize: fontSize.xs, lineHeight: 17, color: t.textMuted },
+  strong: { fontWeight: '700', color: t.text },
+  bad: { fontWeight: '700', color: t.danger },
+  warn: { fontWeight: '700', color: t.warning },
+  problem: { fontSize: fontSize.sm, color: t.danger },
+  footer: { paddingHorizontal: spacing.xl, paddingTop: spacing.md },
   headerButton: {
     width: hitTarget - 4,
     height: hitTarget - 4,

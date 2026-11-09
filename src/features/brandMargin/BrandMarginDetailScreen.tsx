@@ -9,21 +9,27 @@ import { AccessDenied } from '@/features/preparation/components/AccessDenied';
 import { EmptyState, ErrorBanner, ListSkeleton } from '@/features/preparation/components/ListState';
 import { SegmentedControl } from '@/features/preparation/components/SegmentedControl';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
-import { formatInteger } from '@/lib/format';
+import { FilterPill } from '@/components/sheet/FilterPill';
 import { fontSize, hitTarget, makeStyles, spacing, useTheme } from '@/theme';
 
+import { BrandMarginFootnote } from './components/Footnote';
+import { BrandMarginKpis } from './components/MarginKpis';
 import { patchBrandMarginFilters, useBrandMarginFilters } from './filtersStore';
+import { useBrandComparison } from './hooks/useBrandMarginComparison';
 import { useBrandMarginDetail } from './hooks/useBrandMarginDetail';
 import { useBrandMarginOverview } from './hooks/useBrandMarginOverview';
+import { useBrandMarginRange } from './hooks/useBrandMarginRange';
+import { useBrandStockQg } from './hooks/useBrandStockQg';
 import { formatIsoDate, viewLabel } from './lib/display';
-import { PERIOD_PRESETS, filterByOrigin, originLabel, type MarginView } from './lib/model';
+import { filterByOrigin, originLabel, periodShortLabel, type MarginView } from './lib/model';
 import { openBrandMarginFilters } from './navigation';
 import { OrdersTab } from './tabs/OrdersTab';
 import { ProductsTab } from './tabs/ProductsTab';
 import { SavTab } from './tabs/SavTab';
+import { StockQgTab } from './tabs/StockQgTab';
 import { SynthesisTab } from './tabs/SynthesisTab';
 
-type TabKey = 'synthesis' | 'products' | 'orders' | 'sav';
+type TabKey = 'synthesis' | 'products' | 'orders' | 'sav' | 'stock';
 
 const VIEW_SEGMENTS = [
   { key: 'net', label: viewLabel('net') },
@@ -51,19 +57,31 @@ function BrandMarginDetail() {
   const filters = useBrandMarginFilters();
   const [tab, setTab] = useState<TabKey>('synthesis');
 
-  const detail = useBrandMarginDetail(brand, filters.period, filters.origin, true);
+  const { range, error: periodProblem } = useBrandMarginRange(filters);
+  const enabled = periodProblem == null;
+  const detail = useBrandMarginDetail(brand, range, filters.origin, filters.warehouses, enabled);
   // Déjà en cache quand on vient de la liste ; sert à comparer la marque à la moyenne.
-  const overview = useBrandMarginOverview(filters.period, true);
+  const overview = useBrandMarginOverview(range, filters.warehouses, enabled);
+  // Stock QG : instantané (ni période, ni canal), chargé aussi pour le compteur de l'onglet.
+  const stock = useBrandStockQg(brand, true);
+  const comparison = useBrandComparison(
+    brand,
+    range,
+    detail.data?.totals ?? null,
+    filters.origin,
+    filters.warehouses,
+    enabled,
+  );
   const average = useMemo(
     () => (overview.data ? filterByOrigin(overview.data, filters.origin).totals : null),
     [overview.data, filters.origin],
   );
 
   const { refreshing, onRefresh } = usePullToRefresh(async () => {
-    await Promise.all([detail.refetch(), overview.refetch()]);
+    await Promise.all([detail.refetch(), overview.refetch(), stock.refetch()]);
   });
 
-  const periodLabel = PERIOD_PRESETS.find((preset) => preset.id === filters.period)?.label;
+  const periodLabel = periodShortLabel(filters.period);
   const data = detail.data;
   const tabs = useMemo(
     () =>
@@ -72,8 +90,9 @@ function BrandMarginDetail() {
         { key: 'products', label: 'Produits', count: data?.products.length },
         { key: 'orders', label: 'Commandes', count: data?.ordersTotal },
         { key: 'sav', label: 'SAV', count: data?.savOrdersTotal },
+        { key: 'stock', label: 'Stock QG', count: stock.data?.productsWithStock },
       ] as const,
-    [data],
+    [data, stock.data],
   );
 
   return (
@@ -119,12 +138,31 @@ function BrandMarginDetail() {
               periodLabel,
               data ? `${formatIsoDate(data.period.from)} → ${formatIsoDate(data.period.to)}` : null,
               filters.origin ? originLabel(filters.origin) : 'Toutes marketplaces',
+              filters.warehouses.length > 0
+                ? `${filters.warehouses.length} filiale${filters.warehouses.length > 1 ? 's' : ''}`
+                : null,
             ]
               .filter(Boolean)
               .join('  ·  ')}
           </Text>
           {detail.isRefetching ? <ActivityIndicator size="small" color={t.accentText} /> : null}
         </View>
+
+        {filters.origin ? (
+          <View style={styles.chips}>
+            <FilterPill
+              label={`Retirer le filtre ${originLabel(filters.origin)}`}
+              state="on"
+              onPress={() => patchBrandMarginFilters({ origin: null })}
+            />
+          </View>
+        ) : null}
+
+        {periodProblem ? <Text style={styles.problem}>{periodProblem}</Text> : null}
+
+        {data && data.totals.orders > 0 ? (
+          <BrandMarginKpis totals={data.totals} view={filters.view} comparison={comparison} />
+        ) : null}
 
         <SegmentedControl segments={tabs} value={tab} onChange={setTab} />
 
@@ -136,8 +174,15 @@ function BrandMarginDetail() {
           />
         ) : null}
 
-        {!data ? (
-          detail.loading ? (
+        {tab === 'stock' ? (
+          <StockQgTab
+            data={stock.data}
+            loading={stock.loading}
+            error={stock.error}
+            onRetry={() => void stock.refetch()}
+          />
+        ) : !data ? (
+          periodProblem ? null : detail.loading ? (
             <ListSkeleton rows={4} height={120} />
           ) : (
             <ErrorBanner
@@ -155,18 +200,19 @@ function BrandMarginDetail() {
         ) : (
           <>
             {tab === 'synthesis' ? (
-              <SynthesisTab detail={data} average={average} view={filters.view} />
+              <SynthesisTab
+                detail={data}
+                average={average}
+                view={filters.view}
+                onSelectOrigin={(origin) => patchBrandMarginFilters({ origin })}
+              />
             ) : null}
             {tab === 'products' ? (
               <ProductsTab products={data.products} view={filters.view} />
             ) : null}
             {tab === 'orders' ? <OrdersTab detail={data} view={filters.view} /> : null}
             {tab === 'sav' ? <SavTab detail={data} view={filters.view} /> : null}
-            {data.coverage.incompleteOrders > 0 ? (
-              <Text style={styles.coverage}>
-                {`${formatInteger(data.coverage.incompleteOrders)} commandes de la période sans prix d'achat, poids ou grille de transport : marge estimée.`}
-              </Text>
-            ) : null}
+            <BrandMarginFootnote coverage={data.coverage} />
           </>
         )}
       </ScrollView>
@@ -183,6 +229,8 @@ const useStyles = makeStyles((t) => ({
     paddingBottom: spacing['4xl'],
   },
   summary: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  problem: { fontSize: fontSize.sm, color: t.danger },
   period: { flex: 1, fontSize: fontSize.xs, color: t.textMuted },
   coverage: { fontSize: fontSize.xs, lineHeight: 17, color: t.textMuted },
   headerButton: {

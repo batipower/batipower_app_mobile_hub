@@ -47,6 +47,8 @@ export interface HubProductHeader {
   categoryType: string | null;
   thumbnailBase64: string | null;
   weightInGrams: number | null;
+  /** Pièces par colis ; `null` = 1 unité = 1 colis. Absent d'une API plus ancienne. */
+  nbPieceByColis?: number | null;
   salesQuantities: HubSalesQuantities | null;
   stock: { flevy: number | null; dombasle: number | null; qg: number | null };
   flags: HubProductFlags;
