@@ -9,7 +9,7 @@ import { MonthlyChart } from '../components/MonthlyChart';
 import { AlertBadges, CostBars, Kpi, KpiGrid, Section } from '../components/primitives';
 import { brandAlerts, costRatios, marginSteps } from '../lib/diagnostic';
 import { formatMonthLabel, formatRate, formatSignedEuro, marginColor } from '../lib/display';
-import { marginOf, originLabel, type MarginView } from '../lib/model';
+import { currentRateOf, marginOf, originLabel, type MarginView } from '../lib/model';
 
 type SynthesisTabProps = {
   detail: HubBrandMarginDetail;
@@ -30,6 +30,7 @@ export function SynthesisTab({ detail, average, view }: SynthesisTabProps) {
   const selectedMonth =
     detail.monthly.find((month) => month.month === picked) ?? detail.monthly.at(-1) ?? null;
   const selectedMargin = selectedMonth ? marginOf(selectedMonth, view) : null;
+  const currentRate = currentRateOf(totals, view);
 
   return (
     <View style={styles.root}>
@@ -38,7 +39,11 @@ export function SynthesisTab({ detail, average, view }: SynthesisTabProps) {
         <Kpi
           label={`Marge ${view === 'net' ? 'nette' : 'brute'}`}
           value={formatEuroWhole(margin.value)}
-          hint={formatRate(margin.rate)}
+          hint={
+            currentRate?.rate != null
+              ? `${formatRate(margin.rate)} · actuel ${formatRate(currentRate.rate)}`
+              : formatRate(margin.rate)
+          }
           color={marginColor(t, margin.value)}
         />
         <Kpi
@@ -120,6 +125,7 @@ export function SynthesisTab({ detail, average, view }: SynthesisTabProps) {
           <View style={styles.steps}>
             {detail.byOrigin.map((entry) => {
               const entryMargin = marginOf(entry, view);
+              const entryCurrent = currentRateOf(entry, view);
               return (
                 <View key={entry.origin} style={styles.step}>
                   <Text style={styles.stepLabel}>{originLabel(entry.origin)}</Text>
@@ -131,7 +137,7 @@ export function SynthesisTab({ detail, average, view }: SynthesisTabProps) {
                       { color: marginColor(t, entryMargin.value) },
                     ]}
                   >
-                    {`${formatEuroWhole(entryMargin.value)} · ${formatRate(entryMargin.rate)}`}
+                    {`${formatEuroWhole(entryMargin.value)} · ${formatRate(entryMargin.rate)}${entryCurrent?.rate != null ? ` · actuel ${formatRate(entryCurrent.rate)}` : ''}`}
                   </Text>
                 </View>
               );

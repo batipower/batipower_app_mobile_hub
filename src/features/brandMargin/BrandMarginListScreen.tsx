@@ -27,6 +27,7 @@ import { useBrandMarginOverview } from './hooks/useBrandMarginOverview';
 import { formatIsoDate, formatRate, marginColor, viewLabel } from './lib/display';
 import {
   PERIOD_PRESETS,
+  currentRateOf,
   filterByOrigin,
   marginOf,
   originLabel,
@@ -87,6 +88,7 @@ function BrandMarginList() {
 
   const totals = scope?.totals ?? null;
   const margin = totals ? marginOf(totals, filters.view) : null;
+  const currentRate = totals ? currentRateOf(totals, filters.view) : null;
 
   return (
     <>
@@ -179,7 +181,11 @@ function BrandMarginList() {
                 <Kpi
                   label={`Marge ${filters.view === 'net' ? 'nette' : 'brute'}`}
                   value={formatEuroWhole(margin.value)}
-                  hint={formatRate(margin.rate)}
+                  hint={
+                    currentRate?.rate != null
+                      ? `${formatRate(margin.rate)} · actuel ${formatRate(currentRate.rate)}`
+                      : formatRate(margin.rate)
+                  }
                   color={marginColor(t, margin.value)}
                 />
                 <Kpi

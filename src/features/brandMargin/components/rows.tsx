@@ -8,7 +8,7 @@ import { fontSize, makeStyles, monoFontFamily, radius, shadow, spacing, useTheme
 import type { HubBrandMarginOrder, HubBrandMarginProduct } from '@/types/hubBrandMargin';
 
 import { formatRate, marginColor } from '../lib/display';
-import { marginOf, originLabel, type MarginView } from '../lib/model';
+import { currentRateGap, currentRateOf, marginOf, originLabel, type MarginView } from '../lib/model';
 
 /** Nombre d'éléments ajoutés à chaque appui sur « Voir plus ». */
 export const SHOW_MORE_STEP = 25;
@@ -52,12 +52,12 @@ function RowShell({ children, onPress, label }: RowShellProps) {
   );
 }
 
-type FigureProps = { label: string; value: string; color?: string };
+type FigureProps = { label: string; value: string; color?: string; highlight?: boolean };
 
-function Figure({ label, value, color }: FigureProps) {
+function Figure({ label, value, color, highlight }: FigureProps) {
   const styles = useStyles();
   return (
-    <View style={styles.figure}>
+    <View style={[styles.figure, highlight ? styles.highlight : null]}>
       <Text style={styles.caption}>{label}</Text>
       <Text style={[styles.value, color ? { color } : null]} numberOfLines={1}>
         {value}
@@ -74,9 +74,11 @@ function ProductRowBase({ product, view }: ProductRowProps) {
   const t = useTheme();
   const margin = marginOf(product, view);
   const color = marginColor(t, margin.value);
+  const current = currentRateOf(product, view);
+  const currentGap = currentRateGap(product, view);
   return (
     <RowShell
-      label={`${product.designation ?? product.reference}, marge ${formatEuroWhole(margin.value)}`}
+      label={`${product.designation ?? product.reference}, marge ${formatEuroWhole(margin.value)}, taux ${formatRate(margin.rate)}, taux actuel ${formatRate(current?.rate)}`}
     >
       <Text style={styles.title} numberOfLines={2}>
         {product.designation ?? product.reference}
@@ -88,7 +90,13 @@ function ProductRowBase({ product, view }: ProductRowProps) {
       <View style={styles.figures}>
         <Figure label="CA HT" value={formatEuroWhole(product.caHT)} />
         <Figure label="Marge" value={formatEuroWhole(margin.value)} color={color} />
-        <Figure label="Taux" value={formatRate(margin.rate)} color={color} />
+        <Figure label="Taux" value={formatRate(margin.rate)} color={color} highlight />
+        <Figure
+          label="Actuel"
+          value={formatRate(current?.rate)}
+          color={currentGap != null && currentGap < -0.05 ? t.danger : undefined}
+          highlight
+        />
       </View>
     </RowShell>
   );
@@ -180,6 +188,12 @@ const useStyles = makeStyles((t) => ({
   reference: { fontSize: fontSize.xs, color: t.textMuted, fontFamily: monoFontFamily },
   figures: { flexDirection: 'row', gap: spacing.md },
   figure: { flex: 1, gap: 1 },
+  // Colonnes de taux de marge (réalisé et actuel) mises en avant.
+  highlight: {
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.sm,
+    backgroundColor: `${t.accent}26`,
+  },
   caption: { fontSize: 11, fontWeight: '600', color: t.textMuted, textTransform: 'uppercase' },
   value: { fontSize: fontSize.base, fontWeight: '700', color: t.text },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },

@@ -100,6 +100,27 @@ export function marginOf(
     : { value: figures.grossMarginHT, rate: figures.grossMarginRate };
 }
 
+/** Taux de marge actuel (prix de vente et d'achat en base) de la vue choisie, avec la couverture en pièces. */
+export function currentRateOf(
+  figures: HubBrandMarginFigures,
+  view: MarginView,
+): { rate: number | null; coveredUnits: number; units: number } | null {
+  const current = figures.current;
+  if (!current) return null;
+  return {
+    rate: view === 'net' ? current.netMarginRate : current.grossMarginRate,
+    coveredUnits: current.coveredUnits,
+    units: figures.units,
+  };
+}
+
+/** Écart en points entre le taux actuel et le taux réalisé (`null` si l'un des deux manque). */
+export function currentRateGap(figures: HubBrandMarginFigures, view: MarginView): number | null {
+  const current = currentRateOf(figures, view);
+  const realised = marginOf(figures, view).rate;
+  return current?.rate != null && realised != null ? current.rate - realised : null;
+}
+
 export interface BrandMarginRow {
   brand: string;
   totals: HubBrandMarginFigures;
@@ -134,12 +155,13 @@ export function emptyFigures(): HubBrandMarginFigures {
     sav: { creditSlipsHT: 0, restockRecoveredHT: 0, resendCostHT: 0, totalHT: 0, byCause: {} },
     netMarginHT: 0,
     netMarginRate: null,
+    current: null,
     units: 0,
     orders: 0,
   };
 }
 
-export type SortKey = 'caHT' | 'margin' | 'rate' | 'savImpact' | 'brand';
+export type SortKey = 'caHT' | 'margin' | 'rate' | 'currentRate' | 'savImpact' | 'brand';
 
 export function sortRows(
   rows: BrandMarginRow[],
@@ -155,6 +177,8 @@ export function sortRows(
         return marginOf(row.totals, view).value;
       case 'rate':
         return marginOf(row.totals, view).rate ?? Number.NEGATIVE_INFINITY;
+      case 'currentRate':
+        return currentRateOf(row.totals, view)?.rate ?? Number.NEGATIVE_INFINITY;
       case 'savImpact':
         return row.totals.sav.totalHT;
       default:

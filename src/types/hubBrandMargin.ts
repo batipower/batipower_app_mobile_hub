@@ -14,6 +14,21 @@ export type HubBrandMarginSavCause =
   | 'UNQUALIFIED'
   | 'RESEND';
 
+/**
+ * Marge « actuelle » : les unités vendues sur la période revalorisées au prix de vente actuel du canal
+ * et au prix d'achat actuel (commission au même taux, transport réel). Seules les lignes dont les prix
+ * actuels sont connus sont comptées (`coveredUnits` sur `units`).
+ */
+export interface HubBrandMarginCurrentFigures {
+  caHT: number;
+  /** Marge sans SAV (annulations déduites). */
+  grossMarginHT: number;
+  grossMarginRate: number | null;
+  /** Marge actuelle moins l'impact SAV réel de la période, sur le CA actuel. */
+  netMarginRate: number | null;
+  coveredUnits: number;
+}
+
 /** Chiffres de marge d'un périmètre (marque, marketplace, total). */
 export interface HubBrandMarginFigures {
   caHT: number;
@@ -38,6 +53,8 @@ export interface HubBrandMarginFigures {
   /** Marge avec SAV. */
   netMarginHT: number;
   netMarginRate: number | null;
+  /** Taux de marge actuel ; `null` si aucune ligne valorisable, absent d'une API plus ancienne. */
+  current?: HubBrandMarginCurrentFigures | null;
   units: number;
   orders: number;
 }
