@@ -70,6 +70,9 @@ export function ProductHeader({ header }: { header: HubProductHeader }) {
       {header.codeDombasle ? (
         <InfoRow label="Code Dombasle" value={header.codeDombasle} mono copyLabel="Code Dombasle" />
       ) : null}
+      {header.codeLille ? (
+        <InfoRow label="Code Lille" value={header.codeLille} mono copyLabel="Code Lille" />
+      ) : null}
       {header.categoryType ? (
         <InfoRow label="Catégorie" value={humanizeCode(header.categoryType)} />
       ) : null}

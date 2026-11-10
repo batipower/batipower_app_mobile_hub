@@ -43,6 +43,8 @@ export interface HubProductHeader {
   brand: string | null;
   codeFlevy: string | null;
   codeDombasle: string | null;
+  /** Code interne chez Lille (Nicodème) ; absent avec un ancien back. */
+  codeLille?: string | null;
   ean: string | null;
   categoryType: string | null;
   thumbnailBase64: string | null;
