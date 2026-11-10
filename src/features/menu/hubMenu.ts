@@ -6,6 +6,7 @@ import {
   ScanSearch,
   Search,
   ShieldAlert,
+  Truck,
   Undo2,
   UserRound,
   type LucideIcon,
@@ -14,6 +15,7 @@ import {
 import {
   canAccessHubBrandMargin,
   canAccessHubCancellationControl,
+  canAccessHubCollecte,
   canAccessHubCustomerQuotes,
   canAccessHubPalletFlow,
   canAccessHubPricing,
@@ -71,6 +73,14 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     icon: ShieldAlert,
     href: '/hub/controle-annulations',
     visible: canAccessHubCancellationControl,
+  },
+  {
+    id: 'collecte-entrepot',
+    section: 'Opérations',
+    label: 'Collecte entrepôt',
+    icon: Truck,
+    href: '/hub/collecte-entrepot',
+    visible: canAccessHubCollecte,
   },
   {
     id: 'candidats-palette',
