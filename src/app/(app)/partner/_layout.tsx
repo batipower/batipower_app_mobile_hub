@@ -13,7 +13,8 @@ import { useTheme } from '@/theme';
  * - `(tabs)` : onglets avec la barre flottante Batipower (Produits, Opportunités, Inter-agences,
  *   BL à corriger, et le bouton éclair central qui ouvre le menu).
  * - `menu` : feuille native à mi-écran ouverte par le bouton central.
- * - `profil` : page secondaire lancée depuis le menu.
+ * - `flux`, `profil` : pages secondaires lancées depuis le menu (le dashboard flux est réservé
+ *   au SUPERADMIN et au RAF).
  */
 export default function PartnerLayout() {
   const t = useTheme();
@@ -39,6 +40,7 @@ export default function PartnerLayout() {
         name="menu"
         options={sheetOptions(t, SHEET_DETENTS.half, { sheetInitialDetentIndex: 0 })}
       />
+      <Stack.Screen name="flux" options={{ title: 'Dashboard flux' }} />
       <Stack.Screen name="profil" options={{ title: 'Profil' }} />
     </Stack>
   );

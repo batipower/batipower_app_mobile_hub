@@ -99,6 +99,23 @@ export function canRecheckOrIgnoreCancellation(role: AppUserRole): boolean {
 }
 
 /**
+ * Collecte entrepôt du HUB (`/hub/collecte-entrepot` côté web) : supervision des colis expédiés
+ * non collectés, SUPERADMIN et MANAGER.
+ */
+export function canAccessHubCollecte(role: AppUserRole): boolean {
+  return isHubOpsRole(role);
+}
+
+/**
+ * Dashboard flux (vue simplifiée) du module PARTNER : SUPERADMIN et RAF
+ * (`RESPONSABLE_ACHAT_REFERENT`), comme `canViewSimpleFlowDashboard` du web et
+ * `FLOW_SIMPLE_VIEW_ROLES` du back. La DIRECTION n'a que la vue complète, absente du mobile.
+ */
+export function canViewPartnerFlowDashboard(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN' || role === 'RESPONSABLE_ACHAT_REFERENT';
+}
+
+/**
  * Valider l'avoir (facture antérieure), valider la déclaration « Avoir fait » ou la remettre à
  * revoir : SUPERADMIN, comme les `@Roles` du back.
  */
