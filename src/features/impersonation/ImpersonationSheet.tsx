@@ -18,6 +18,7 @@ import { ApiError } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
 import { canImpersonate } from '@/auth/permissions';
 import { ModuleBadge } from '@/components/modules/ModuleBadge';
+import { SheetHeader } from '@/components/sheet/SheetScreen';
 import { useSheetKeyboard } from '@/components/sheet/useSheetKeyboard';
 import { Badge, Chip } from '@/components/ui';
 import { AccessDenied } from '@/features/preparation/components/AccessDenied';
@@ -32,7 +33,6 @@ import {
   makeStyles,
   radius,
   spacing,
-  typography,
   useTheme,
   withAlpha,
 } from '@/theme';
@@ -127,9 +127,7 @@ function ImpersonationList() {
 
   return (
     <Animated.View style={[styles.sheet, rootStyle]}>
-      <Text style={styles.title} accessibilityRole="header">
-        Se connecter en tant que
-      </Text>
+      <SheetHeader title="Se connecter en tant que" closeLabel="Fermer" />
 
       <View style={styles.notice}>
         <ShieldAlert size={16} color={t.warning} />
@@ -268,8 +266,7 @@ function UserRow({ item, current, pending, disabled, onPress }: UserRowProps) {
 }
 
 const useStyles = makeStyles((t) => ({
-  sheet: { flex: 1, backgroundColor: t.bgElevated, paddingTop: spacing['2xl'], gap: spacing.md },
-  title: { ...typography.label, color: t.textSubtle, paddingHorizontal: spacing.xl },
+  sheet: { flex: 1, backgroundColor: t.bgElevated, gap: spacing.md },
   notice: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -7,7 +7,8 @@ import { Check } from 'lucide-react-native';
 import { useAuth } from '@/auth/AuthProvider';
 import { accessibleModules, isBatipowerModule, isMobileAvailable, MODULES } from '@/modules/registry';
 import { MODULE_ROW_HEIGHT, switchToModule } from '@/modules/switchModule';
-import { fontSize, makeStyles, radius, spacing, typography, useTheme, withAlpha } from '@/theme';
+import { SheetHeader } from '@/components/sheet/SheetScreen';
+import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 import type { BatipowerModule } from '@/types/user';
 
 /**
@@ -27,9 +28,7 @@ export default function SwitchModuleSheet() {
 
   return (
     <View style={styles.sheet}>
-      <Text style={styles.title} accessibilityRole="header">
-        Changer de module
-      </Text>
+      <SheetHeader title="Changer de module" closeLabel="Fermer" />
       <ScrollView
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -88,14 +87,13 @@ export default function SwitchModuleSheet() {
 }
 
 const useStyles = makeStyles((t) => ({
-  sheet: { flex: 1, backgroundColor: t.bgElevated, paddingTop: spacing['2xl'] },
-  title: {
-    ...typography.label,
-    color: t.textSubtle,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
+  sheet: { flex: 1, backgroundColor: t.bgElevated },
+  list: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing['2xl'],
+    gap: spacing.xs,
   },
-  list: { paddingHorizontal: spacing.md, paddingBottom: spacing['2xl'], gap: spacing.xs },
   row: {
     minHeight: MODULE_ROW_HEIGHT - spacing.xs,
     flexDirection: 'row',

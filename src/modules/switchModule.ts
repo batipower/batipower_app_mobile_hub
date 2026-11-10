@@ -8,7 +8,7 @@ import { getLandingHref, getModuleHref, type ModuleUser } from './registry';
 export const MODULE_ROW_HEIGHT = 68;
 
 /** En-tête de la feuille (poignée, titre) et zone de sécurité du bas, en points. */
-const SHEET_CHROME_HEIGHT = 130;
+const SHEET_CHROME_HEIGHT = 150;
 
 /**
  * Cran de la feuille du sélecteur, en fraction de la hauteur d'écran : juste assez
