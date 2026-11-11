@@ -10,6 +10,7 @@ export const PA_BRANDS_KEY = [...PA_ROOT, 'brands'] as const;
 export const PA_TAGS_KEY = [...PA_ROOT, 'tags'] as const;
 export const PA_AFFAIRES_KEY = [...PA_ROOT, 'affaires'] as const;
 export const PA_DISTRIBUTORS_KEY = [...PA_ROOT, 'distributors'] as const;
+export const PA_CATEGORY_RULES_KEY = [...PA_ROOT, 'category-rules'] as const;
 export const PA_RESERVE_KEY = [...PA_ROOT, 'reserve'] as const;
 
 export const paStagingKey = (uuid: string) => [...PA_ROOT, 'staging', uuid] as const;
