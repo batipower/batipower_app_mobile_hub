@@ -6,7 +6,12 @@ import type {
   NegotiationCategoryType,
   PreviewItem,
 } from '../lib/negotiation-api';
-import { hasNoWeight, suggestCategoryFromCode, type NegotiationDialogItem } from '../lib/negotiation-items';
+import {
+  hasNoWeight,
+  suggestCategoryForItem,
+  type NegotiationCategoryRulesData,
+  type NegotiationDialogItem,
+} from '../lib/negotiation-items';
 
 const PREVIEW_CHUNK = 200;
 
@@ -25,6 +30,7 @@ export async function loadPreviewsAndOverrides(
   subset: NegotiationDialogItem[],
   cache: Map<string, EligibleReferentsResult>,
   isStale: () => boolean,
+  categoryRules?: NegotiationCategoryRulesData | null,
 ): Promise<PreviewBundle | null> {
   const withWarehouse = subset.filter((it) => !!it.warehouse && !hasNoWeight(it));
   const previews = new Map<string, PreviewItem>();
@@ -55,7 +61,7 @@ export async function loadPreviewsAndOverrides(
     const p = previews.get(it.stagingUuid);
     // Service détecté automatiquement (avec ou sans référent inscrit) : jamais écrasé par la suggestion.
     if (!p || p.categoryTypes.length > 0 || p.referents.length > 0) continue;
-    const suggested = suggestCategoryFromCode(it.codeEbat);
+    const suggested = suggestCategoryForItem(it, categoryRules);
     if (!suggested) continue;
     const key = `${p.warehouse}|${suggested.category}`;
     let cached = cache.get(key);

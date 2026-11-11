@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 
 import { hubProductAnalyzerApi } from '@/api/hubProductAnalyzer';
 import type { StagingItem } from '@/types/hubProductAnalyzer';
 
+import { negotiationCategoryRulesQuery, useNegotiationCategoryRules } from '../hooks/useNegotiationCategoryRules';
 import { clearSelection, fetchAllFilteredItems, refreshAnalyzerData } from '../bulkActions';
 import { getPaFilters } from '../filtersStore';
 import { apiErrorMessage } from '../lib/errors';
@@ -18,7 +20,7 @@ import {
   DEFAULT_TARGET_MARGIN_PCT,
   clampMarginPct,
   hasNoWeight,
-  suggestCategoryFromCode,
+  suggestCategoryForItem,
   suggestPriceFor,
   toNegotiationDialogItem,
   type NegotiationDialogItem,
@@ -95,6 +97,13 @@ export function useNegotiationDraft(source: PaNegoSource, uuid: string | undefin
   const [result, setResult] = useState<BulkAssignResult | null>(null);
   const gen = useRef(0);
   const referentCache = useRef(new Map<string, EligibleReferentsResult>());
+  const queryClient = useQueryClient();
+  // Règles de service par filiale (tolérant : sans réponse, jeu par défaut = 1re lettre).
+  const { data: categoryRules } = useNegotiationCategoryRules();
+  const categoryRulesRef = useRef(categoryRules);
+  useEffect(() => {
+    if (categoryRules) categoryRulesRef.current = categoryRules;
+  }, [categoryRules]);
 
   // Clé de rechargement d'un produit unique : le poids, l'entrepôt ou le code changent après une édition.
   const singleKey = stagingFromQuery
@@ -127,7 +136,16 @@ export function useNegotiationDraft(source: PaNegoSource, uuid: string | undefin
         }
         const eligible = raw.filter((it) => it.status !== 'LAUNCHED').map((it) => toNegotiationDialogItem(it));
         setItems(eligible);
-        const data = await loadPreviewsAndOverrides(eligible, referentCache.current, isStale);
+        // Règles des filiales (cache partagé) connues avant le calcul des suggestions de service.
+        const rules = await queryClient
+          .fetchQuery(negotiationCategoryRulesQuery)
+          .then((d) => {
+            categoryRulesRef.current = d;
+            return d;
+          })
+          .catch(() => categoryRulesRef.current);
+        if (isStale()) return;
+        const data = await loadPreviewsAndOverrides(eligible, referentCache.current, isStale, rules);
         if (!data || isStale()) return;
         setPreviewByUuid(data.previews);
         setOverrideByUuid(data.overrides);
@@ -162,7 +180,7 @@ export function useNegotiationDraft(source: PaNegoSource, uuid: string | undefin
       const override = overrideByUuid[item.stagingUuid];
       const assignedService = serviceByUuid[item.stagingUuid];
       const referents = override?.referents ?? preview?.referents ?? [];
-      const suggestedCat = suggestCategoryFromCode(item.codeEbat);
+      const suggestedCat = suggestCategoryForItem(item, categoryRules);
       const hasAutoService = !!preview && preview.categoryTypes.length > 0;
       const needsOverride = !preview || !hasAutoService;
       const categoryOverride: NegotiationCategoryType | '' =
@@ -188,7 +206,7 @@ export function useNegotiationDraft(source: PaNegoSource, uuid: string | undefin
         exclusion,
       };
     });
-  }, [items, targetMarginPct, includeFallbackPrices, previewByUuid, overrideByUuid, serviceByUuid, manualExcluded, manualPrice]);
+  }, [items, targetMarginPct, includeFallbackPrices, previewByUuid, overrideByUuid, serviceByUuid, manualExcluded, manualPrice, categoryRules]);
 
   const ready = useMemo(() => prepared.filter((p) => p.exclusion == null && p.price != null && p.price > 0), [prepared]);
   const pendingReadyCount = useMemo(() => ready.filter((p) => p.referentCount === 0).length, [ready]);
@@ -220,11 +238,11 @@ export function useNegotiationDraft(source: PaNegoSource, uuid: string | undefin
     });
     const map = new Map<string, ServiceGroup>();
     for (const it of needing) {
-      const suggested = suggestCategoryFromCode(it.codeEbat);
+      const suggested = suggestCategoryForItem(it, categoryRules);
       const first = it.codeEbat?.trim().charAt(0).toUpperCase() ?? '';
       const key = suggested?.category ?? (first ? `LETTER_${first}` : 'NO_CODE');
       const label = suggested
-        ? `${suggested.label} (${suggested.firstLetter}…)`
+        ? `${suggested.label} (${suggested.prefix}…)`
         : first
           ? `Code ${first}… sans mapping`
           : 'Sans code eBat';
@@ -233,7 +251,7 @@ export function useNegotiationDraft(source: PaNegoSource, uuid: string | undefin
       else map.set(key, { key, label, suggested: suggested?.category ?? '', uuids: [it.stagingUuid] });
     }
     return Array.from(map.values()).sort((a, b) => b.uuids.length - a.uuids.length);
-  }, [items, previewByUuid, serviceByUuid]);
+  }, [items, previewByUuid, serviceByUuid, categoryRules]);
 
   const changeMargin = useCallback((raw: number) => setTargetMarginPct(clampMarginPct(raw)), []);
 
@@ -333,6 +351,7 @@ export function useNegotiationDraft(source: PaNegoSource, uuid: string | undefin
             updated.filter((it) => ok.has(it.stagingUuid)),
             referentCache.current,
             isStale,
+            categoryRulesRef.current,
           );
           if (!data || isStale()) return;
           setPreviewByUuid((prev) => new Map([...prev, ...data.previews]));

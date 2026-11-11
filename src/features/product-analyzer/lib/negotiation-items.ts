@@ -1,5 +1,7 @@
 import type { CategoryTypeEnum } from '@/types/discussions';
 
+import { suggestCategoryFromRules } from './category-rules';
+
 export type NegotiationCountry = 'FR' | 'DE' | 'IT' | 'ES' | 'UK';
 export const ALL_NEGO_COUNTRIES: NegotiationCountry[] = ['FR', 'DE', 'IT', 'ES', 'UK'];
 export const NEGO_COUNTRY_FLAG: Record<NegotiationCountry, string> = {
@@ -141,39 +143,64 @@ export function hasNoWeight(item: Pick<NegotiationDialogItem, 'weightGrams'>): b
   return item.weightGrams == null || !(item.weightGrams > 0);
 }
 
-export const SERVICE_BY_FIRST_LETTER: Readonly<Record<string, CategoryTypeEnum>> = {
-  E: 'ELECTRICITE',
-  V: 'VENTILATION',
-  P: 'PLOMBERIE',
-  C: 'CHAUFFAGE',
-  S: 'SANITAIRE',
-  I: 'OUTILLAGE',
-  W: 'CARRELAGE',
+export const SERVICE_LABEL: Readonly<Record<string, string>> = {
+  ELECTRICITE: 'Électricité',
+  VENTILATION: 'Ventilation',
+  PLOMBERIE: 'Plomberie',
+  CHAUFFAGE: 'Chauffage',
+  SANITAIRE: 'Sanitaire',
+  OUTILLAGE: 'Outillage',
+  CARRELAGE: 'Carrelage',
+  PHOTO: 'Photo',
 };
 
-export const FIRST_LETTER_LABEL: Readonly<Record<string, string>> = {
-  E: 'Électricité',
-  V: 'Ventilation',
-  P: 'Plomberie',
-  C: 'Chauffage',
-  S: 'Sanitaire',
-  I: 'Outillage',
-  W: 'Carrelage',
+/** Règles de service d'une filiale (`GET hub-app/product-analyzer/category-rules`). */
+export type FilialeCategoryRules = {
+  distributorId?: string;
+  ignoreSupplierPrefix: boolean;
+  rules: readonly { prefix: string; categoryType: CategoryTypeEnum }[];
+  warehouses: readonly string[];
 };
 
-export const FIRST_LETTER_EXCEPTION_NOTE: Readonly<Record<string, string>> = {
-  I: 'exception : I = Outillage',
-  W: 'exception : W = Carrelage',
+export type NegotiationCategoryRulesData = {
+  items: FilialeCategoryRules[];
+  defaultRules: readonly { prefix: string; categoryType: CategoryTypeEnum }[];
 };
 
+/** Règles de la filiale à laquelle appartient l'entrepôt (null si inconnue : jeu par défaut). */
+export function filialeRulesForWarehouse(
+  warehouse: string | null | undefined,
+  data: NegotiationCategoryRulesData | null | undefined,
+): FilialeCategoryRules | null {
+  if (!warehouse || !data) return null;
+  return data.items.find((f) => f.warehouses.includes(warehouse)) ?? null;
+}
+
+export type CategorySuggestion = { category: CategoryTypeEnum; prefix: string; label: string };
+
+/**
+ * Service suggéré d'après le code interne (eBatPro) : règles de la filiale (préfixe le plus long), sinon jeu par
+ * défaut. Sans règles de filiale connues, comportement historique (1re lettre).
+ */
 export function suggestCategoryFromCode(
   codeEbat: string | null | undefined,
-): { category: CategoryTypeEnum; firstLetter: string; label: string } | null {
-  if (!codeEbat) return null;
-  const first = codeEbat.trim().charAt(0).toUpperCase();
-  const cat = SERVICE_BY_FIRST_LETTER[first];
-  if (!cat) return null;
-  return { category: cat, firstLetter: first, label: FIRST_LETTER_LABEL[first] ?? cat };
+  filiale?: FilialeCategoryRules | null,
+): CategorySuggestion | null {
+  const hit = suggestCategoryFromRules(
+    codeEbat,
+    filiale?.rules.map((r) => ({ prefix: r.prefix, category: r.categoryType })),
+    filiale?.ignoreSupplierPrefix ?? true,
+  );
+  if (!hit) return null;
+  return { category: hit.category, prefix: hit.prefix, label: SERVICE_LABEL[hit.category] ?? hit.category };
+}
+
+/** Raccourci : suggestion pour un article, selon l'entrepôt qui porte le code. */
+export function suggestCategoryForItem(
+  item: { codeEbat?: string | null; warehouse?: string | null },
+  data: NegotiationCategoryRulesData | null | undefined,
+): CategorySuggestion | null {
+  return suggestCategoryFromCode(item.codeEbat, filialeRulesForWarehouse(item.warehouse, data));
 }
 
 export type CountryPricing = {

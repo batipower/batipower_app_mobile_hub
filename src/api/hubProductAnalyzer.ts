@@ -8,6 +8,7 @@ import type {
   NegotiationOpportunitySummary,
   PreviewItem,
 } from '@/features/product-analyzer/lib/negotiation-api';
+import type { NegotiationCategoryRulesData } from '@/features/product-analyzer/lib/negotiation-items';
 import type { LaunchAndDeployResponse } from '@/features/product-analyzer/lib/analyze-types';
 import type {
   Affaire,
@@ -329,6 +330,10 @@ export const hubProductAnalyzerApi = {
     /** Jeton du poste (onglet) : active le heartbeat sur les lignes claimées. */
     claimToken?: string;
   }) => apiClient.post<ClaimedReserveItem[] | { items: ClaimedReserveItem[] }>(`${BASE}/reserve/claim`, body),
+
+  /** Règles de service (préfixe du code interne -> service) par filiale, pour pré-sélectionner le service des négociations. */
+  categoryRules: (signal?: AbortSignal) =>
+    apiClient.get<NegotiationCategoryRulesData>(`${BASE}/category-rules`, { signal }),
 
   /** Distributeurs actifs + état de paramétrage (sélecteurs distributeur du HUB). */
   listDistributors: (signal?: AbortSignal) => apiClient.get<HubDistributor[]>(`${BASE}/distributors`, { signal }),
