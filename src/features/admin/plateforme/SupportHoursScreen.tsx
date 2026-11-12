@@ -21,6 +21,8 @@ import {
   MESSAGE_MAX_LENGTH,
   SUPPORT_DAYS,
   cloneSchedule,
+  holidayDescription,
+  sameHolidays,
   validateSchedule,
 } from './supportHours';
 
@@ -36,6 +38,7 @@ export function SupportHoursScreen() {
   const [weekly, setWeekly] = useState<SupportWeeklySchedule | null>(null);
   const [forceClosed, setForceClosed] = useState(false);
   const [message, setMessage] = useState('');
+  const [openHolidays, setOpenHolidays] = useState<string[]>([]);
   const [editing, setEditing] = useState<Editing>(null);
 
   // Brouillon initialisé depuis la configuration serveur (et après chaque enregistrement) : ajusté
@@ -46,6 +49,7 @@ export function SupportHoursScreen() {
     setWeekly(cloneSchedule(data.weekly));
     setForceClosed(data.forceClosed);
     setMessage(data.forceClosedMessage ?? '');
+    setOpenHolidays([...(data.openHolidays ?? [])].sort());
   }
 
   const dirty = useMemo(() => {
@@ -53,9 +57,10 @@ export function SupportHoursScreen() {
     return (
       JSON.stringify(cloneSchedule(data.weekly)) !== JSON.stringify(weekly) ||
       data.forceClosed !== forceClosed ||
-      (data.forceClosedMessage ?? '') !== message.trim()
+      (data.forceClosedMessage ?? '') !== message.trim() ||
+      !sameHolidays(data.openHolidays ?? [], openHolidays)
     );
-  }, [data, weekly, forceClosed, message]);
+  }, [data, weekly, forceClosed, message, openHolidays]);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -63,6 +68,7 @@ export function SupportHoursScreen() {
         weekly: weekly ?? undefined,
         forceClosed,
         forceClosedMessage: message.trim() || null,
+        openHolidays,
       }),
     onSuccess: (result) => {
       queryClient.setQueryData(ADMIN_SUPPORT_HOURS_KEY, result);
@@ -73,6 +79,9 @@ export function SupportHoursScreen() {
 
   const updateDay = (key: string, ranges: SupportTimeRange[]) =>
     setWeekly((prev) => (prev ? { ...prev, [key]: ranges } : prev));
+
+  const toggleHoliday = (date: string, open: boolean) =>
+    setOpenHolidays((prev) => (open ? [...new Set([...prev, date])].sort() : prev.filter((d) => d !== date)));
 
   const save = () => {
     if (!weekly) return;
@@ -214,6 +223,38 @@ export function SupportHoursScreen() {
                 </Card>
               );
             })}
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Jours fériés</Text>
+            </View>
+            <Text style={styles.hint}>
+              Le support est fermé les jours fériés, même si le planning ouvre ce jour de la semaine. Activez un férié
+              pour l’ouvrir exceptionnellement, avec les horaires du jour de la semaine correspondant.
+            </Text>
+            {(data?.upcomingHolidays ?? []).length === 0 ? (
+              <Text style={styles.hint}>Aucun jour férié à venir.</Text>
+            ) : (
+              (data?.upcomingHolidays ?? []).map((holiday) => {
+                const open = openHolidays.includes(holiday.date);
+                return (
+                  <Card key={holiday.date} contentStyle={styles.cardContent}>
+                    <View style={styles.row}>
+                      <View style={styles.rowText}>
+                        <Text style={styles.cardTitle}>{holiday.name}</Text>
+                        <Text style={styles.hint}>{holidayDescription(holiday, open, weekly)}</Text>
+                      </View>
+                      <Switch
+                        value={open}
+                        onValueChange={(next) => toggleHoliday(holiday.date, next)}
+                        disabled={mutation.isPending}
+                        trackColor={{ true: t.accent, false: t.surfaceStrong }}
+                        accessibilityLabel={`${holiday.name} ouvert exceptionnellement`}
+                      />
+                    </View>
+                  </Card>
+                );
+              })
+            )}
 
             <Notice>
               Fuseau : {data?.timezone ?? 'Europe/Paris'}. Quatre plages maximum par jour, sans chevauchement.

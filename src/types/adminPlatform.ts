@@ -124,11 +124,25 @@ export interface SupportTimeRange {
 /** Clés "0" (dimanche) à "6" (samedi), comme `Date#getDay`. */
 export type SupportWeeklySchedule = Record<string, SupportTimeRange[]>;
 
+/** Jour férié français à venir, avec son état d'ouverture (fermé par défaut). */
+export interface SupportUpcomingHoliday {
+  /** `YYYY-MM-DD`. */
+  date: string;
+  name: string;
+  /** 0 = dimanche … 6 = samedi. */
+  weekday: number;
+  /** `true` si le férié est ouvert exceptionnellement. */
+  open: boolean;
+}
+
 export interface SupportHoursConfig {
   timezone: string;
   weekly: SupportWeeklySchedule;
   forceClosed: boolean;
   forceClosedMessage: string | null;
+  /** Fériés (`YYYY-MM-DD`) ouverts exceptionnellement ; tout autre férié est fermé. */
+  openHolidays: string[];
+  upcomingHolidays: SupportUpcomingHoliday[];
   updatedAt: string | null;
   updatedBy: string | null;
 }
@@ -137,6 +151,7 @@ export interface UpdateSupportHoursPayload {
   weekly?: SupportWeeklySchedule;
   forceClosed?: boolean;
   forceClosedMessage?: string | null;
+  openHolidays?: string[];
 }
 
 // ─── RIB des devis ───────────────────────────────────────────────────────────
