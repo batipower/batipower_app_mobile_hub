@@ -18,7 +18,11 @@ export function MonthSummaryRow({ summary, showMargin }: MonthSummaryRowProps) {
 
   return (
     <StatGrid>
-      <StatTile label="CA HT du mois" value={formatEuroWhole(summary.caHT)} />
+      <StatTile
+        label="CA HT du mois"
+        value={formatEuroWhole(summary.caHT)}
+        hint={accounting ? 'Commandes, avant avoirs' : undefined}
+      />
       <StatTile label="Commandes" value={formatInteger(summary.ordersCount)} />
       {showMargin ? (
         <StatTile
