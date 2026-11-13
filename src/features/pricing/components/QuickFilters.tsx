@@ -49,9 +49,11 @@ export function QuickFilters() {
         }
       />
       <FilterPill
-        label="Non déployés site"
-        state={filters.notOnWebsite ? 'on' : 'off'}
-        onPress={() => patchPricingFilters({ notOnWebsite: !filters.notOnWebsite })}
+        label={filters.notOnWebsite === false ? 'Déployés site' : 'Non déployés site'}
+        state={
+          filters.notOnWebsite === null ? 'off' : filters.notOnWebsite ? 'on' : 'negative'
+        }
+        onPress={() => patchPricingFilters({ notOnWebsite: nextTriState(filters.notOnWebsite) })}
       />
       <FilterPill
         label="Vente à perte"

@@ -183,10 +183,10 @@ export function FiltersSheet() {
           onChange={(obsoletProduct) => patchPricingFilters({ obsoletProduct })}
         />
         <TriStateField
-          label="Non déployés sur le site"
-          labels={['Tous', 'Oui', 'Non']}
-          value={filters.notOnWebsite ? true : null}
-          onChange={(value) => patchPricingFilters({ notOnWebsite: value === true })}
+          label="Déploiement site"
+          labels={['Tous', 'Non déployés', 'Déployés']}
+          value={filters.notOnWebsite}
+          onChange={(notOnWebsite) => patchPricingFilters({ notOnWebsite })}
         />
         <TriStateField
           label="Vente à perte"

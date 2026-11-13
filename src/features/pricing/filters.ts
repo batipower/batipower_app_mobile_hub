@@ -21,7 +21,7 @@ export const DEFAULT_FILTERS: HubPricingFilters = {
   productTags: [],
   sellingAtLoss: false,
   hasGoogleMerchant: null,
-  notOnWebsite: false,
+  notOnWebsite: null,
   affaireId: '',
   buyBoxAmazon: 'all',
   buyBoxManoMano: 'all',
@@ -60,7 +60,7 @@ export function countActiveFilters(filters: HubPricingFilters): number {
   if (filters.productTags.length > 0) count += 1;
   if (filters.sellingAtLoss) count += 1;
   if (filters.hasGoogleMerchant != null) count += 1;
-  if (filters.notOnWebsite) count += 1;
+  if (filters.notOnWebsite != null) count += 1;
   if (filters.affaireId) count += 1;
   if (filters.buyBoxAmazon !== 'all') count += 1;
   if (filters.buyBoxManoMano !== 'all') count += 1;
@@ -79,7 +79,7 @@ export function countActiveFilters(filters: HubPricingFilters): number {
 /**
  * Query params de `GET hub-app/pricing` (contrat ApproRows), identiques à `toApiQuery` du web.
  * Les clés `missed-opportunities-*` et `buybox-to-remove-stock-*` sont dynamiques ;
- * « non déployés » devient `websiteActive=false`.
+ * `notOnWebsite` : true → `websiteActive=false`, false → `websiteActive=true`.
  */
 export function toApiQuery(filters: HubPricingFilters): Record<string, string | number | boolean> {
   const query: Record<string, string | number | boolean> = {
@@ -104,7 +104,7 @@ export function toApiQuery(filters: HubPricingFilters): Record<string, string | 
   if (filters.productTags.length > 0) query.productTags = filters.productTags.join(',');
   if (filters.sellingAtLoss) query.sellingAtLoss = true;
   if (filters.hasGoogleMerchant != null) query.hasGoogleMerchant = filters.hasGoogleMerchant;
-  if (filters.notOnWebsite) query.websiteActive = false;
+  if (filters.notOnWebsite != null) query.websiteActive = !filters.notOnWebsite;
   if (filters.affaireId) query.affaireId = filters.affaireId;
   if (filters.buyBoxAmazon !== 'all') query.isActualBuyBoxAmazon = filters.buyBoxAmazon === 'true';
   if (filters.buyBoxManoMano !== 'all') {

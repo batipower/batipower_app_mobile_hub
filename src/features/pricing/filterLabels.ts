@@ -95,11 +95,11 @@ export function buildFilterChips(
       clearPatch: { hasActiveSupplierOrder: '' },
     });
   }
-  if (filters.notOnWebsite) {
+  if (filters.notOnWebsite != null) {
     chips.push({
       key: 'notOnWebsite',
-      label: 'Non déployés site',
-      clearPatch: { notOnWebsite: false },
+      label: filters.notOnWebsite ? 'Non déployés site' : 'Déployés site',
+      clearPatch: { notOnWebsite: null },
     });
   }
   if (filters.sellingAtLoss) {

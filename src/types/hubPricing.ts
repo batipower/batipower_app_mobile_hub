@@ -311,8 +311,11 @@ export interface HubPricingFilters {
   productTags: string[];
   sellingAtLoss: boolean;
   hasGoogleMerchant: boolean | null;
-  /** Ne garder que les produits pas encore déployés (inactifs) sur le site Batipower. */
-  notOnWebsite: boolean;
+  /**
+   * Filtre déploiement site Batipower : `true` = non déployés, `false` = déployés,
+   * `null` = tous. Mappé en `websiteActive` inversé côté API.
+   */
+  notOnWebsite: boolean | null;
   affaireId: string;
   buyBoxAmazon: BuyBoxFilterState;
   buyBoxManoMano: BuyBoxFilterState;
