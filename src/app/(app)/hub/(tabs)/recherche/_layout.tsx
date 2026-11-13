@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 
 import { ModuleSwitcherButton } from '@/components/modules/ModuleSwitcherButton';
 import { fallbackBackHeaderLeft } from '@/components/navigation/StackBackButton';
+import { SHEET_DETENTS, sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
 
 /**
@@ -54,6 +55,7 @@ export default function SearchLayout() {
         name="produit/[reference]"
         options={{ title: 'Produit', headerLeft: fallbackBackHeaderLeft(FALLBACK_HREF) }}
       />
+      <Stack.Screen name="produit/prix-site" options={sheetOptions(t, SHEET_DETENTS.editor)} />
     </Stack>
   );
 }

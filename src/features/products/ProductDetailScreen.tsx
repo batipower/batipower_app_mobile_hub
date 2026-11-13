@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { PackageX } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
-import { canAccessHubProductSheet } from '@/auth/permissions';
+import { canAccessHubProductSheet, canEditHubWebsitePrice } from '@/auth/permissions';
 import { AccessDenied } from '@/features/preparation/components/AccessDenied';
 import { EmptyState, ErrorBanner, ListSkeleton } from '@/features/preparation/components/ListState';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
@@ -13,18 +13,20 @@ import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 
 import { ProductHeader } from './components/ProductHeader';
 import { ProductStock } from './components/ProductStock';
+import { ProductWebsitePricing } from './components/ProductWebsitePricing';
 import { useProductDetail } from './hooks/useProductDetail';
 
 /**
- * Fiche d'un produit, en lecture seule : identité, stock par entrepôt et agence, commandes
- * fournisseur, et accès aux commandes qui le contiennent. Réservée aux rôles SUPERADMIN et
- * MANAGER (comme `hub-app/products/*` côté back) : les autres comptes n'envoient aucun appel.
+ * Fiche d'un produit : identité, prix du site avec sa marge (modifiable, SUPERADMIN), stock par
+ * entrepôt et agence, commandes fournisseur, et accès aux commandes qui le contiennent. Réservée
+ * aux rôles SUPERADMIN et MANAGER (comme `hub-app/products/*` côté back) : les autres comptes
+ * n'envoient aucun appel.
  */
 export function ProductDetailScreen() {
   const { user } = useAuth();
   if (!user) return null;
   return canAccessHubProductSheet(user.role) ? (
-    <ProductDetail />
+    <ProductDetail canEditWebsitePrice={canEditHubWebsitePrice(user.role)} />
   ) : (
     <AccessDenied
       title="Accès réservé"
@@ -33,7 +35,7 @@ export function ProductDetailScreen() {
   );
 }
 
-function ProductDetail() {
+function ProductDetail({ canEditWebsitePrice }: { canEditWebsitePrice: boolean }) {
   const styles = useStyles();
   const t = useTheme();
   const { reference } = useLocalSearchParams<{ reference: string }>();
@@ -88,6 +90,7 @@ function ProductDetail() {
               label="Voir les commandes contenant ce produit"
               onPress={() => openOrdersList({ produit: header.reference })}
             />
+            {canEditWebsitePrice ? <ProductWebsitePricing reference={header.reference} /> : null}
             <ProductStock
               header={header}
               stock={stock}
@@ -96,7 +99,9 @@ function ProductDetail() {
               onRetry={() => void refetchStock()}
             />
             <Text style={styles.footnote}>
-              Consultation en lecture seule. Les modifications se font depuis l&apos;espace web.
+              {canEditWebsitePrice
+                ? "Seul le prix du site se modifie ici. Les autres modifications se font depuis l'espace web."
+                : "Consultation en lecture seule. Les modifications se font depuis l'espace web."}
             </Text>
           </>
         ) : null}

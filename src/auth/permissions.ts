@@ -133,6 +133,14 @@ export function canAccessHubProductSheet(role: AppUserRole): boolean {
 }
 
 /**
+ * Section « Site web » de la fiche produit (prix TTC, marge, modification du prix) : SUPERADMIN
+ * uniquement. Le back laisse aussi le MANAGER modifier le prix, mais lui masque la marge.
+ */
+export function canEditHubWebsitePrice(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/**
  * Joindre une carte opportunité à un message d'équipe : SUPERADMIN uniquement, comme
  * `canAttachOpportunity` de la page web des discussions.
  */

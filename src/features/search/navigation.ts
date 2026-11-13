@@ -10,6 +10,11 @@ export function openProduct(reference: string) {
   router.push({ pathname: '/hub/recherche/produit/[reference]', params: { reference } });
 }
 
+/** Feuille de modification du prix du produit sur le site (SUPERADMIN). */
+export function openWebsitePriceEdit(reference: string) {
+  router.push({ pathname: '/hub/recherche/produit/prix-site', params: { reference } });
+}
+
 /** Liste complète des commandes : `q` = recherche libre, `produit` = contenant cette référence produit. */
 export function openOrdersList(params: { q: string } | { produit: string }) {
   router.push({ pathname: '/hub/recherche/commandes', params });
