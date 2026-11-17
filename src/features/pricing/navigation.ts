@@ -16,6 +16,11 @@ export function openPricingSort() {
   router.push('/hub/pricing/tri');
 }
 
+/** Feuille de lancement groupé des fiches produit (sélection non déployée). */
+export function openPricingLaunchSheets() {
+  router.push('/hub/pricing/lancer-fiches');
+}
+
 export function openPricingStats() {
   router.push('/hub/pricing/stats');
 }

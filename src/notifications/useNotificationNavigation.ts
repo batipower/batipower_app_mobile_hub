@@ -35,8 +35,8 @@ function todayInParis(): string {
 type NotificationAccess = { cockpit: boolean; quotes: boolean };
 
 /**
- * Ouvre l'écran cible d'une notification, selon son `data.type` : les commandes du jour d'une
- * vente (Cockpit, la marge y reste derrière son oeil), la fiche d'une opportunité acceptée ou
+ * Ouvre l'écran cible d'une notification, selon son `data.type` : la fiche de la commande d'une
+ * vente (Cockpit ; repli sur les commandes du jour sans référence), la fiche d'une opportunité acceptée ou
  * refusée, la page Déploiement d'un produit, la page d'arbitrage d'un candidat palette,
  * la fiche d'une nouvelle demande de devis
  * ou l'éditeur d'un devis dont le statut a changé. Un type inconnu, ou un compte sans le droit
@@ -49,6 +49,17 @@ function openFromNotification(response: Notifications.NotificationResponse, acce
   const type = data?.type;
 
   if (type === HUB_SALE_TYPE && access.cockpit) {
+    // Cas nominal : la fiche de la commande vendue. `navigate` d'abord pour que la pile du
+    // Cockpit contienne sa liste sous la fiche (retour natif cohérent, y compris à froid).
+    if (typeof data?.orderReference === 'string' && data.orderReference) {
+      router.navigate('/hub/cockpit');
+      router.push({
+        pathname: '/hub/cockpit/commande/[reference]',
+        params: { reference: data.orderReference },
+      });
+      return;
+    }
+    // Repli (push sans référence) : commandes du jour.
     const orderDate = typeof data?.orderDate === 'string' ? data.orderDate : '';
     const date = DAY_KEY_PATTERN.test(orderDate) ? orderDate : todayInParis();
     // `navigate` d'abord : à froid, la pile du Cockpit contient ainsi sa liste sous le jour ouvert.

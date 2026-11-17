@@ -237,6 +237,9 @@ function SearchContent({
         placeholder={canSearchProducts ? PLACEHOLDER_WITH_PRODUCTS : PLACEHOLDER_ORDERS_ONLY}
         autoCapitalize="none"
         tintColor={t.accentText}
+        // « automatic » place la recherche en bas sur iOS 26, sous la barre d'onglets flottante :
+        // le champ n'est alors plus utilisable. « stacked » la garde sous le grand titre.
+        placement="stacked"
         hideWhenScrolling={false}
         obscureBackground={false}
         onChangeText={(event) => setText(event.nativeEvent.text)}

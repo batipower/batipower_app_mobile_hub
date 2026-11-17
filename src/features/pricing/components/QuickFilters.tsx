@@ -25,6 +25,14 @@ export function QuickFilters() {
       contentContainerStyle={styles.row}
       keyboardShouldPersistTaps="handled"
     >
+      {/* En premier : « Non déployés » + sélection servent au lancement groupé des fiches produit. */}
+      <FilterPill
+        label={filters.notOnWebsite === false ? 'Déployés site' : 'Non déployés site'}
+        state={
+          filters.notOnWebsite === null ? 'off' : filters.notOnWebsite ? 'on' : 'negative'
+        }
+        onPress={() => patchPricingFilters({ notOnWebsite: nextTriState(filters.notOnWebsite) })}
+      />
       <FilterPill
         label="Favoris"
         state={filters.favorite === true ? 'on' : 'off'}
@@ -47,13 +55,6 @@ export function QuickFilters() {
         onPress={() =>
           patchPricingFilters({ handlingRestricted: nextTriState(filters.handlingRestricted) })
         }
-      />
-      <FilterPill
-        label={filters.notOnWebsite === false ? 'Déployés site' : 'Non déployés site'}
-        state={
-          filters.notOnWebsite === null ? 'off' : filters.notOnWebsite ? 'on' : 'negative'
-        }
-        onPress={() => patchPricingFilters({ notOnWebsite: nextTriState(filters.notOnWebsite) })}
       />
       <FilterPill
         label="Vente à perte"

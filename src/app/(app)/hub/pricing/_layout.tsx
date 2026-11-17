@@ -35,6 +35,7 @@ export default function PricingLayout() {
       <Stack.Screen name="choix/[kind]" options={sheet(SHEET_DETENTS.tall)} />
       <Stack.Screen name="tri" options={sheet(SHEET_DETENTS.sort)} />
       <Stack.Screen name="stats" options={sheet(SHEET_DETENTS.tall)} />
+      <Stack.Screen name="lancer-fiches" options={sheet(SHEET_DETENTS.tall)} />
       <Stack.Screen name="editer" options={sheet(SHEET_DETENTS.editor)} />
     </Stack>
   );

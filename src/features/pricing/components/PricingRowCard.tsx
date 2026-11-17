@@ -1,21 +1,36 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { ChevronRight, Eye, Package, Star } from 'lucide-react-native';
+import { Check, ChevronRight, Eye, Package, Star } from 'lucide-react-native';
 
 import { Badge } from '@/components/ui';
 import { thumbnailUri } from '@/features/products/productDisplay';
 import { formatEuro, formatInteger, formatPercent } from '@/lib/format';
-import { fontSize, makeStyles, monoFontFamily, radius, shadow, spacing, useTheme } from '@/theme';
+import {
+  fontSize,
+  makeStyles,
+  monoFontFamily,
+  radius,
+  shadow,
+  spacing,
+  useTheme,
+  withAlpha,
+} from '@/theme';
 import type { HubPricingRow, PricingMarketplaceKey } from '@/types/hubPricing';
 
 import { MARKETPLACE_LABELS, visibleMarketplaces } from '../options';
 import { isMonitoredForCountry, parseNumericActual, websiteMargin } from '../rowMetrics';
+import { isSheetSelectable } from '../sheetSelectionStore';
 
 type PricingRowCardProps = {
   row: HubPricingRow;
   country: string;
   onPress: (row: HubPricingRow) => void;
+  /** Appui long : démarre / modifie la sélection (lancement groupé des fiches produit). */
+  onLongPress?: (row: HubPricingRow) => void;
+  /** Mode sélection actif : les lignes déployées sont grisées, les autres affichent une case. */
+  selecting?: boolean;
+  selected?: boolean;
 };
 
 function Metric({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'bad' }) {
@@ -70,22 +85,52 @@ function MarketplaceLine({
  * Ligne du catalogue Pricing : identité, stocks, potentiel, prix d'achat, prix du site avec
  * sa marge, et BuyBox / prix cible de chaque marketplace affichée pour le pays choisi.
  */
-function PricingRowCardBase({ row, country, onPress }: PricingRowCardProps) {
+function PricingRowCardBase({
+  row,
+  country,
+  onPress,
+  onLongPress,
+  selecting = false,
+  selected = false,
+}: PricingRowCardProps) {
   const styles = useStyles();
   const t = useTheme();
   const uri = thumbnailUri(row.thumbnailBase64);
   const margin = websiteMargin(row, country);
   const monitored = isMonitoredForCountry(row, country);
   const markets = visibleMarketplaces(country);
+  const selectable = isSheetSelectable(row);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${row.reference}, ${row.designation ?? 'sans désignation'}`}
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${row.reference}, ${row.designation ?? 'sans désignation'}${
+        selected ? ', sélectionné' : ''
+      }`}
+      accessibilityHint={
+        selecting
+          ? selectable
+            ? 'Coche ou décoche ce produit'
+            : 'Déjà déployé sur le site, non sélectionnable'
+          : undefined
+      }
       onPress={() => onPress(row)}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onLongPress={onLongPress ? () => onLongPress(row) : undefined}
+      delayLongPress={280}
+      style={({ pressed }) => [
+        styles.card,
+        selected && styles.cardSelected,
+        selecting && !selectable && styles.dimmed,
+        pressed && styles.pressed,
+      ]}
     >
       <View style={styles.header}>
+        {selecting && selectable ? (
+          <View style={[styles.check, selected && styles.checkOn]}>
+            {selected ? <Check size={14} color={t.onAccent} strokeWidth={3} /> : null}
+          </View>
+        ) : null}
         <View style={styles.thumbnail} accessibilityElementsHidden importantForAccessibility="no">
           {uri ? (
             <Image
@@ -175,6 +220,18 @@ const useStyles = makeStyles((t) => ({
     ...shadow.sm,
   },
   pressed: { backgroundColor: t.cardPressed },
+  cardSelected: { borderColor: t.accent, borderWidth: 2, backgroundColor: withAlpha(t.accent, 0.07) },
+  dimmed: { opacity: 0.45 },
+  check: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: t.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkOn: { borderColor: t.accent, backgroundColor: t.accent },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   thumbnail: {
     width: 52,

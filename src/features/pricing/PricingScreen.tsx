@@ -1,6 +1,15 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from 'react-native';
 import { Stack } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { ArrowDownUp, BarChart3, PackageSearch, SlidersHorizontal } from 'lucide-react-native';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -16,6 +25,12 @@ import type { HubPricingRow } from '@/types/hubPricing';
 import { ActiveFilterChips } from './components/ActiveFilterChips';
 import { PricingRowCard } from './components/PricingRowCard';
 import { QuickFilters } from './components/QuickFilters';
+import { SheetSelectionBar } from './components/SheetSelectionBar';
+import {
+  isSheetSelectable,
+  toggleSheetSelect,
+  useSheetSelection,
+} from './sheetSelectionStore';
 import { StockValuationStrip } from './components/StockValuationStrip';
 import { countActiveFilters } from './filters';
 import { getPricingState, patchPricingFilters, usePricingState } from './filtersStore';
@@ -62,6 +77,33 @@ function PricingList() {
   const activeCount = countActiveFilters(filters);
   const hasFilters = activeCount > 0;
 
+  // Sélection des produits non déployés pour le lancement groupé des fiches produit.
+  const selection = useSheetSelection();
+  const selecting = selection.size > 0;
+
+  const onPressRow = useCallback(
+    (row: HubPricingRow) => {
+      if (selecting) {
+        toggleSheetSelect(row);
+        return;
+      }
+      openPricingRow(row.reference);
+    },
+    [selecting],
+  );
+  const onLongPressRow = useCallback((row: HubPricingRow) => {
+    if (!isSheetSelectable(row)) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => undefined);
+      Alert.alert(
+        'Déjà déployé',
+        'Seuls les produits non déployés sur le site peuvent être sélectionnés pour générer leur fiche.',
+      );
+      return;
+    }
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
+    toggleSheetSelect(row);
+  }, []);
+
   return (
     <>
       <Stack.Screen
@@ -101,11 +143,15 @@ function PricingList() {
             <PricingRowCard
               row={item}
               country={country}
-              onPress={(row) => openPricingRow(row.reference)}
+              onPress={onPressRow}
+              onLongPress={onLongPressRow}
+              selecting={selecting}
+              selected={selection.has(item.reference)}
             />
           </View>
         )}
-        contentContainerStyle={styles.content}
+        extraData={selection}
+        contentContainerStyle={[styles.content, selecting && styles.contentSelecting]}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -195,6 +241,7 @@ function PricingList() {
           ) : undefined
         }
       />
+      <SheetSelectionBar loadedRows={list.rows} />
     </>
   );
 }
@@ -233,6 +280,8 @@ function HeaderButton({ label, icon, count = 0, dot = false, onPress }: HeaderBu
 
 const useStyles = makeStyles((t) => ({
   content: { flexGrow: 1, paddingBottom: spacing['4xl'] },
+  // Laisse la place de la barre de sélection ancrée en bas.
+  contentSelecting: { paddingBottom: 180 },
   header: { gap: spacing.md, paddingBottom: spacing.md, paddingTop: spacing.sm },
   cardWrap: { paddingHorizontal: spacing.xl, paddingBottom: spacing.md },
   headerButtons: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
