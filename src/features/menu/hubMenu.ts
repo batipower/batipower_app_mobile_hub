@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 import {
   BadgeEuro,
+  FileCheck2,
   PackageCheck,
   Percent,
   ScanSearch,
@@ -21,6 +22,7 @@ import {
   canAccessHubPricing,
   canAccessHubProductAnalyzer,
   canAccessHubReturns,
+  canAccessHubStudioQueue,
 } from '@/auth/permissions';
 import type { AppUserRole } from '@/types/user';
 
@@ -89,6 +91,14 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     icon: PackageCheck,
     href: '/hub/candidats-palette',
     visible: canAccessHubPalletFlow,
+  },
+  {
+    id: 'fiches-produit',
+    section: 'Opérations',
+    label: 'Fiches produit',
+    icon: FileCheck2,
+    href: '/hub/fiches-produit',
+    visible: canAccessHubStudioQueue,
   },
   {
     id: 'pricing',

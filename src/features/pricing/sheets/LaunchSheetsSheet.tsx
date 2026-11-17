@@ -11,6 +11,8 @@ import { fontSize, makeStyles, monoFontFamily, radius, spacing, useTheme, withAl
 import type { HubPricingRow } from '@/types/hubPricing';
 import type { StudioBulkOutcome, StudioEstimateItem } from '@/types/hubStudioJobs';
 
+import { openQueue } from '@/features/product-studio/navigation';
+
 import { PRICING_LIST_KEY } from '../queryKeys';
 import { clearSheetSelection, useSheetSelection } from '../sheetSelectionStore';
 
@@ -151,7 +153,12 @@ export function LaunchSheetsSheet() {
       // La sélection n'est vidée qu'une fois la feuille fermée (sinon sa liste se vide à l'écran).
       dismissSheetThen(() => {
         clearSheetSelection();
-        Alert.alert('Génération des fiches', lines.join('\n\n'));
+        Alert.alert('Génération des fiches', lines.join('\n\n'), [
+          { text: 'Fermer', style: 'cancel' },
+          ...(created > 0 || already > 0
+            ? [{ text: 'Voir la file', onPress: () => openQueue() }]
+            : []),
+        ]);
       });
     },
     onError: (error) => {

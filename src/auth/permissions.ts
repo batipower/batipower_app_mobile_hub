@@ -38,6 +38,14 @@ export function canImpersonate(role: AppUserRole): boolean {
 }
 
 /**
+ * File des fiches produit du Studio (« À traiter », relecture, déploiement) : SUPERADMIN
+ * uniquement, comme `canAccessHubStudioQueue` côté web.
+ */
+export function canAccessHubStudioQueue(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/**
  * Liste Pricing du HUB (prix d'achat, marges, BuyBox) : SUPERADMIN uniquement, comme
  * `canAccessHubPricing` côté web et `@Roles(SUPERADMIN)` de `hub-pricing.controller.ts`.
  */
