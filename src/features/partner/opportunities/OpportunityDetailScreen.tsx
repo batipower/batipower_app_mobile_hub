@@ -11,7 +11,7 @@ import { openOpportunityConversation } from '../navigation';
 import { warehouseLabel } from '../products/constants';
 import { ConversationLink } from '../shared/ConversationLink';
 import { DetailScroll } from '../shared/DetailScroll';
-import { OPPORTUNITY_STATUS_META } from './constants';
+import { OPPORTUNITY_STATUS_META, TOO_HEAVY_BADGE, isTooHeavyStandby } from './constants';
 import { useOpportunityActions, useMarkOpportunityRead } from './hooks/useOpportunityActions';
 import { useOpportunityDetail } from './hooks/useOpportunityDetail';
 
@@ -55,6 +55,9 @@ export function OpportunityDetailScreen() {
               {opportunity.ean ? <Text style={styles.mono}>EAN {opportunity.ean}</Text> : null}
               <View style={styles.badges}>
                 <Badge label={status.label} tone={status.tone} />
+                {isTooHeavyStandby(opportunity) ? (
+                  <Badge label={TOO_HEAVY_BADGE.label} tone={TOO_HEAVY_BADGE.tone} />
+                ) : null}
                 {opportunity.depWarehouse ? (
                   <Badge label={`DEP ${warehouseLabel(opportunity.depWarehouse)}`} tone="blue" />
                 ) : null}

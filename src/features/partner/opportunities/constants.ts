@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui';
-import type { PartnerOpportunityStatus } from '@/types/partnerOpportunities';
+import type { PartnerOpportunity, PartnerOpportunityStatus } from '@/types/partnerOpportunities';
 
 import type { OpportunityStatusFilter } from './filtersStore';
 
@@ -36,3 +36,13 @@ export const OPPORTUNITY_STATUS_META: Record<
   ARCHIVED: { label: 'Archivée', tone: 'neutral' },
   CANCELLED: { label: 'Annulée', tone: 'neutral' },
 };
+
+/** Standby automatique d'un produit de plus de 30 kg (reprise réservée au SUPERADMIN, sur le web). */
+export const TOO_HEAVY_BADGE = { label: 'Trop lourd – pas encore géré', tone: 'red' } as const satisfies {
+  label: string;
+  tone: BadgeTone;
+};
+
+export function isTooHeavyStandby(item: Pick<PartnerOpportunity, 'status' | 'standbyReason'>): boolean {
+  return item.status === 'STANDBY' && item.standbyReason === 'TOO_HEAVY';
+}

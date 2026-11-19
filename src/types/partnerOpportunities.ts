@@ -23,6 +23,8 @@ export type PartnerOpportunityScope = 'STANDARD' | 'DEP';
 export interface PartnerOpportunity {
   uuid: string;
   status: PartnerOpportunityStatus;
+  /** Motif du standby automatique : `TOO_HEAVY` = produit > 30 kg, pas encore géré. */
+  standbyReason?: 'TOO_HEAVY' | null;
   warehouse: string;
   /** Entrepôt DEP ; `null` = opportunité standard. */
   depWarehouse: string | null;

@@ -8,7 +8,7 @@ import { fontSize, makeStyles, monoFontFamily, radius, shadow, spacing, useTheme
 import type { PartnerOpportunity } from '@/types/partnerOpportunities';
 
 import { warehouseLabel } from '../../products/constants';
-import { OPPORTUNITY_STATUS_META } from '../constants';
+import { OPPORTUNITY_STATUS_META, TOO_HEAVY_BADGE, isTooHeavyStandby } from '../constants';
 
 type OpportunityCardProps = {
   item: PartnerOpportunity;
@@ -61,6 +61,9 @@ function OpportunityCardBase({ item, onPress }: OpportunityCardProps) {
 
       <View style={styles.badges}>
         <Badge label={status.label} tone={status.tone} />
+        {isTooHeavyStandby(item) ? (
+          <Badge label={TOO_HEAVY_BADGE.label} tone={TOO_HEAVY_BADGE.tone} />
+        ) : null}
         {item.depWarehouse ? (
           <Badge label={`DEP ${warehouseLabel(item.depWarehouse)}`} tone="blue" />
         ) : null}
