@@ -1,0 +1,24 @@
+{
+  "aps": {
+    "alert": {
+      "title": "Produit déployé",
+      "body": "DCD796P2 · Perceuse-visseuse 18 V"
+    },
+    "category": "HUB_DEPLOYMENT",
+    "sound": "default"
+  },
+  "reference": "DCD796P2",
+  "designation": "Perceuse-visseuse à percussion sans fil 18 V brushless, 2 batteries 5 Ah et coffret",
+  "deploy": {
+    "amazon": { "status": "success", "priceTTC": 289.9 },
+    "manomano": { "status": "skipped", "priceTTC": 279 },
+    "leroymerlin": { "status": "error", "priceTTC": 1234.56 }
+  },
+  "negotiation": {
+    "requestedPriceHT": 142.5,
+    "proposedPriceHT": 149,
+    "obtainedPriceHT": 146,
+    "proposedByName": "Camille Martin",
+    "subsidiaryName": "Filiale Lille"
+  }
+}

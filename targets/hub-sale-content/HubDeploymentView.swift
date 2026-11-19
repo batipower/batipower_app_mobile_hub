@@ -73,6 +73,8 @@ struct HubDeploymentView: View {
   let payload: HubDeploymentPayload
   let onOpen: () -> Void
 
+  @Environment(\.hubCardCompact) private var compact
+
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
       HStack(alignment: .center, spacing: 12) {
@@ -83,17 +85,19 @@ struct HubDeploymentView: View {
           Text(payload.designation)
             .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(.white)
-            .lineLimit(2)
+            .lineLimit(compact ? 3 : 2)
           Text(payload.reference)
             .font(.system(size: 13, weight: .medium, design: .monospaced))
             .foregroundStyle(Color.white.opacity(0.6))
         }
         Spacer(minLength: 0)
-        Image("hubLogo")
-          .resizable()
-          .scaledToFit()
-          .frame(width: 28, height: 28)
-          .accessibilityLabel("Batipower Pro")
+        if !compact {
+          Image("hubLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 28, height: 28)
+            .accessibilityLabel("Batipower Pro")
+        }
       }
 
       VStack(spacing: 8) {
@@ -139,11 +143,15 @@ struct HubDeploymentView: View {
       Text(channel.label)
         .font(.system(size: 14, weight: .semibold))
         .foregroundStyle(.white)
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
       Spacer(minLength: 0)
       VStack(alignment: .trailing, spacing: 1) {
         Text(channel.priceTTC.map { PushPayload.eur($0, suffix: " TTC") } ?? "—")
           .font(.system(size: 14, weight: .bold))
           .foregroundStyle(.white)
+          .lineLimit(1)
+          .minimumScaleFactor(0.8)
         Text(text)
           .font(.system(size: 11, weight: .medium))
           .foregroundStyle(tint)
@@ -162,7 +170,8 @@ struct HubDeploymentView: View {
       Text("NÉGOCIATION")
         .font(.system(size: 10, weight: .bold))
         .foregroundStyle(Color.white.opacity(0.6))
-      HStack(alignment: .top, spacing: 10) {
+      // Trois colonnes quand elles tiennent, trois lignes sinon (petit écran).
+      HubAdaptiveStack(spacing: 10) {
         negotiationValue("Attendu", PushPayload.eur(payload.requestedPriceHT, suffix: " HT"))
         negotiationValue("Proposé", PushPayload.eur(payload.proposedPriceHT, suffix: " HT"))
         negotiationValue("Obtenu", PushPayload.eur(payload.obtainedPriceHT, suffix: " HT"))
@@ -171,7 +180,7 @@ struct HubDeploymentView: View {
         Text(by)
           .font(.system(size: 12, weight: .medium))
           .foregroundStyle(Color.white.opacity(0.6))
-          .lineLimit(1)
+          .lineLimit(compact ? 2 : 1)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
@@ -212,3 +221,31 @@ struct HubDeploymentView: View {
     }
   }
 }
+
+// MARK: - Aperçus (largeurs d'iPhone : SE 320, mini 375, standard 393, Pro Max 430)
+
+#if DEBUG
+#Preview("Déploiement · 320") {
+  HubCardPreviewHost(width: 320) {
+    HubDeploymentView(payload: HubDeploymentPayload(identifier: "p", userInfo: HubCardSamples.deployment), onOpen: {})
+  }
+}
+
+#Preview("Déploiement · 375") {
+  HubCardPreviewHost(width: 375) {
+    HubDeploymentView(payload: HubDeploymentPayload(identifier: "p", userInfo: HubCardSamples.deployment), onOpen: {})
+  }
+}
+
+#Preview("Déploiement · 393") {
+  HubCardPreviewHost(width: 393) {
+    HubDeploymentView(payload: HubDeploymentPayload(identifier: "p", userInfo: HubCardSamples.deployment), onOpen: {})
+  }
+}
+
+#Preview("Déploiement · 430") {
+  HubCardPreviewHost(width: 430) {
+    HubDeploymentView(payload: HubDeploymentPayload(identifier: "p", userInfo: HubCardSamples.deployment), onOpen: {})
+  }
+}
+#endif

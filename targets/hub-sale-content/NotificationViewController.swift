@@ -12,7 +12,9 @@ import UserNotificationsUI
 /// dans `data` et n'est affichée ici qu'après un appui sur l'oeil, puis re-masquée à chaque nouvelle
 /// notification.
 final class NotificationViewController: UIViewController, UNNotificationContentExtension {
-  private var hostingController: UIHostingController<AnyView>?
+  private var hostingController: UIHostingController<HubCardContainer>?
+  /// Largeur réelle de la carte, partagée avec les vues (mode compact sur petit écran).
+  private let cardModel = HubCardModel()
 
   func didReceive(_ notification: UNNotification) {
     let content = notification.request.content
@@ -46,13 +48,15 @@ final class NotificationViewController: UIViewController, UNNotificationContentE
       )
     }
 
+    let container = HubCardContainer(model: cardModel, content: root)
+
     if let hostingController {
-      hostingController.rootView = root
+      hostingController.rootView = container
       updatePreferredSize()
       return
     }
 
-    let host = UIHostingController(rootView: root)
+    let host = UIHostingController(rootView: container)
     host.view.backgroundColor = .clear
     addChild(host)
     host.view.translatesAutoresizingMaskIntoConstraints = false
@@ -68,13 +72,39 @@ final class NotificationViewController: UIViewController, UNNotificationContentE
     updatePreferredSize()
   }
 
+  /// La largeur réelle de la vue n'est connue qu'après la première mise en page : c'est ici que la
+  /// hauteur est recalculée dessus, et que les vues apprennent si la carte est étroite. Sans cela,
+  /// la hauteur mesurée sur la largeur de l'écran rognait ou laissait du vide sur petit iPhone.
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    let width = view.bounds.width
+    guard width > 0 else { return }
+    if abs(width - cardModel.width) > 0.5 {
+      cardModel.width = width
+      // La vue SwiftUI se réévalue au prochain tour : on remesure alors sur la nouvelle mise en page.
+      DispatchQueue.main.async { [weak self] in self?.updatePreferredSize() }
+    }
+    updatePreferredSize()
+  }
+
   private func updatePreferredSize() {
+    guard let hostingController else { return }
     let width = view.bounds.width > 0 ? view.bounds.width : UIScreen.main.bounds.width
-    let fitted = hostingController?.sizeThatFits(
+    if cardModel.width == 0 { cardModel.width = width }
+    hostingController.view.layoutIfNeeded()
+    let fitted = hostingController.sizeThatFits(
       in: CGSize(width: width, height: UIView.layoutFittingExpandedSize.height)
     )
-    preferredContentSize = CGSize(width: width, height: max(fitted?.height ?? 260, 240))
+    let size = CGSize(width: width, height: max(ceil(fitted.height), Self.minimumHeight))
+    // Évite la boucle mise en page → taille préférée → mise en page.
+    guard abs(preferredContentSize.height - size.height) > 0.5
+      || abs(preferredContentSize.width - size.width) > 0.5
+    else { return }
+    preferredContentSize = size
   }
+
+  /// Hauteur plancher, sous celle de la plus petite carte (vente, sans pastille).
+  private static let minimumHeight: CGFloat = 200
 
   private static func loadImage(from attachment: UNNotificationAttachment) -> UIImage? {
     guard attachment.url.startAccessingSecurityScopedResource() else { return nil }
@@ -145,10 +175,11 @@ struct HubSaleView: View {
   let onOpen: () -> Void
 
   @State private var marginRevealed = false
+  @Environment(\.hubCardCompact) private var compact
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
-      HStack(alignment: .center, spacing: 12) {
+      HStack(alignment: .center, spacing: compact ? 10 : 12) {
         thumbnail
         VStack(alignment: .leading, spacing: 3) {
           Text("NOUVELLE VENTE")
@@ -157,7 +188,7 @@ struct HubSaleView: View {
           Text(payload.productName)
             .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(.white)
-            .lineLimit(2)
+            .lineLimit(compact ? 3 : 2)
           if let reference = payload.orderReference, !reference.isEmpty {
             Text(reference)
               .font(.system(size: 13, weight: .medium, design: .monospaced))
@@ -165,20 +196,23 @@ struct HubSaleView: View {
           }
         }
         Spacer(minLength: 0)
-        Image("hubLogo")
-          .resizable()
-          .scaledToFit()
-          .frame(width: 28, height: 28)
-          .accessibilityLabel("Batipower Pro")
+        if !compact {
+          Image("hubLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 28, height: 28)
+            .accessibilityLabel("Batipower Pro")
+        }
       }
 
-      HStack(alignment: .top, spacing: 10) {
+      // Côte à côte quand les deux montants tiennent, empilés sinon (marge dévoilée sur petit écran).
+      HubAdaptiveStack(spacing: 10) {
         priceCard
         marginCard
       }
 
       if !badges.isEmpty {
-        HStack(spacing: 8) {
+        HubAdaptiveStack(spacing: 8) {
           ForEach(badges) { badge in
             HStack(spacing: 6) {
               Image(systemName: badge.icon)
@@ -193,7 +227,6 @@ struct HubSaleView: View {
             .padding(.vertical, 6)
             .background(Capsule().fill(Color.white.opacity(0.1)))
           }
-          Spacer(minLength: 0)
         }
       }
 
@@ -220,6 +253,8 @@ struct HubSaleView: View {
     .background(Color(hex: 0x131921))
   }
 
+  private var thumbnailSize: CGFloat { compact ? 64 : 88 }
+
   private var thumbnail: some View {
     ZStack {
       RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -235,7 +270,7 @@ struct HubSaleView: View {
           .foregroundStyle(Color(hex: 0x94A3B8))
       }
     }
-    .frame(width: 88, height: 88)
+    .frame(width: thumbnailSize, height: thumbnailSize)
     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
   }
 
@@ -337,3 +372,30 @@ struct HubSaleView: View {
     return "\(formatted) %"
   }
 }
+// MARK: - Aperçus (largeurs d'iPhone : SE 320, mini 375, standard 393, Pro Max 430)
+
+#if DEBUG
+#Preview("Vente · 320") {
+  HubCardPreviewHost(width: 320) {
+    HubSaleView(payload: HubSalePayload(identifier: "p", userInfo: HubCardSamples.sale), image: nil, onOpen: {})
+  }
+}
+
+#Preview("Vente · 375") {
+  HubCardPreviewHost(width: 375) {
+    HubSaleView(payload: HubSalePayload(identifier: "p", userInfo: HubCardSamples.sale), image: nil, onOpen: {})
+  }
+}
+
+#Preview("Vente · 393") {
+  HubCardPreviewHost(width: 393) {
+    HubSaleView(payload: HubSalePayload(identifier: "p", userInfo: HubCardSamples.sale), image: nil, onOpen: {})
+  }
+}
+
+#Preview("Vente · 430") {
+  HubCardPreviewHost(width: 430) {
+    HubSaleView(payload: HubSalePayload(identifier: "p", userInfo: HubCardSamples.sale), image: nil, onOpen: {})
+  }
+}
+#endif

@@ -22,6 +22,7 @@
       "expo-secure-store",
       "expo-image",
       "expo-web-browser",
+      "expo-maps",
       [
         "expo-notifications",
         {

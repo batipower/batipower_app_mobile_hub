@@ -1,0 +1,20 @@
+{
+  "aps": {
+    "alert": {
+      "title": "Nouvelle vente",
+      "body": "BP-2026-004512 · 289,90 € TTC"
+    },
+    "category": "HUB_SALE",
+    "sound": "default"
+  },
+  "orderReference": "BP-2026-004512",
+  "productName": "Perceuse-visseuse à percussion sans fil 18 V brushless, 2 batteries 5 Ah et coffret",
+  "totalPaidTTC": 289.9,
+  "margeEstimeeHT": 41.37,
+  "tauxMarge": 17.1,
+  "incomplete": "false",
+  "device": "mobile",
+  "promoUsed": "true",
+  "promoCode": "BIENVENUE10",
+  "promoDiscountTTC": 29
+}

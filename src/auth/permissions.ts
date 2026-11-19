@@ -115,6 +115,14 @@ export function canAccessHubCollecte(role: AppUserRole): boolean {
 }
 
 /**
+ * Supervision impression du HUB (serveurs d'impression des entrepôts) : SUPERADMIN, comme
+ * `canAccessHubPrintSupervision` du web et le `@Roles` de `hub-print-servers.controller.ts`.
+ */
+export function canAccessHubPrintSupervision(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/**
  * Dashboard flux (vue simplifiée) du module PARTNER : SUPERADMIN et RAF
  * (`RESPONSABLE_ACHAT_REFERENT`), comme `canViewSimpleFlowDashboard` du web et
  * `FLOW_SIMPLE_VIEW_ROLES` du back. La DIRECTION n'a que la vue complète, absente du mobile.

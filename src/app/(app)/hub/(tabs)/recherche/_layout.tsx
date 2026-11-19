@@ -56,6 +56,11 @@ export default function SearchLayout() {
         options={{ title: 'Produit', headerLeft: fallbackBackHeaderLeft(FALLBACK_HREF) }}
       />
       <Stack.Screen name="produit/prix-site" options={sheetOptions(t, SHEET_DETENTS.editor)} />
+      {/* Actions marketplace de la fiche produit (SUPERADMIN) : saisie en feuilles natives. */}
+      <Stack.Screen name="produit/offre" options={sheetOptions(t, SHEET_DETENTS.editor)} />
+      <Stack.Screen name="produit/champ" options={sheetOptions(t, SHEET_DETENTS.half)} />
+      <Stack.Screen name="produit/lier-ean" options={sheetOptions(t, SHEET_DETENTS.editor)} />
+      <Stack.Screen name="produit/asin" options={sheetOptions(t, SHEET_DETENTS.tall)} />
     </Stack>
   );
 }

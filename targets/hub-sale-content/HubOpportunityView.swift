@@ -90,6 +90,8 @@ struct HubOpportunityView: View {
   let payload: HubOpportunityPayload
   let onOpen: () -> Void
 
+  @Environment(\.hubCardCompact) private var compact
+
   private var accent: Color { payload.isNegative ? Color(hex: 0xF87171) : Color(hex: 0x94C83E) }
 
   var body: some View {
@@ -102,23 +104,25 @@ struct HubOpportunityView: View {
           Text(payload.designation)
             .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(.white)
-            .lineLimit(2)
+            .lineLimit(compact ? 3 : 2)
           if let line = originLine {
             Text(line)
               .font(.system(size: 12, weight: .medium))
               .foregroundStyle(Color.white.opacity(0.6))
-              .lineLimit(1)
+              .lineLimit(compact ? 2 : 1)
           }
         }
         Spacer(minLength: 0)
-        Image("hubLogo")
-          .resizable()
-          .scaledToFit()
-          .frame(width: 28, height: 28)
-          .accessibilityLabel("Batipower Pro")
+        if !compact {
+          Image("hubLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 28, height: 28)
+            .accessibilityLabel("Batipower Pro")
+        }
       }
 
-      HStack(alignment: .top, spacing: 10) {
+      HubAdaptiveStack(spacing: 10) {
         priceCard(label: "PRIX ATTENDU", value: PushPayload.eur(payload.requestedPriceHT, suffix: " HT"), tint: nil)
         priceCard(
           label: "PRIX PROPOSÉ",
@@ -128,7 +132,7 @@ struct HubOpportunityView: View {
         )
       }
 
-      HStack(alignment: .top, spacing: 10) {
+      HubAdaptiveStack(spacing: 10) {
         priceCard(
           label: payload.isNegative ? "ÉCART" : "PRIX OBTENU",
           value: payload.isNegative
@@ -153,7 +157,7 @@ struct HubOpportunityView: View {
               Text(proposalAuthor(proposal))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.6))
-                .lineLimit(1)
+                .lineLimit(compact ? 2 : 1)
               Spacer(minLength: 0)
             }
           }
@@ -240,3 +244,31 @@ struct HubOpportunityView: View {
     )
   }
 }
+
+// MARK: - Aperçus (largeurs d'iPhone : SE 320, mini 375, standard 393, Pro Max 430)
+
+#if DEBUG
+#Preview("Opportunité · 320") {
+  HubCardPreviewHost(width: 320) {
+    HubOpportunityView(payload: HubOpportunityPayload(identifier: "p", userInfo: HubCardSamples.opportunity), onOpen: {})
+  }
+}
+
+#Preview("Opportunité · 375") {
+  HubCardPreviewHost(width: 375) {
+    HubOpportunityView(payload: HubOpportunityPayload(identifier: "p", userInfo: HubCardSamples.opportunity), onOpen: {})
+  }
+}
+
+#Preview("Opportunité · 393") {
+  HubCardPreviewHost(width: 393) {
+    HubOpportunityView(payload: HubOpportunityPayload(identifier: "p", userInfo: HubCardSamples.opportunity), onOpen: {})
+  }
+}
+
+#Preview("Opportunité · 430") {
+  HubCardPreviewHost(width: 430) {
+    HubOpportunityView(payload: HubOpportunityPayload(identifier: "p", userInfo: HubCardSamples.opportunity), onOpen: {})
+  }
+}
+#endif

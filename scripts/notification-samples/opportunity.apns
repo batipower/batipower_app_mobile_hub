@@ -1,0 +1,27 @@
+{
+  "aps": {
+    "alert": {
+      "title": "Opportunité acceptée",
+      "body": "Perceuse-visseuse 18 V · 146,00 € HT"
+    },
+    "category": "HUB_OPPORTUNITY",
+    "sound": "default"
+  },
+  "event": "ACCEPTED",
+  "designation": "Perceuse-visseuse à percussion sans fil 18 V brushless, 2 batteries 5 Ah et coffret",
+  "reference": "DCD796P2",
+  "distributorName": "Distributeur Nord",
+  "subsidiaryName": "Filiale Lille",
+  "requestedPriceHT": 142.5,
+  "proposedPriceHT": 149,
+  "proposedByName": "Camille Martin",
+  "proposedAt": "2026-11-12T09:30:00.000Z",
+  "obtainedPriceHT": 146,
+  "gapHT": 3.5,
+  "gapPercent": 2.4,
+  "resolvedByName": "Alexandre Dupont",
+  "proposals": [
+    { "priceHT": 149, "by": "Camille Martin", "at": "2026-11-12T09:30:00.000Z" },
+    { "priceHT": 146, "by": "Alexandre Dupont", "at": "2026-11-13T14:05:00.000Z" }
+  ]
+}

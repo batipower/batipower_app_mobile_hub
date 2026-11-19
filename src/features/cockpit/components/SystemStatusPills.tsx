@@ -2,6 +2,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Printer, Radar, ShoppingCart } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
+import { openPrintSupervision } from '@/features/printSupervision/navigation';
 import { formatInteger, formatPercent } from '@/lib/format';
 import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 
@@ -31,9 +32,11 @@ type PillProps = {
   accessibilityLabel: string;
   /** Rend la pastille cliquable (ex. détail par pays des scrapers). */
   onPress?: () => void;
+  /** Annonce VoiceOver de l'action quand la pastille est cliquable. */
+  accessibilityHint?: string;
 };
 
-function StatusPill({ Icon, value, tone, accessibilityLabel, onPress }: PillProps) {
+function StatusPill({ Icon, value, tone, accessibilityLabel, onPress, accessibilityHint }: PillProps) {
   const styles = useStyles();
   const t = useTheme();
   const color =
@@ -62,7 +65,7 @@ function StatusPill({ Icon, value, tone, accessibilityLabel, onPress }: PillProp
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
-        accessibilityHint="Ouvre le détail par pays"
+        accessibilityHint={accessibilityHint}
         hitSlop={6}
         onPress={onPress}
         style={({ pressed }) => [pillStyle, pressed && styles.pressed]}
@@ -121,6 +124,7 @@ export function SystemStatusPills() {
         tone: scrapingFleetTone(running, optimal, idle),
         accessibilityLabel: `Scrapers : ${plural(running, 'bot')} en route sur ${optimal} nécessaire${optimal > 1 ? 's' : ''}${detail ? `, ${detail}` : ''}`,
         onPress: openScrapingFleet,
+        accessibilityHint: 'Ouvre le détail par pays',
       };
     } else if (agentsData) {
       const idle = agentsData.idleAgents;
@@ -154,6 +158,8 @@ export function SystemStatusPills() {
           total === 0 && problems === 0
             ? "Imprimantes : aucun serveur d'impression enregistré"
             : `Imprimantes : ${online} sur ${total} en ligne${problems > 0 ? `, ${plural(problems, 'problème')}` : ''}`,
+        onPress: openPrintSupervision,
+        accessibilityHint: 'Ouvre la supervision impression',
       };
     } else {
       printerPill = {
@@ -161,6 +167,8 @@ export function SystemStatusPills() {
         value: '—',
         tone: 'unknown',
         accessibilityLabel: 'Imprimantes : état indisponible',
+        onPress: openPrintSupervision,
+        accessibilityHint: 'Ouvre la supervision impression',
       };
     }
   }

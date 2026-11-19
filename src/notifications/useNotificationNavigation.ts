@@ -100,9 +100,11 @@ function openFromNotification(response: Notifications.NotificationResponse, acce
 
 /**
  * Navigation déclenchée par une notification (vente, devis). Active seulement quand `enabled` est vrai
- * (session ouverte, compte pouvant ouvrir l'écran visé) : sinon aucune navigation, et la réponse
- * est écartée pour ne pas être rejouée plus tard. Ne contourne donc pas `Stack.Protected`, et à
- * froid elle attend la fin de la vérification de session (le splash n'est pas retenu).
+ * (session ouverte et redirection d'atterrissage terminée, voir `PushNotificationsController`) :
+ * sinon aucune navigation, et la réponse reste en attente (la réponse mémorisée par le système
+ * est relue dès que `enabled` passe à vrai). Ne contourne donc pas `Stack.Protected`, et à froid
+ * elle attend la fin de la vérification de session puis de la redirection de `index` (le splash
+ * n'est pas retenu).
  */
 export function useNotificationNavigation(enabled: boolean, access: NotificationAccess) {
   const { cockpit, quotes } = access;

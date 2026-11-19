@@ -355,4 +355,13 @@ export interface UpdateHubProductPayload {
   monitorBuyBox?: boolean;
   monitorBuyBoxByCountry?: Record<string, boolean> | null;
   monitorBuyBoxManoManoByCountry?: Record<string, boolean> | null;
+  /** Commission marketplace en % (15 = 15 %), `null` : retour au défaut de la marketplace. */
+  tauxAmazonRentability?: number | null;
+  tauxManoManoRentability?: number | null;
+  /** ManoMano hors France : objet complet, le back remplace le JSON existant. */
+  tauxManoManoRentabilityByCountry?: Record<string, number> | null;
+  tauxLeroyMerlinRentability?: number | null;
+  tauxBricomanRentability?: number | null;
+  tauxCastoramaRentability?: number | null;
+  tauxCdiscountRentability?: number | null;
 }

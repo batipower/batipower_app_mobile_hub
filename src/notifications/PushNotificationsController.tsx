@@ -1,6 +1,7 @@
 import { useAuth } from '@/auth/AuthProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
+import { usePathname, useRootNavigationState } from 'expo-router';
 import { useEffect } from 'react';
 
 import { canAccessHubCockpit, canAccessHubCustomerQuotes } from '@/auth/permissions';
@@ -37,8 +38,16 @@ export function PushNotificationsController() {
   const canOpenQuotes = signedIn && canAccessHubCustomerQuotes(user.role);
   const queryClient = useQueryClient();
 
+  // À froid, la session s'ouvre pendant que `index` redirige (`replace`) vers l'écran
+  // d'atterrissage. Traiter le tap avant la fin de cette redirection perd la navigation (pile
+  // `(app)` pas encore montée) ou la voit écrasée par le `replace`. On attend donc que la
+  // navigation racine soit prête et que l'on ait quitté l'ancre `/`.
+  const pathname = usePathname();
+  const rootNavigationKey = useRootNavigationState()?.key;
+  const landed = !!rootNavigationKey && pathname !== '/';
+
   usePushNotifications(realIsSuperAdmin);
-  useNotificationNavigation(signedIn, { cockpit: canOpenCockpit, quotes: canOpenQuotes });
+  useNotificationNavigation(signedIn && landed, { cockpit: canOpenCockpit, quotes: canOpenQuotes });
 
   // Un push « Devis » reçu app ouverte rafraîchit tout de suite le pipeline, les fiches et le badge
   // de l'onglet Devis (sans attendre le prochain tour de relecture).
