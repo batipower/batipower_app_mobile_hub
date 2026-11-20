@@ -18,22 +18,26 @@ import { ProductHeader } from './components/ProductHeader';
 import { ProductStock } from './components/ProductStock';
 import { ProductWebsitePricing } from './components/ProductWebsitePricing';
 import { useProductDetail } from './hooks/useProductDetail';
+import { HistoryTab } from './history/HistoryTab';
+import { productSalesDailyKey } from './hooks/useProductSales';
 import { MarketplacesTab } from './marketplaces/MarketplacesTab';
 import { productPricingKey } from './marketplaces/hooks/useProductPricing';
 
-type Tab = 'fiche' | 'marketplaces';
+type Tab = 'fiche' | 'marketplaces' | 'historique';
 
 const TABS: readonly Segment<Tab>[] = [
   { key: 'fiche', label: 'Fiche' },
   { key: 'marketplaces', label: 'Marketplaces' },
+  { key: 'historique', label: 'Historique' },
 ];
 
 /**
  * Fiche d'un produit : identité, prix du site avec sa marge (modifiable, SUPERADMIN), stock par
  * entrepôt et agence, commandes fournisseur, et accès aux commandes qui le contiennent. Réservée
  * aux rôles SUPERADMIN et MANAGER (comme `hub-app/products/*` côté back) : les autres comptes
- * n'envoient aucun appel. Un sélecteur « Fiche / Marketplaces » (paramètre d'URL `onglet`) donne
- * accès aux prix pratiqués sur les marketplaces, modifiables par le SUPERADMIN.
+ * n'envoient aucun appel. Un sélecteur « Fiche / Marketplaces / Historique » (paramètre d'URL `onglet`) donne
+ * accès aux prix pratiqués sur les marketplaces, modifiables par le SUPERADMIN, et à l'historique
+ * des ventes (mensuelles, évolution, prix et volumes). Le mini-histogramme de l'en-tête ouvre cet onglet.
  */
 export function ProductDetailScreen() {
   const { user } = useAuth();
@@ -53,7 +57,8 @@ function ProductDetail({ canEditWebsitePrice }: { canEditWebsitePrice: boolean }
   const t = useTheme();
   const { reference, onglet } = useLocalSearchParams<{ reference: string; onglet?: string }>();
   const queryClient = useQueryClient();
-  const tab: Tab = onglet === 'marketplaces' ? 'marketplaces' : 'fiche';
+  const tab: Tab =
+    onglet === 'marketplaces' ? 'marketplaces' : onglet === 'historique' ? 'historique' : 'fiche';
   const {
     header,
     stock,
@@ -70,6 +75,12 @@ function ProductDetail({ canEditWebsitePrice }: { canEditWebsitePrice: boolean }
       refetch(),
       tab === 'marketplaces'
         ? queryClient.refetchQueries({ queryKey: productPricingKey(reference) })
+        : undefined,
+      tab === 'historique'
+        ? queryClient.refetchQueries({ queryKey: productSalesDailyKey(reference) })
+        : undefined,
+      tab === 'historique'
+        ? queryClient.refetchQueries({ queryKey: ['hub-product-sales-stats', reference] })
         : undefined,
     ]);
   }, [refetch, queryClient, reference, tab]);
@@ -108,7 +119,10 @@ function ProductDetail({ canEditWebsitePrice }: { canEditWebsitePrice: boolean }
         ) : null}
         {header ? (
           <>
-            <ProductHeader header={header} />
+            <ProductHeader
+              header={header}
+              onOpenHistory={() => router.setParams({ onglet: 'historique' })}
+            />
             <SeeAllLink
               label="Voir les commandes contenant ce produit"
               onPress={() => openOrdersList({ produit: header.reference })}
@@ -120,6 +134,8 @@ function ProductDetail({ canEditWebsitePrice }: { canEditWebsitePrice: boolean }
             />
             {tab === 'marketplaces' ? (
               <MarketplacesTab header={header} canEdit={canEditWebsitePrice} />
+            ) : tab === 'historique' ? (
+              <HistoryTab header={header} isSuperAdmin={canEditWebsitePrice} />
             ) : (
               <>
                 {canEditWebsitePrice ? <ProductWebsitePricing reference={header.reference} /> : null}
@@ -134,7 +150,9 @@ function ProductDetail({ canEditWebsitePrice }: { canEditWebsitePrice: boolean }
             )}
             <Text style={styles.footnote}>
               {canEditWebsitePrice
-                ? tab === 'marketplaces'
+                ? tab === 'historique'
+                  ? "L'historique est calculé à partir des commandes des 12 derniers mois. La prévision suggérée s'applique depuis l'onglet Historique."
+                  : tab === 'marketplaces'
                   ? "Les offres, l'objectif et la commission se modifient depuis le menu de chaque marketplace. Les autres modifications se font depuis l'espace web."
                   : "Le prix du site se modifie ici, les offres marketplace depuis l'onglet Marketplaces. Les autres modifications se font depuis l'espace web."
                 : "Consultation en lecture seule. Les modifications se font depuis l'espace web."}

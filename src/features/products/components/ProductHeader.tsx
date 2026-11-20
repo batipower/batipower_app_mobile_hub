@@ -10,14 +10,29 @@ import { formatInteger } from '@/lib/format';
 import { colors, fontSize, makeStyles, monoFontFamily, radius, spacing, useTheme } from '@/theme';
 import type { HubProductHeader } from '@/types/product';
 
+import { useProductSalesDaily } from '../hooks/useProductSales';
+import { SalesMiniChart } from '../history/components/SalesMiniChart';
+import { monthlySalesSeries } from '../history/salesModel';
 import { flagBadges, thumbnailUri } from '../productDisplay';
 
 const THUMBNAIL_SIZE = 84;
 
-/** Identité du produit : vignette, référence, désignation, marque, codes, drapeaux et ventes. */
-export function ProductHeader({ header }: { header: HubProductHeader }) {
+type ProductHeaderProps = {
+  header: HubProductHeader;
+  /** Appui sur le mini-histogramme : ouvre l'onglet Historique. */
+  onOpenHistory?: () => void;
+};
+
+/**
+ * Identité du produit : vignette, référence, désignation, marque, codes, drapeaux et ventes, avec
+ * l'histogramme des 8 derniers mois (mois en cours inclus).
+ */
+export function ProductHeader({ header, onOpenHistory }: ProductHeaderProps) {
   const styles = useStyles();
   const t = useTheme();
+  const daily = useProductSalesDaily(header.reference);
+  const months = monthlySalesSeries(header.salesQuantities, daily.data?.points ?? [], 8);
+  const dailyLoading = daily.isPending && daily.fetchStatus !== 'idle';
   const uri = thumbnailUri(header.thumbnailBase64);
   const sales = header.salesQuantities;
   const weight = header.weightInGrams ?? 0;
@@ -78,17 +93,21 @@ export function ProductHeader({ header }: { header: HubProductHeader }) {
       ) : null}
       {weight > 0 ? <InfoRow label="Poids" value={formatWeight(weight)} /> : null}
 
+      <Divider />
+      <Text style={styles.salesTitle}>Ventes (unités)</Text>
       {sales ? (
-        <>
-          <Divider />
-          <Text style={styles.salesTitle}>Ventes (unités)</Text>
-          <View style={styles.sales}>
-            <SalesTile label="7 jours" value={sales.last7Days} />
-            <SalesTile label="30 jours" value={sales.last30Days} />
-            <SalesTile label="Total" value={sales.totalQuantity} />
-          </View>
-        </>
+        <View style={styles.sales}>
+          <SalesTile label="7 jours" value={sales.last7Days} />
+          <SalesTile label="30 jours" value={sales.last30Days} />
+          <SalesTile label="Total" value={sales.totalQuantity} />
+        </View>
       ) : null}
+      <SalesMiniChart
+        buckets={months}
+        loading={dailyLoading && months.every((month) => month.quantity === 0)}
+        unavailable={!!daily.error}
+        onPress={onOpenHistory}
+      />
     </DetailSection>
   );
 }

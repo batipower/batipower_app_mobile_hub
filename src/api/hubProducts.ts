@@ -1,6 +1,13 @@
 import { apiClient } from '@/api/client';
 import type { UpdateHubProductPayload } from '@/types/hubPricing';
-import type { HubProductHeader, HubProductSearchHit, HubProductStock } from '@/types/product';
+import type {
+  HubProductHeader,
+  HubProductSearchHit,
+  HubProductStatisticsResponse,
+  HubProductStock,
+  HubSalesDailyResponse,
+  HubStatsPeriod,
+} from '@/types/product';
 
 /**
  * Fiches produit du module HUB (`hub-app/products/*`). Lecture : le back réserve ces routes
@@ -27,6 +34,22 @@ export const hubProductsApi = {
     return apiClient.get<HubProductStock>(
       `hub-app/products/${encodeURIComponent(reference)}/stock`,
       { signal },
+    );
+  },
+
+  /** Ventes journalières (365 j par défaut, 400 au plus) : base des histogrammes mensuels. */
+  getSalesDaily(reference: string, days = 365, signal?: AbortSignal) {
+    return apiClient.get<HubSalesDailyResponse>(
+      `hub-app/products/${encodeURIComponent(reference)}/sales/daily`,
+      { query: { days }, signal },
+    );
+  },
+
+  /** Prix et volumes par marketplace sur la période (avec cache côté back). */
+  getSalesStatistics(reference: string, period: HubStatsPeriod = '1month', signal?: AbortSignal) {
+    return apiClient.get<HubProductStatisticsResponse>(
+      `hub-app/products/${encodeURIComponent(reference)}/sales/statistics`,
+      { query: { period }, signal },
     );
   },
 

@@ -20,6 +20,15 @@ export interface HubSalesQuantities {
   last7Days?: number;
   last30Days?: number;
   totalQuantity?: number;
+  /** Unités vendues par mois (`YYYY-MM`), alimenté par un cron : source de l'histogramme mensuel. */
+  monthly?: Record<string, number>;
+  /** Unités vendues par jour (`YYYY-MM-DD`) : repli quand un mois manque dans `monthly`. */
+  daily?: Record<string, number>;
+}
+
+/** Prévision des ventes d'un pays (`monthlyForecastByCountry` de la fiche). */
+export interface HubMonthlyForecastEntry {
+  unitsSold30d?: number | null;
 }
 
 export interface HubProductFlags {
@@ -52,6 +61,9 @@ export interface HubProductHeader {
   /** Pièces par colis ; `null` = 1 unité = 1 colis. Absent d'une API plus ancienne. */
   nbPieceByColis?: number | null;
   salesQuantities: HubSalesQuantities | null;
+  /** Prévision mensuelle enregistrée sur la fiche (unités par mois). */
+  previSalesByMonth?: number | null;
+  monthlyForecastByCountry?: Record<string, HubMonthlyForecastEntry> | null;
   stock: { flevy: number | null; dombasle: number | null; qg: number | null };
   flags: HubProductFlags;
   updatedAt: string;
@@ -97,4 +109,52 @@ export interface HubProductStock {
   agencies: HubAgencyStock[];
   supplierOrders: HubSupplierOrder[];
   supplierOrdersWeekLabel: string | null;
+}
+
+// ─── Historique des ventes ───────────────────────────────────────────────────
+
+/** Ventes d'un jour (`GET hub-app/products/:reference/sales/daily`). */
+export interface HubSalesDailyPoint {
+  /** `YYYY-MM-DD`. */
+  date: string;
+  quantity: number;
+  /** CA TTC du jour ; absent pour le MANAGER (réponse assainie côté back). */
+  amount?: number;
+  ordersCount: number;
+}
+
+export interface HubSalesDailyResponse {
+  reference: string;
+  days: number;
+  hasCachedData: boolean;
+  points: HubSalesDailyPoint[];
+}
+
+export type HubStatsPeriod = '1month' | '3months' | '6months' | '1year';
+
+export interface HubProductStatisticsMarketplace {
+  marketplace: string;
+  quantity: number;
+  ordersCount: number;
+  totalAmountTTC: number;
+  averagePrice: number;
+  priceMin: number;
+  priceMax: number;
+}
+
+/** `GET hub-app/products/:reference/sales/statistics` : prix et volumes par marketplace. */
+export interface HubProductStatisticsResponse {
+  message: string;
+  status: 'success' | 'no_data' | 'error';
+  source?: 'cache' | 'realtime';
+  reference: string;
+  summary?: {
+    totalQuantity: number;
+    totalOrders: number;
+    totalAmountTTC: number;
+    averagePrice: number;
+    priceMin: number;
+    priceMax: number;
+  };
+  marketplaceStats?: HubProductStatisticsMarketplace[];
 }
