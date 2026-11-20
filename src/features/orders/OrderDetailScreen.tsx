@@ -9,12 +9,14 @@ import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh'
 import { openProduct } from '@/features/search/navigation';
 import { makeStyles, spacing, useTheme } from '@/theme';
 
+import { OrderActionsBar } from './actions/OrderActionsBar';
 import { OrderDetail } from './components/OrderDetail';
 import { OrderTransportSection } from './components/OrderTransportSection';
 import { useOrderDetail } from './hooks/useOrderDetail';
 
 /**
- * Fiche d'une commande, en lecture seule (`GET hub-app/orders/logistics-detail/:reference`).
+ * Fiche d'une commande (`GET hub-app/orders/logistics-detail/:reference`) et sa barre d'actions
+ * (étiquette, transfert, annulation, remboursement…), mêmes droits que le détail du site HUB.
  * Ouverte à tout compte HUB ; le lien vers la fiche produit n'apparaît que pour les rôles
  * qui peuvent la consulter.
  */
@@ -61,8 +63,13 @@ export function OrderDetailScreen({ showTransportMargin = false }: { showTranspo
             text="Aucune commande ne correspond à cette référence."
           />
         ) : null}
+        {detail && reference ? <OrderActionsBar data={detail} routeReference={reference} /> : null}
         {detail ? (
-          <OrderDetail data={detail} onOpenProduct={canOpenProducts ? openProduct : undefined} />
+          <OrderDetail
+            data={detail}
+            onOpenProduct={canOpenProducts ? openProduct : undefined}
+            hideFootnote
+          />
         ) : null}
         {detail && canSeeTransport && reference ? <OrderTransportSection reference={reference} /> : null}
       </ScrollView>

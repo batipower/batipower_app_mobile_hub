@@ -1,4 +1,5 @@
 import { apiClient } from '@/api/client';
+import type { RefundOrderBody, RefundOrderResult } from '@/types/orderActions';
 
 /**
  * Retours de commande du HUB (`hub-app/returns/*`) : historique et poste de réception. Contrat
@@ -262,5 +263,10 @@ export const hubReturnsApi = {
 
   undoReceive(reference: string) {
     return apiClient.post<ReturnActionResult>(`${base(reference)}/undo-receive`);
+  },
+
+  /** Avoir puis remboursement du client (total, par produits ou montant libre), comme « Gérer retour ». */
+  refund(reference: string, body: RefundOrderBody) {
+    return apiClient.post<RefundOrderResult>(`${base(reference)}/refund`, body);
   },
 };

@@ -149,6 +149,27 @@ export function canAccessHubProductSheet(role: AppUserRole): boolean {
 }
 
 /**
+ * Renvoi au client et étiquette PDF de secours depuis la fiche commande : SUPERADMIN + MANAGER,
+ * comme `canResendHubOrder` et `canPrintPdfLabel` côté web.
+ */
+export function canResendHubOrder(role: AppUserRole): boolean {
+  return isHubOpsRole(role);
+}
+
+/** Étiquette PDF de secours (rien n'est envoyé à l'imprimante) : SUPERADMIN + MANAGER. */
+export function canPrintPdfLabel(role: AppUserRole): boolean {
+  return isHubOpsRole(role);
+}
+
+/**
+ * Passage manuel en « Livré » et transfert forcé d'une commande déjà expédiée depuis la fiche
+ * commande : SUPERADMIN uniquement, comme côté web.
+ */
+export function canForceHubOrderStatus(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/**
  * Section « Site web » de la fiche produit (prix TTC, marge, modification du prix) : SUPERADMIN
  * uniquement. Le back laisse aussi le MANAGER modifier le prix, mais lui masque la marge.
  */

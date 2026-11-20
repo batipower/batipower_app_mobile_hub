@@ -116,9 +116,16 @@ export interface HubOrderRow {
   name: string | null;
   quantity: number;
   productPrice: number;
+  /** Poids unitaire (g), utilisé pour le poids global de l'étiquette et l'impression du BL. */
+  weightInGrams?: number | null;
 }
 
 export interface HubWarehouseOrder {
+  /** Identifiant de la ligne entrepôt : requis pour « Passer sur eBatPro ». */
+  uuid?: string;
+  /** Nombre de colis forcé à la main (prioritaire sur le formulaire eBat). */
+  forceNbColis?: number | null;
+  ebatOrderForm?: { nbColis?: number | null } | null;
   status: string;
   doneStatus?: string | null;
   deliveryOrderStatus: string;
@@ -174,6 +181,8 @@ export interface HubOrder {
   rentability?: number | null;
   rentabilityRealWithOurPrice?: number | null;
   carrierCostHT?: number | null;
+  /** Prix d'achat HT fournisseur : valeur proposée pour l'assurance Ad Valorem DPD. */
+  achatFournisseurRentabilityHT?: number | null;
 }
 
 /** Commande du même split manuel ou du même panier site (la commande courante incluse). */
@@ -217,6 +226,9 @@ export interface HubCancellationRequest {
   reason: string;
   status: string;
   requestedAt: string;
+  /** Issue du remboursement PrestaShop à la validation (null tant que non traité). */
+  autoRefundOutcome?: 'REFUNDED' | 'FAILED' | 'DISABLED' | 'SKIPPED_TRANSFER' | null;
+  refundError?: string | null;
 }
 
 export interface HubOrderPaymentInfo {
@@ -242,6 +254,15 @@ export interface HubWarehouseInfo {
   distributorName: string | null;
 }
 
+/** Renvoi au client d'une commande (journal d'audit) : seuls les champs lus par l'app. */
+export interface HubOrderResend {
+  uuid: string;
+  createdAt: string;
+  status: 'SUCCESS' | 'FAILED' | string;
+  mode: 'full' | 'partial' | string;
+  resendReference: string | null;
+}
+
 export interface HubLogisticsDetail {
   success: boolean;
   message: string;
@@ -253,6 +274,10 @@ export interface HubLogisticsDetail {
     relatedOrders?: HubRelatedOrder[];
     warehouseInfo?: HubWarehouseInfo | null;
     paymentInfo?: HubOrderPaymentInfo | null;
+    /** Renvois vers eBatPro, du plus récent au plus ancien. */
+    ebatResends?: { uuid: string; createdAt: string; warehouse: string | null }[];
+    /** Renvois au client (commandes `-RENVOI`), du plus récent au plus ancien. */
+    resends?: HubOrderResend[];
   } | null;
 }
 
