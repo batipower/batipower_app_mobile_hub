@@ -130,10 +130,31 @@ export type ResumeSession = {
   totalCount: number;
 };
 
+/** Fournisseur dont les crédits sont épuisés (coupe-circuit de l'analyse). */
+export type ApiQuotaProvider = 'ASIN_DATA' | 'JUNGLE_SCOUT';
+
+/** PAUSED : file en pause, essai automatique à `nextProbeAt`. STOPPED : file arrêtée, recharge attendue. */
+export type ApiQuotaPhase = 'PAUSED' | 'STOPPED';
+
+export type ApiQuotaState = {
+  provider: ApiQuotaProvider;
+  phase: ApiQuotaPhase;
+  exhaustedAt: string;
+  nextProbeAt: string;
+  lastError: string | null;
+  /** Message prêt à afficher aux opérateurs. */
+  message: string;
+};
+
+/** `reason` d'une analyse interrompue parce qu'une API est à sec (aucune fiche enregistrée). */
+export const API_QUOTA_REASON = 'API_QUOTA_EXHAUSTED';
+
 export type AnalysisCompletePayload = {
   jobId: string;
   success?: boolean;
   reason?: string;
+  /** Fournisseur à sec quand `reason === API_QUOTA_REASON`. */
+  provider?: ApiQuotaProvider;
   error?: string | null;
   result: FullResult | null;
   stagingId: string | null;

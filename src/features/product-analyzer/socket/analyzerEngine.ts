@@ -2,8 +2,14 @@ import { io, type Socket } from 'socket.io-client';
 
 import { hubProductAnalyzerApi } from '@/api/hubProductAnalyzer';
 import { queryClient } from '@/api/queryClient';
-import type { AnalysisCompletePayload, AnalysisErrorPayload, AnalysisInputRequiredPayload, AnalysisStepPayload } from '@/features/product-analyzer/lib/analyze-types';
-import { warehouseOrDefault } from '@/features/product-analyzer/lib/analyze-types';
+import type {
+  AnalysisCompletePayload,
+  AnalysisErrorPayload,
+  AnalysisInputRequiredPayload,
+  AnalysisStepPayload,
+  ApiQuotaState,
+} from '@/features/product-analyzer/lib/analyze-types';
+import { API_QUOTA_REASON, warehouseOrDefault } from '@/features/product-analyzer/lib/analyze-types';
 import { getReserveClaimToken } from '@/features/product-analyzer/lib/claim-token';
 import { STEPS_DEF } from '@/features/product-analyzer/lib/constants';
 import { PA_ROOT } from '@/features/product-analyzer/queryKeys';
@@ -33,6 +39,10 @@ const START_TIMEOUT_MS = 60_000;
 /** Après une reconnexion en cours de file, délai avant de relancer l'élément interrompu. */
 const RECONNECT_WATCHDOG_MS = 15_000;
 const TICKET_RETRY_MS = 4_000;
+/** File en pause pour crédits API : relecture de l'état si l'événement socket a été manqué. */
+const QUOTA_POLL_MS = 30_000;
+/** Motif affiché sur les produits abandonnés quand la file s'arrête faute de crédits. */
+const QUOTA_STOPPED_ITEM_MESSAGE = 'Crédits API épuisés — rechargez puis relancez';
 
 const EMPTY_LIVE: LiveJob = { jobId: null, steps: {}, mpData: {}, startedAt: null };
 
@@ -58,6 +68,8 @@ const INITIAL_QUEUE: QueueState = {
   currentIdx: 0,
   startedAt: null,
   reserveReleased: false,
+  pausedForQuota: false,
+  quotaMessage: null,
 };
 
 type Listener = () => void;
@@ -79,6 +91,7 @@ export class AnalyzerEngine {
     live: EMPTY_LIVE,
     single: INITIAL_SINGLE,
     queue: INITIAL_QUEUE,
+    apiQuota: [],
   };
 
   private jobId: string | null = null;
@@ -88,6 +101,7 @@ export class AnalyzerEngine {
   private startTimer: ReturnType<typeof setTimeout> | null = null;
   private watchdog: ReturnType<typeof setTimeout> | null = null;
   private ticketTimer: ReturnType<typeof setTimeout> | null = null;
+  private quotaPoll: ReturnType<typeof setInterval> | null = null;
   private lostDuringJob = false;
   private itemStartedAt = 0;
   private cancelledBeforeStart = false;
@@ -178,6 +192,7 @@ export class AnalyzerEngine {
     this.disposed = true;
     this.clearStartTimer();
     this.clearWatchdog();
+    this.clearQuotaPoll();
     if (this.ticketTimer) clearTimeout(this.ticketTimer);
     if (this.socket) {
       this.socket.removeAllListeners();
@@ -239,6 +254,10 @@ export class AnalyzerEngine {
     socket.on('analysis:blocked', (d: BlockedData) => this.handleBlocked(d));
     socket.on('analysis:already_analyzed', (d: AlreadyAnalyzedData) => this.handleAlreadyAnalyzed(d));
     socket.on('analysis:reused', (d: AnalysisReusedData) => this.handleReused(d));
+    // Coupe-circuit des crédits API : diffusé à chaque changement (liste vide = crédits revenus).
+    socket.on('analyzer:api-quota', (d: { states?: ApiQuotaState[] }) =>
+      this.handleApiQuota(Array.isArray(d?.states) ? d.states : []),
+    );
   }
 
   // ─── Utilitaires ──────────────────────────────────────────────────────────
@@ -395,6 +414,8 @@ export class AnalyzerEngine {
         currentIdx: 0,
         startedAt: Date.now(),
         reserveReleased: false,
+        pausedForQuota: false,
+        quotaMessage: null,
       },
     });
     this.startQueueItem(0);
@@ -407,12 +428,15 @@ export class AnalyzerEngine {
     if (!queue.running) return;
     this.clearStartTimer();
     this.clearWatchdog();
+    this.clearQuotaPoll();
     if (this.jobId && this.socket) this.socket.emit('analyze:cancel', { jobId: this.jobId });
     this.jobId = null;
     const unfinished = queue.items.filter((it) => it.status === 'pending' || it.status === 'analyzing');
     const reserveUuids = unfinished.map((it) => it.reserveUuid).filter((u): u is string => !!u);
     this.setQueue({
       running: false,
+      pausedForQuota: false,
+      quotaMessage: null,
       items: queue.items.map((it) =>
         it.status === 'pending' || it.status === 'analyzing'
           ? { ...it, status: 'error', errorMsg: 'Annulé' }
@@ -495,7 +519,8 @@ export class AnalyzerEngine {
     );
     this.setQueue({ items, reserveReleased: false });
     const current = items[this.state.queue.currentIdx];
-    if (this.state.queue.running && (!current || current.status !== 'analyzing')) {
+    // En pause crédits API, rien à relancer : la reprise vient du retour des crédits.
+    if (this.state.queue.running && !this.state.queue.pausedForQuota && (!current || current.status !== 'analyzing')) {
       this.advanceQueue(this.state.queue.currentIdx);
     }
   }
@@ -581,8 +606,9 @@ export class AnalyzerEngine {
   private finishQueue() {
     this.clearStartTimer();
     this.clearWatchdog();
+    this.clearQuotaPoll();
     this.jobId = null;
-    this.setQueue({ running: false });
+    this.setQueue({ running: false, pausedForQuota: false });
     this.resetLive();
     this.mode = 'idle';
     this.invalidateStaging();
@@ -610,6 +636,11 @@ export class AnalyzerEngine {
     }
     if (this.mode === 'queue' && this.state.queue.running) {
       this.clearWatchdog();
+      if (this.state.queue.pausedForQuota) {
+        // Aucun job en cours : on relit l'état du coupe-circuit, qui a pu changer pendant la coupure.
+        void this.refreshApiQuota();
+        return;
+      }
       const idx = this.state.queue.currentIdx;
       this.watchdog = setTimeout(() => {
         this.watchdog = null;
@@ -694,6 +725,11 @@ export class AnalyzerEngine {
     if (!item) return;
 
     if (d.success === false) {
+      if (d.reason === API_QUOTA_REASON) {
+        // API à sec : rien n'a été enregistré. Le produit reste « à traiter », la file attend le retour des crédits.
+        this.pauseQueueForQuota(idx, d.error ?? null);
+        return;
+      }
       if (d.reason === 'EBAT_NOT_FOUND' && d.stagingId) {
         this.patchItem(idx, { status: 'ebat_not_found', stagingId: d.stagingId, elapsedMs });
         if (item.reserveUuid) void this.markDone(item.reserveUuid, d.stagingId);
@@ -707,6 +743,76 @@ export class AnalyzerEngine {
     this.patchItem(idx, { status: 'done', stagingId: d.stagingId, elapsedMs });
     if (item.reserveUuid && d.stagingId) void this.markDone(item.reserveUuid, d.stagingId);
     this.advanceQueue(idx + 1);
+  }
+
+  // ─── Coupe-circuit des crédits API ────────────────────────────────────────
+
+  private clearQuotaPoll() {
+    if (this.quotaPoll) clearInterval(this.quotaPoll);
+    this.quotaPoll = null;
+  }
+
+  /** Relit l'état du coupe-circuit auprès du serveur et l'applique (secours si un événement socket a été manqué). */
+  private async refreshApiQuota() {
+    try {
+      const res = await hubProductAnalyzerApi.getApiQuota();
+      this.handleApiQuota(res.states ?? []);
+    } catch {
+      // Réseau indisponible : le prochain essai ou le prochain événement reprendra la main.
+    }
+  }
+
+  /** Met la file en pause : produit en cours remis « à traiter », lignes de réserve conservées (heartbeat actif). */
+  private pauseQueueForQuota(idx: number, message: string | null) {
+    this.jobId = null;
+    this.resetLive();
+    this.patchItem(idx, { status: 'pending', errorMsg: null });
+    this.setQueue({ pausedForQuota: true, quotaMessage: message });
+    this.clearQuotaPoll();
+    this.quotaPoll = setInterval(() => void this.refreshApiQuota(), QUOTA_POLL_MS);
+    void this.refreshApiQuota();
+  }
+
+  /** Phase STOPPED : même arrêt qu'`stopQueue` (lignes restantes rendues à la réserve), avec le message de recharge. */
+  private stopQueueForQuota(message: string) {
+    const queue = this.state.queue;
+    if (!queue.running) return;
+    this.clearStartTimer();
+    this.clearWatchdog();
+    this.clearQuotaPoll();
+    this.jobId = null;
+    const unfinished = queue.items.filter((it) => it.status === 'pending' || it.status === 'analyzing');
+    const reserveUuids = unfinished.map((it) => it.reserveUuid).filter((u): u is string => !!u);
+    this.setQueue({
+      running: false,
+      pausedForQuota: false,
+      quotaMessage: message,
+      items: queue.items.map((it) =>
+        it.status === 'pending' || it.status === 'analyzing'
+          ? { ...it, status: 'error', errorMsg: QUOTA_STOPPED_ITEM_MESSAGE }
+          : it,
+      ),
+    });
+    this.resetLive();
+    this.mode = 'idle';
+    if (reserveUuids.length > 0) void this.markFailed(reserveUuids);
+    this.invalidateStaging();
+  }
+
+  private handleApiQuota(states: ApiQuotaState[]) {
+    this.set({ apiQuota: states });
+    const queue = this.state.queue;
+    if (!queue.running || !queue.pausedForQuota) return;
+    if (states.length === 0) {
+      // Crédits revenus : reprise au même produit.
+      this.clearQuotaPoll();
+      this.setQueue({ pausedForQuota: false, quotaMessage: null });
+      this.startQueueItem(queue.currentIdx);
+      return;
+    }
+    const stopped = states.find((s) => s.phase === 'STOPPED');
+    if (stopped) this.stopQueueForQuota(stopped.message);
+    else this.setQueue({ quotaMessage: states[0]?.message ?? queue.quotaMessage });
   }
 
   private handleError(d: AnalysisErrorPayload) {

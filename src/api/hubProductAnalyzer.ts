@@ -9,7 +9,7 @@ import type {
   PreviewItem,
 } from '@/features/product-analyzer/lib/negotiation-api';
 import type { NegotiationCategoryRulesData } from '@/features/product-analyzer/lib/negotiation-items';
-import type { LaunchAndDeployResponse } from '@/features/product-analyzer/lib/analyze-types';
+import type { ApiQuotaState, LaunchAndDeployResponse } from '@/features/product-analyzer/lib/analyze-types';
 import type {
   Affaire,
   AffaireStats,
@@ -350,6 +350,9 @@ export const hubProductAnalyzerApi = {
       claimToken,
       ...(uuids?.length ? { uuids } : {}),
     }),
+
+  /** État du coupe-circuit des crédits API (`states` vide : tout va bien). */
+  getApiQuota: () => apiClient.get<{ states: ApiQuotaState[] }>(`${BASE}/reserve/api-quota`),
 
   /** Libère les lignes EN_COURS du poste (sortie de l'écran, passage en arrière-plan). */
   releaseReserve: (claimToken: string) =>
