@@ -1,3 +1,4 @@
+import type { ApiQuotaState } from '@/features/product-analyzer/lib/analyze-types';
 import type {
   AlreadyAnalyzedData,
   AnalysisReusedData,
@@ -142,6 +143,10 @@ export type QueueState = {
   startedAt: number | null;
   /** Les lignes de réserve ont été rendues (app en arrière-plan) : à reprendre au retour. */
   reserveReleased: boolean;
+  /** File en pause : une API d'analyse n'a plus de crédit (le produit en cours reprendra à son retour). */
+  pausedForQuota: boolean;
+  /** Message du coupe-circuit : pendant la pause, ou après l'arrêt de la file (phase STOPPED). */
+  quotaMessage: string | null;
 };
 
 export type ConnectionState = {
@@ -154,6 +159,8 @@ export type EngineState = {
   live: LiveJob;
   single: SingleRunState;
   queue: QueueState;
+  /** Fournisseurs actuellement à sec (liste vide : tout va bien). */
+  apiQuota: ApiQuotaState[];
 };
 
 export const SOCKET_DOWN_MESSAGE =

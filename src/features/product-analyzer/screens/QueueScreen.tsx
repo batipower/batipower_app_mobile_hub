@@ -142,7 +142,8 @@ export function QueueScreen() {
       <View style={styles.summary}>
         <View style={styles.summaryTop}>
           <Text style={styles.summaryTitle}>
-            {finished ? 'File terminée' : "File d'analyses en cours"} · {counts.processed}/{counts.total}
+            {finished ? 'File terminée' : queue.pausedForQuota ? "File d'analyses en pause" : "File d'analyses en cours"} ·{' '}
+            {counts.processed}/{counts.total}
           </Text>
           <Text style={styles.timer}>{fmtClock(totalElapsed)}</Text>
         </View>
@@ -161,6 +162,25 @@ export function QueueScreen() {
       {!connection.connected && queue.running ? (
         <View style={[styles.banner, { borderColor: withAlpha(t.warning, 0.4), backgroundColor: withAlpha(t.warning, 0.1) }]}>
           <Text style={[styles.bannerText, { color: t.warning }]}>Reconnexion au serveur d’analyse…</Text>
+        </View>
+      ) : null}
+
+      {queue.pausedForQuota ? (
+        <View style={[styles.banner, { borderColor: withAlpha(t.warning, 0.4), backgroundColor: withAlpha(t.warning, 0.1) }]}>
+          <PauseCircle size={16} color={t.warning} />
+          <Text style={[styles.bannerText, { color: t.warning }]}>
+            File en pause : {queue.quotaMessage ?? "une API d'analyse n'a plus de crédit."} Le produit en cours reprendra
+            automatiquement au retour des crédits ; vos lignes restent réservées.
+          </Text>
+        </View>
+      ) : null}
+
+      {!queue.running && queue.quotaMessage ? (
+        <View style={[styles.banner, { borderColor: withAlpha(t.danger, 0.4), backgroundColor: withAlpha(t.danger, 0.1) }]}>
+          <AlertTriangle size={16} color={t.danger} />
+          <Text style={[styles.bannerText, { color: t.danger }]}>
+            {queue.quotaMessage} Les produits non analysés ont été rendus à la réserve : relancez après la recharge.
+          </Text>
         </View>
       ) : null}
 

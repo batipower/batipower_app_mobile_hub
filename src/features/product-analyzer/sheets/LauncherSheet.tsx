@@ -18,7 +18,7 @@ import { useDistributors } from '../hooks/useDistributors';
 import { useAffaires } from '../hooks/useStagingList';
 import { patchLauncherDraft, resetLauncherDraft, useLauncherDraft } from '../launcherStore';
 import { getReserveClaimToken } from '../lib/claim-token';
-import { apiErrorMessage } from '../lib/errors';
+import { apiErrorMessage, apiErrorStatus } from '../lib/errors';
 import { useSkipWeight } from '../lib/preferences';
 import {
   dismissThen,
@@ -263,7 +263,12 @@ export function LauncherSheet() {
       }
       dismissThen(openPaQueue);
     } catch (err) {
-      toast.error(apiErrorMessage(err, 'Impossible de récupérer la réserve'));
+      // 423 : coupe-circuit des crédits API ouvert (ASIN Data / Jungle Scout à sec) — la réserve reste intacte.
+      toast.error(
+        apiErrorStatus(err) === 423
+          ? apiErrorMessage(err, "Une API d'analyse n'a plus de crédit : la réserve est bloquée.")
+          : apiErrorMessage(err, 'Impossible de récupérer la réserve'),
+      );
     } finally {
       setBusy(false);
     }
