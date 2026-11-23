@@ -13,7 +13,7 @@ import { QUOTES_ROOT_KEY } from '@/features/quotes/queryKeys';
 import {
   HUB_DEPLOYMENT_TYPE,
   HUB_OPPORTUNITY_EVENT_TYPE,
-  HUB_PALLET_CANDIDATE_TYPE,
+  HUB_PALLET_PUSH_TYPES,
   HUB_QUOTE_EVENT_TYPE,
   HUB_QUOTE_REQUEST_TYPE,
 } from './constants';
@@ -62,7 +62,7 @@ export function PushNotificationsController() {
     return () => subscription.remove();
   }, [canOpenQuotes, queryClient]);
 
-  // Un push « Opportunité », « Déploiement » ou « Candidat palette » reçu app ouverte rafraîchit les fiches concernées.
+  // Un push « Opportunité », « Déploiement » ou « Palette » (candidat, prix reçu, devis expiré) reçu app ouverte rafraîchit les fiches concernées.
   useEffect(() => {
     if (!canOpenCockpit) return;
     const subscription = Notifications.addNotificationReceivedListener((notification) => {
@@ -71,7 +71,7 @@ export function PushNotificationsController() {
         void queryClient.invalidateQueries({ queryKey: PARTNER_OPPORTUNITIES_KEY });
       } else if (type === HUB_DEPLOYMENT_TYPE) {
         void queryClient.invalidateQueries({ queryKey: DEPLOYMENT_ROOT_KEY });
-      } else if (type === HUB_PALLET_CANDIDATE_TYPE) {
+      } else if (HUB_PALLET_PUSH_TYPES.includes(type)) {
         void queryClient.invalidateQueries({ queryKey: PALLET_FLOW_ROOT_KEY });
       }
     });

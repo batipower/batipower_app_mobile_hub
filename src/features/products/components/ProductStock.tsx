@@ -16,6 +16,11 @@ type ProductStockProps = {
   loading: boolean;
   error: unknown;
   onRetry: () => void;
+  /**
+   * Quantité à couvrir (Préparation > En agence) : les entrepôts et agences dont le stock la
+   * couvre sont mis en évidence, pour choisir où aller chercher.
+   */
+  highlightMinStock?: number;
 };
 
 /**
@@ -23,7 +28,14 @@ type ProductStockProps = {
  * rapatriement et commandes fournisseur de la semaine. Les cartes d'entrepôt s'affichent
  * tout de suite avec le stock résumé de l'en-tête, puis se complètent (dates d'inventaire).
  */
-export function ProductStock({ header, stock, loading, error, onRetry }: ProductStockProps) {
+export function ProductStock({
+  header,
+  stock,
+  loading,
+  error,
+  onRetry,
+  highlightMinStock,
+}: ProductStockProps) {
   const styles = useStyles();
   const warehouses = stock?.warehouses ?? {
     qg: { stock: header.stock.qg },
@@ -41,9 +53,13 @@ export function ProductStock({ header, stock, loading, error, onRetry }: Product
         trailing={<Text style={styles.total}>Total {formatInteger(total)} u</Text>}
       >
         <View style={styles.cards}>
-          <WarehouseCard label="QG" warehouse={warehouses.qg} />
-          <WarehouseCard label="Flevy" warehouse={warehouses.flevy} />
-          <WarehouseCard label="Dombasle" warehouse={warehouses.dombasle} />
+          <WarehouseCard label="QG" warehouse={warehouses.qg} minStock={highlightMinStock} />
+          <WarehouseCard label="Flevy" warehouse={warehouses.flevy} minStock={highlightMinStock} />
+          <WarehouseCard
+            label="Dombasle"
+            warehouse={warehouses.dombasle}
+            minStock={highlightMinStock}
+          />
         </View>
         {error ? (
           <ErrorBanner
@@ -78,7 +94,11 @@ export function ProductStock({ header, stock, loading, error, onRetry }: Product
                   {group.chips.map((chip) => (
                     <View
                       key={`${chip.parentWarehouse}:${chip.code}`}
-                      style={[styles.chip, chip.stock <= 0 && styles.chipEmpty]}
+                      style={[
+                        styles.chip,
+                        chip.stock <= 0 && styles.chipEmpty,
+                        covers(chip.stock, highlightMinStock) && styles.chipCovers,
+                      ]}
                       accessible
                       accessibilityLabel={`${chip.name} : ${chip.stock} unités`}
                     >
@@ -136,7 +156,20 @@ export function ProductStock({ header, stock, loading, error, onRetry }: Product
   );
 }
 
-function WarehouseCard({ label, warehouse }: { label: string; warehouse: HubWarehouseStock }) {
+/** Le stock couvre la quantité demandée (jamais vrai sans quantité ou à stock nul). */
+function covers(stock: number | null, minStock: number | undefined): boolean {
+  return minStock != null && minStock > 0 && (stock ?? 0) >= minStock;
+}
+
+function WarehouseCard({
+  label,
+  warehouse,
+  minStock,
+}: {
+  label: string;
+  warehouse: HubWarehouseStock;
+  minStock?: number;
+}) {
   const styles = useStyles();
   const quantity = warehouse.stock;
   const empty = (quantity ?? 0) <= 0;
@@ -145,7 +178,7 @@ function WarehouseCard({ label, warehouse }: { label: string; warehouse: HubWare
 
   return (
     <View
-      style={styles.card}
+      style={[styles.card, covers(quantity, minStock) && styles.cardCovers]}
       accessible
       accessibilityLabel={`${label} : ${quantity == null ? 'stock inconnu' : `${quantity} unités`}${
         inventory ? `, inventaire du ${inventory}` : ''
@@ -182,6 +215,7 @@ const useStyles = makeStyles((t) => ({
     borderRadius: radius.md,
     backgroundColor: t.surface,
   },
+  cardCovers: { borderWidth: 2, borderColor: t.success },
   cardLabel: { fontSize: fontSize.xs, fontWeight: '600', color: t.textMuted },
   cardQuantity: {
     fontSize: fontSize['2xl'],
@@ -213,6 +247,7 @@ const useStyles = makeStyles((t) => ({
     borderRadius: radius.sm,
     backgroundColor: withAlpha(t.accent, 0.14),
   },
+  chipCovers: { borderWidth: 2, borderColor: t.success },
   chipEmpty: {
     backgroundColor: 'transparent',
     borderWidth: StyleSheet.hairlineWidth * 2,

@@ -13,14 +13,15 @@ import { makeStyles, spacing, useTheme } from '@/theme';
 
 import { PalletActionsSection } from './components/PalletActionsSection';
 import { PalletMarginSection } from './components/PalletMarginSection';
+import { PalletQuoteDecisionSection } from './components/PalletQuoteDecisionSection';
 import { PalletStatusSection } from './components/PalletStatusSection';
-import { canArbitrate } from './display';
+import { answeredQuote, canArbitrate } from './display';
 import { usePalletCandidate } from './hooks/usePalletCandidate';
 
 /**
  * Page d'arbitrage d'une commande candidate palette, ouverte depuis le push « Commande à
  * arbitrer » ou la liste « Candidats palette » : statut, marge actuelle, décision (prix palette ou
- * flux classique), puis le détail complet de la commande (client, adresse de livraison, articles).
+ * flux classique, puis accepter / refuser le prix reçu), puis le détail complet de la commande (client, adresse de livraison, articles).
  * Réservée au SUPERADMIN.
  */
 export function PalletCandidateScreen() {
@@ -46,6 +47,7 @@ function PalletCandidate() {
   const { refreshing, onRefresh } = usePullToRefresh(data.refetch);
 
   const canOpenProducts = !!user && canAccessHubProductSheet(user.role);
+  const pendingDecision = detail ? answeredQuote(detail.order, data.quotes) : null;
 
   return (
     <>
@@ -92,6 +94,9 @@ function PalletCandidate() {
               onRetry={() => void data.refetchMargin()}
             />
             {canArbitrate(detail.order) ? <PalletActionsSection order={detail.order} /> : null}
+            {pendingDecision ? (
+              <PalletQuoteDecisionSection order={detail.order} quote={pendingDecision} />
+            ) : null}
             <OrderDetail
               data={detail}
               onOpenProduct={canOpenProducts ? openProduct : undefined}

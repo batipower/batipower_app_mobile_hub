@@ -2,6 +2,7 @@ import { apiClient } from '@/api/client';
 import type {
   HubMarginSimulationResponse,
   HubPalletCandidatesResponse,
+  HubPalletQuoteDecisionResponse,
   HubPalletQuoteRequestResponse,
   HubPalletQuotesResponse,
   HubPalletRevertResponse,
@@ -36,6 +37,20 @@ export const hubPalletFlowApi = {
   /** Demande le prix palette au dépôt (email envoyé). */
   requestQuote(body: { orderReference: string; warehouse: string; requesterComment?: string }) {
     return apiClient.post<HubPalletQuoteRequestResponse>('hub-app/orders/pallet-quote', body);
+  },
+
+  /** Accepte le prix palette reçu (email de confirmation envoyé au dépôt). */
+  acceptQuote(uuid: string) {
+    return apiClient.post<HubPalletQuoteDecisionResponse>(
+      `hub-app/orders/pallet-quote/${enc(uuid)}/accept`,
+    );
+  },
+
+  /** Refuse le prix palette reçu : la commande repasse en flux classique. */
+  rejectQuote(uuid: string) {
+    return apiClient.post<HubPalletQuoteDecisionResponse>(
+      `hub-app/orders/pallet-quote/${enc(uuid)}/reject`,
+    );
   },
 
   /** Renvoie la commande en flux classique. */

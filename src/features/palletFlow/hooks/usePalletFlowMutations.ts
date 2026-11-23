@@ -13,8 +13,8 @@ function errorText(error: unknown): string {
 }
 
 /**
- * Les deux décisions d'arbitrage d'une commande candidate : demander le prix palette, ou revenir
- * au flux classique. Chaque succès rafraîchit la fiche, les devis, la marge et la liste.
+ * Les décisions d'arbitrage d'une commande : demander le prix palette ou revenir au flux classique
+ * (candidat), puis accepter ou refuser le prix reçu du dépôt. Chaque succès rafraîchit la fiche, les devis, la marge et la liste.
  */
 export function usePalletFlowMutations(reference: string) {
   const queryClient = useQueryClient();
@@ -56,5 +56,25 @@ export function usePalletFlowMutations(reference: string) {
     onError,
   });
 
-  return { requestQuote, revertToClassic };
+  const acceptQuote = useMutation({
+    mutationFn: (quoteUuid: string) => hubPalletFlowApi.acceptQuote(quoteUuid),
+    onSuccess: () => {
+      toast.success('Prix palette accepté, confirmation envoyée au dépôt');
+      success();
+      void invalidate();
+    },
+    onError,
+  });
+
+  const rejectQuote = useMutation({
+    mutationFn: (quoteUuid: string) => hubPalletFlowApi.rejectQuote(quoteUuid),
+    onSuccess: () => {
+      toast.success('Prix refusé, commande renvoyée en flux classique');
+      success();
+      void invalidate();
+    },
+    onError,
+  });
+
+  return { requestQuote, revertToClassic, acceptQuote, rejectQuote };
 }

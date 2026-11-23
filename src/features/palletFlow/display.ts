@@ -73,3 +73,12 @@ export function quoteToCompare(quotes: HubPalletQuote[]): HubPalletQuote | null 
     null
   );
 }
+
+/**
+ * Devis dont le prix est reçu et attend une décision (accepter / refuser) : commande en
+ * `QUOTE_REQUESTED`, non expédiée, devis `ANSWERED` avec un prix.
+ */
+export function answeredQuote(order: HubOrder, quotes: HubPalletQuote[]): HubPalletQuote | null {
+  if (order.palletFlowStatus !== 'QUOTE_REQUESTED' || isOrderShipped(order)) return null;
+  return quotes.find((q) => q.status === 'ANSWERED' && q.quotedPriceHT != null) ?? null;
+}

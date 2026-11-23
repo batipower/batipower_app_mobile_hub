@@ -10,7 +10,7 @@ import { openQuoteFromLink } from '@/features/quotes/navigation';
 import {
   HUB_DEPLOYMENT_TYPE,
   HUB_OPPORTUNITY_EVENT_TYPE,
-  HUB_PALLET_CANDIDATE_TYPE,
+  HUB_PALLET_PUSH_TYPES,
   HUB_QUOTE_EVENT_TYPE,
   HUB_QUOTE_REQUEST_TYPE,
   HUB_SALE_TYPE,
@@ -82,8 +82,9 @@ function openFromNotification(response: Notifications.NotificationResponse, acce
     return;
   }
 
-  // Candidat palette : page d'arbitrage, SUPERADMIN uniquement (comme le Cockpit).
-  if (type === HUB_PALLET_CANDIDATE_TYPE && access.cockpit) {
+  // Candidat palette, prix palette reçu ou devis expiré : page d'arbitrage, SUPERADMIN uniquement
+  // (comme le Cockpit).
+  if (HUB_PALLET_PUSH_TYPES.includes(type) && access.cockpit) {
     if (typeof data?.orderReference === 'string' && data.orderReference) {
       openPalletCandidate(data.orderReference);
     }

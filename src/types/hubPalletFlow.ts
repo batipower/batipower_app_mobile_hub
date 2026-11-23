@@ -88,4 +88,6 @@ export interface HubPalletQuoteRequestResponse extends Envelope<HubPalletQuote> 
   alreadyPending: boolean;
 }
 
+export type HubPalletQuoteDecisionResponse = Envelope<HubPalletQuote>;
+
 export type HubPalletRevertResponse = Envelope<{ reference: string; palletFlowStatus: string }>;

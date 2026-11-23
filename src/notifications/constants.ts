@@ -30,3 +30,16 @@ export const HUB_PALLET_CANDIDATE_CATEGORY = 'HUB_PALLET_CANDIDATE';
 
 /** `data.type` du push d'un candidat palette (cf. `notifyPalletCandidate` de `agent-affectation.service.ts` du back). */
 export const HUB_PALLET_CANDIDATE_TYPE = 'HUB_PALLET_CANDIDATE';
+
+/** `data.type` du push « Prix palette reçu » : le dépôt a répondu, la commande est à décider (cf. `notifyPriceAnswered` du back). */
+export const HUB_PALLET_QUOTE_ANSWERED_TYPE = 'HUB_PALLET_QUOTE_ANSWERED';
+
+/** `data.type` du push « Devis palette expiré » : retour automatique au flux classique (cf. `notifyQuoteExpired` du back). */
+export const HUB_PALLET_QUOTE_EXPIRED_TYPE = 'HUB_PALLET_QUOTE_EXPIRED';
+
+/** Pushs palette qui ouvrent la page d'arbitrage de la commande. */
+export const HUB_PALLET_PUSH_TYPES: readonly unknown[] = [
+  HUB_PALLET_CANDIDATE_TYPE,
+  HUB_PALLET_QUOTE_ANSWERED_TYPE,
+  HUB_PALLET_QUOTE_EXPIRED_TYPE,
+];

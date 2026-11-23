@@ -1,6 +1,13 @@
 import { Stack } from 'expo-router';
 
+import { fallbackBackHeaderLeft } from '@/components/navigation/StackBackButton';
 import { useTheme } from '@/theme';
+
+/**
+ * La liste est toujours placée sous les écrans poussés (fiche commande, stock réseau, notification,
+ * lien profond) : le retour natif existe alors même quand l'écran est ouvert de l'extérieur.
+ */
+export const unstable_settings = { anchor: 'index' };
 
 /**
  * Pile de l'onglet Préparation : la liste (sans en-tête natif, elle a le sien) et le
@@ -20,7 +27,15 @@ export default function PreparationLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="[reference]" options={{ title: 'Commande' }} />
+      {/* Retour de repli si l'écran se retrouve seul dans la pile (voir StackBackButton). */}
+      <Stack.Screen
+        name="[reference]"
+        options={{ title: 'Commande', headerLeft: fallbackBackHeaderLeft('/hub/preparation') }}
+      />
+      <Stack.Screen
+        name="stock/[reference]"
+        options={{ title: 'Stock réseau', headerLeft: fallbackBackHeaderLeft('/hub/preparation') }}
+      />
       <Stack.Screen
         name="scan"
         options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }}

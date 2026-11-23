@@ -1,9 +1,15 @@
 import { Stack } from 'expo-router';
 
-import { StackBackButton } from '@/components/navigation/StackBackButton';
+import { StackBackButton, fallbackBackHeaderLeft } from '@/components/navigation/StackBackButton';
 import { useAuth } from '@/auth/AuthProvider';
 import { getLandingHref } from '@/modules/registry';
 import { useTheme } from '@/theme';
+
+/**
+ * La liste est toujours placée sous la page d'arbitrage (push « Commande à arbitrer » / « Prix
+ * palette reçu », lien profond) : le retour natif existe alors même à froid.
+ */
+export const unstable_settings = { anchor: 'index' };
 
 /**
  * Pile Candidats palette, ouverte depuis le menu ou depuis le push « Commande à arbitrer » : la
@@ -32,7 +38,14 @@ export default function PalletCandidatesLayout() {
           headerLeft: () => (user ? <StackBackButton fallbackHref={getLandingHref(user)} /> : null),
         }}
       />
-      <Stack.Screen name="[reference]" options={{ title: 'Commande palette' }} />
+      {/* Retour de repli si la page se retrouve seule dans la pile (voir StackBackButton). */}
+      <Stack.Screen
+        name="[reference]"
+        options={{
+          title: 'Commande palette',
+          headerLeft: fallbackBackHeaderLeft('/hub/candidats-palette'),
+        }}
+      />
     </Stack>
   );
 }

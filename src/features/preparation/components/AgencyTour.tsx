@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { MapPin } from 'lucide-react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight, MapPin } from 'lucide-react-native';
 
 import {
   fontSize,
@@ -45,13 +45,23 @@ export function AgencySectionHeader({ agency }: AgencySectionHeaderProps) {
 type AgencyItemRowProps = {
   item: DriverTourItem;
   last: boolean;
+  /** Ouvre le stock réseau de la référence (choisir une autre agence selon sa position). */
+  onPress?: () => void;
 };
 
-/** Ligne d'article à récupérer : quantité, référence produit, désignation. */
-function AgencyItemRowBase({ item, last }: AgencyItemRowProps) {
+/** Ligne d'article à récupérer : quantité, référence produit, désignation. Touchable si `onPress`. */
+function AgencyItemRowBase({ item, last, onPress }: AgencyItemRowProps) {
   const styles = useStyles();
+  const t = useTheme();
   return (
-    <View style={[styles.row, last && styles.rowLast]}>
+    <Pressable
+      disabled={!onPress}
+      onPress={onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${item.quantity} fois ${item.reference}`}
+      accessibilityHint={onPress ? 'Affiche le stock de la référence sur le réseau' : undefined}
+      style={({ pressed }) => [styles.row, last && styles.rowLast, pressed && styles.rowPressed]}
+    >
       <Text style={styles.quantity}>{item.quantity}×</Text>
       <View style={styles.rowBody}>
         <Text style={styles.reference} numberOfLines={1}>
@@ -63,7 +73,8 @@ function AgencyItemRowBase({ item, last }: AgencyItemRowProps) {
           </Text>
         ) : null}
       </View>
-    </View>
+      {onPress ? <ChevronRight size={18} color={t.textSubtle} style={styles.chevron} /> : null}
+    </Pressable>
   );
 }
 
@@ -111,6 +122,8 @@ const useStyles = makeStyles((t) => ({
     borderBottomLeftRadius: radius.md,
     borderBottomRightRadius: radius.md,
   },
+  rowPressed: { backgroundColor: t.surface },
+  chevron: { alignSelf: 'center' },
   quantity: {
     minWidth: 40,
     fontSize: fontSize.lg,

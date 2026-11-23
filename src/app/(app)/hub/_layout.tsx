@@ -6,6 +6,13 @@ import { SHEET_DETENTS, sheetOptions } from '@/components/sheet/sheetOptions';
 import { useTheme } from '@/theme';
 
 /**
+ * Les onglets sont toujours placés sous les pages poussées (notification, lien profond, démarrage
+ * à froid) : un retour mène alors à l'accueil du module au lieu de laisser l'utilisateur bloqué
+ * (la barre d'onglets est masquée sur les écrans poussés).
+ */
+export const unstable_settings = { anchor: '(tabs)' };
+
+/**
  * Pile du module HUB, réservé aux comptes qui le possèdent (le back le refuse de toute façon
  * sur `/hub-app/*`).
  *

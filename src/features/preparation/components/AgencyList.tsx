@@ -5,6 +5,7 @@ import { useTabBarInset } from '@/components/navigation/tabBarInset';
 import { fontSize, makeStyles, spacing, useTheme } from '@/theme';
 import type { DriverTourAgency, DriverTourItem } from '@/types/preparation';
 
+import { openStockNetwork } from '../navigation';
 import { AgencyItemRow, AgencySectionHeader } from './AgencyTour';
 import { EmptyState, ErrorBanner, ListSkeleton } from './ListState';
 
@@ -24,7 +25,10 @@ type AgencyListProps = {
   onRefresh: () => void;
 };
 
-/** « À chercher en agence » : une section par agence proche, avec les articles à récupérer. */
+/**
+ * « À chercher en agence » : une section par agence proche, avec les articles à récupérer. Toucher
+ * un article ouvre son stock sur le réseau.
+ */
 export function AgencyList({
   agencies,
   totalOrders,
@@ -46,7 +50,11 @@ export function AgencyList({
       keyExtractor={(item, index) => `${item.reference}-${index}`}
       renderSectionHeader={({ section }) => <AgencySectionHeader agency={section.agency} />}
       renderItem={({ item, index, section }) => (
-        <AgencyItemRow item={item} last={index === section.data.length - 1} />
+        <AgencyItemRow
+          item={item}
+          last={index === section.data.length - 1}
+          onPress={() => openStockNetwork(item.reference, item.quantity, section.agency.agencyName)}
+        />
       )}
       stickySectionHeadersEnabled={false}
       contentContainerStyle={[styles.content, { paddingBottom: tabBarInset + spacing.lg }]}
