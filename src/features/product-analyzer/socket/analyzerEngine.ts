@@ -85,6 +85,9 @@ type Listener = () => void;
  */
 export class AnalyzerEngine {
   private socket: Socket | null = null;
+  /** Jeton du poste, chargé au premier lancement (suivi « Analyses en cours » du super admin). */
+  private claimToken: string | null = null;
+  private identifying = false;
   private listeners = new Set<Listener>();
   private state: EngineState = {
     connection: { connected: false, error: null },
@@ -149,6 +152,8 @@ export class AnalyzerEngine {
       const ticket = await hubProductAnalyzerApi.getWsTicket();
       if (this.disposed) return;
       if (!ticket.wsUrl) throw new Error('Ticket WS sans url');
+      // Jeton du poste prêt avant le premier lancement.
+      this.identifyPoste();
       const socket = io(ticket.wsUrl, {
         transports: ['websocket'],
         reconnection: true,
@@ -293,12 +298,35 @@ export class AnalyzerEngine {
     void queryClient.invalidateQueries({ queryKey: PA_ROOT });
   }
 
-  private emitStart(start: AnalyzeRequest['start'], skipWeight: boolean): boolean {
+  /**
+   * Charge le jeton du poste et l'identifie auprès du serveur (une fois par moteur) : le super admin voit
+   * alors « qui » analyse dans « Analyses en cours ». Sans effet sur la réserve (heartbeat sans liste).
+   */
+  private identifyPoste() {
+    if (this.claimToken || this.identifying) return;
+    this.identifying = true;
+    void getReserveClaimToken()
+      .then((token) => {
+        this.claimToken = token;
+        return hubProductAnalyzerApi.heartbeatReserve(token);
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.identifying = false;
+      });
+  }
+
+  private emitStart(start: AnalyzeRequest['start'], skipWeight: boolean, reserveUuid?: string | null): boolean {
     const socket = this.socket;
     if (!socket?.connected) return false;
     this.jobId = null;
-    if (start.type === 'ean') socket.emit('analyze:start-by-ean', { ...start.payload, skipWeight });
-    else socket.emit('analyze:start', { ...start.payload, skipWeight });
+    this.identifyPoste();
+    const tracking = {
+      ...(this.claimToken ? { claimToken: this.claimToken } : {}),
+      ...(reserveUuid ? { reserveUuid } : {}),
+    };
+    if (start.type === 'ean') socket.emit('analyze:start-by-ean', { ...start.payload, skipWeight, ...tracking });
+    else socket.emit('analyze:start', { ...start.payload, skipWeight, ...tracking });
     return true;
   }
 
@@ -575,6 +603,7 @@ export class AnalyzerEngine {
               },
             },
             true,
+            item.reserveUuid,
           )
         : this.emitStart(
             {
@@ -589,6 +618,7 @@ export class AnalyzerEngine {
               },
             },
             true,
+            item.reserveUuid,
           );
     if (!ok) {
       this.failQueueItem(next, SOCKET_DOWN_MESSAGE, false);
