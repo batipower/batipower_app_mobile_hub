@@ -100,6 +100,13 @@ export function reserveProgress(
   return { done, total, percent, fraction: `${done} / ${total}`, position: poste.currentPosition ?? null };
 }
 
+/** « 3 299 » : entier avec séparateur de milliers français. */
+export function formatInt(n: number): string {
+  return Math.round(n)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+}
+
 export function posteTitle(poste: Pick<LivePoste, 'identified' | 'user'>): string {
   if (!poste.identified) return 'Poste non identifié';
   return poste.user?.name || poste.user?.email || 'Poste inconnu';

@@ -52,6 +52,11 @@ export interface LivePoste {
   firstSeenAt: string | null;
   lastSeenAt: string | null;
   heartbeatAt: string | null;
+  /**
+   * Agent réellement connecté (socket attaché ou analyse en vol). Absent des anciennes versions du back :
+   * l'app se rabat alors sur `isPosteVisible`.
+   */
+  connected?: boolean;
   /** `PAUSED` : poste arrêté à distance (file gelée, lignes conservées). */
   control?: PosteControl;
   pausedAt?: string | null;
@@ -67,15 +72,20 @@ export interface LiveAffairePoste {
   enCours: number;
 }
 
-/** Avancement d'une affaire : lignes de réserve prises en charge par les postes, regroupées par affaire. */
+/** Avancement GLOBAL d'une affaire : toutes ses lignes de réserve (analysées + en cours + en attente), tous postes. */
 export interface LiveAffaire {
   /** `null` : lignes sans affaire. */
   id: string | null;
   name: string;
   /** Rang dans le classement de la réserve, `null` si non classée. */
   rank: number | null;
+  /** Lignes analysées, quel que soit le poste. */
   done: number;
+  /** Lignes détenues par un poste. */
   enCours: number;
+  /** Lignes pas encore prises par un agent (absent des anciennes versions du back, alors 0). */
+  enAttente?: number;
+  /** analysées + en cours + en attente. */
   total: number;
   percent: number;
   /** Une analyse tourne actuellement sur une ligne de cette affaire. */

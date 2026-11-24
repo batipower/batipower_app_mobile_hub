@@ -1,5 +1,7 @@
 import type { LiveAffaire, LivePoste, LiveSnapshot } from '@/api/hubAnalysesLive';
 
+import { posteHealth } from './liveFormat';
+
 export const NO_AFFAIRE_LABEL = 'Sans affaire';
 const NO_AFFAIRE_KEY = '__none__';
 
@@ -25,6 +27,7 @@ export function deriveAffairesFromLines(postes: LivePoste[]): LiveAffaire[] {
           rank: null,
           done: 0,
           enCours: 0,
+          enAttente: 0,
           total: 0,
           percent: 0,
           analysing: false,
@@ -59,13 +62,55 @@ export function resolveAffaires(
   return snapshot.affaires ?? deriveAffairesFromLines(snapshot.postes);
 }
 
-export type AffaireTotals = { done: number; enCours: number; total: number; percent: number };
+export type AffaireTotals = {
+  done: number;
+  enCours: number;
+  enAttente: number;
+  total: number;
+  percent: number;
+};
 
-export function affaireTotals(affaires: Pick<LiveAffaire, 'done' | 'enCours'>[]): AffaireTotals {
+/** Lignes en attente d'une affaire (0 si le back ne les envoie pas encore). */
+export function affaireEnAttente(a: Pick<LiveAffaire, 'enAttente'>): number {
+  return a.enAttente ?? 0;
+}
+
+/** Total global des affaires : somme des `total` du back (analysées + en cours + en attente), jamais `done + enCours`. */
+export function affaireTotals(
+  affaires: Pick<LiveAffaire, 'done' | 'enCours' | 'enAttente' | 'total'>[],
+): AffaireTotals {
   const done = affaires.reduce((n, a) => n + a.done, 0);
   const enCours = affaires.reduce((n, a) => n + a.enCours, 0);
-  const total = done + enCours;
-  return { done, enCours, total, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
+  const enAttente = affaires.reduce((n, a) => n + affaireEnAttente(a), 0);
+  const total = affaires.reduce((n, a) => n + a.total, 0);
+  return { done, enCours, enAttente, total, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
+}
+
+export type AffaireState = 'done' | 'analysing' | 'stopped' | 'idle';
+
+/**
+ * État d'une affaire : `done` s'il ne reste rien, `analysing` si une analyse est en vol, `stopped` s'il reste des
+ * lignes sans agent connecté dessus, `idle` sinon (agent connecté entre deux lignes).
+ */
+export function affaireState(affaire: LiveAffaire, connectedPosteKeys: Set<string>): AffaireState {
+  if (affaire.enCours + affaireEnAttente(affaire) === 0) return 'done';
+  if (affaire.analysing) return 'analysing';
+  const hasAgent = affaire.postes.some((p) => p.enCours > 0 && connectedPosteKeys.has(p.key));
+  return hasAgent ? 'idle' : 'stopped';
+}
+
+/**
+ * Un agent est listé s'il est connecté. Avec un back qui envoie `connected`, on s'y fie (une analyse en vol
+ * suffit). Sinon : analyse en vol, ou lignes détenues et signal non perdu.
+ */
+export function isPosteVisible(
+  poste: LivePoste,
+  analysingKeys: Set<string>,
+  now: number = Date.now(),
+): boolean {
+  if (analysingKeys.has(poste.key)) return true;
+  if (typeof poste.connected === 'boolean') return poste.connected;
+  return poste.enCours > 0 && posteHealth(poste, now) !== 'lost';
 }
 
 /** Les affaires sur lesquelles un poste travaille, avec sa part (analysées / en cours). */

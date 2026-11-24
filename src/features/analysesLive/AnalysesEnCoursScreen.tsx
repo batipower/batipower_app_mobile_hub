@@ -15,15 +15,20 @@ import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/th
 import { useAnalysesLive, usePosteControlActions } from './hooks/useAnalysesLive';
 import { LiveProgressBar, ProgressLabel } from './LiveProgressBar';
 import {
+  affaireEnAttente,
   affaireKey,
   affairesOfPoste,
+  affaireState,
   affaireTotals,
+  isPosteVisible,
   resolveAffaires,
   SERVER_RESTART_NOTICE_MS,
+  type AffaireState,
 } from './liveAffaires';
 import {
   analysisProgress,
   formatAgo,
+  formatInt,
   posteHealth,
   posteTitle,
   type PosteHealth,
@@ -139,9 +144,19 @@ function PosteCard({ poste, analyses, affaires, now, busy, onPause, onResume }: 
                 <Text style={styles.miniName} numberOfLines={1}>
                   {affaire.name}
                 </Text>
-                <Text style={styles.meta}>{`${done} / ${done + enCours}`}</Text>
+                <Text style={styles.meta}>
+                  {`affaire : ${formatInt(affaire.done)} / ${formatInt(affaire.total)} · ${affaire.total > 0 ? Math.round((affaire.done / affaire.total) * 100) : 0} %`}
+                </Text>
               </View>
-              <LiveProgressBar done={done} total={done + enCours} height={4} />
+              <LiveProgressBar
+                done={affaire.done}
+                active={affaire.enCours}
+                total={affaire.total}
+                height={4}
+              />
+              <Text style={styles.meta}>
+                {`cet agent : ${formatInt(done)} analysées · ${formatInt(enCours)} en cours`}
+              </Text>
             </View>
           ))}
         </View>
@@ -179,13 +194,25 @@ function PosteCard({ poste, analyses, affaires, now, busy, onPause, onResume }: 
 
 type AffaireCardProps = {
   affaire: LiveAffaire;
-  posteLabel: (key: string) => string;
+  /** Agents connectés, par clé de poste (seuls ceux-là sont listés sous l'affaire). */
+  postesByKey: Map<string, LivePoste>;
 };
 
-/** Avancement d'une affaire : lignes prises en charge par les postes, part de chaque agent. */
-function AffaireCard({ affaire, posteLabel }: AffaireCardProps) {
+const STATE_BADGE: Record<AffaireState, { label: string; tone: 'green' | 'blue' | 'amber' } | null> = {
+  done: { label: 'Terminée', tone: 'green' },
+  analysing: { label: 'Analyse en cours', tone: 'blue' },
+  stopped: { label: "À l'arrêt, aucun agent", tone: 'amber' },
+  idle: null,
+};
+
+/** Avancement global d'une affaire (analysées / en cours / en attente), avec les agents connectés dessus. */
+function AffaireCard({ affaire, postesByKey }: AffaireCardProps) {
   const styles = useStyles();
-  const total = affaire.done + affaire.enCours;
+  const enAttente = affaireEnAttente(affaire);
+  const total = affaire.total;
+  const percent = total > 0 ? Math.round((affaire.done / total) * 100) : 0;
+  const badge = STATE_BADGE[affaireState(affaire, new Set(postesByKey.keys()))];
+  const agents = affaire.postes.filter((part) => postesByKey.has(part.key));
   return (
     <Card contentStyle={styles.card}>
       <View style={styles.cardHeader}>
@@ -197,31 +224,35 @@ function AffaireCard({ affaire, posteLabel }: AffaireCardProps) {
             {affaire.rank != null ? `Classement n° ${affaire.rank}` : 'Hors classement'}
           </Text>
         </View>
-        {affaire.analysing ? <Badge label="Analyse en cours" tone="blue" /> : null}
+        {badge ? <Badge label={badge.label} tone={badge.tone} /> : null}
       </View>
 
       <View style={styles.block}>
         <View style={styles.line}>
-          <Text style={styles.label}>Analysées</Text>
-          <ProgressLabel done={affaire.done} total={total} />
+          <Text style={styles.label}>{`${formatInt(affaire.done)} / ${formatInt(total)} lignes analysées`}</Text>
+          <Text style={styles.value}>{`${percent} %`}</Text>
         </View>
-        <LiveProgressBar done={affaire.done} active={affaire.analysing ? 1 : 0} total={total} height={10} />
-        <Text style={styles.meta}>{`${affaire.enCours} ligne${affaire.enCours > 1 ? 's' : ''} encore détenue${affaire.enCours > 1 ? 's' : ''} par les agents`}</Text>
+        <LiveProgressBar done={affaire.done} active={affaire.enCours} total={total} height={10} />
+        <Text style={styles.meta}>
+          {`${formatInt(affaire.done)} analysées · ${formatInt(affaire.enCours)} en cours · ${formatInt(enAttente)} en attente`}
+        </Text>
       </View>
 
-      {affaire.postes.length > 0 ? (
+      {agents.length > 0 ? (
         <View style={styles.block}>
-          {affaire.postes.map((part) => (
-            <View key={part.key} style={styles.miniAffaire}>
-              <View style={styles.line}>
+          {agents.map((part) => {
+            const poste = postesByKey.get(part.key);
+            return (
+              <View key={part.key} style={styles.line}>
                 <Text style={styles.miniName} numberOfLines={1}>
-                  {posteLabel(part.key)}
+                  {poste ? posteTitle(poste) : 'Poste inconnu'}
                 </Text>
-                <Text style={styles.meta}>{`${part.done} / ${part.done + part.enCours}`}</Text>
+                <Text style={styles.meta}>
+                  {`${formatInt(part.done)} analysées · ${formatInt(part.enCours)} en cours`}
+                </Text>
               </View>
-              <LiveProgressBar done={part.done} total={part.done + part.enCours} height={4} />
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : null}
     </Card>
@@ -269,15 +300,12 @@ function AnalysesEnCours() {
   const analyses = useMemo(() => data?.analyses ?? [], [data]);
   const analysingKeys = useMemo(() => new Set(analyses.map((a) => a.posteKey)), [analyses]);
   const allPostes = data?.postes ?? [];
-  // Un agent apparaît dès qu'il détient / a analysé des lignes, ou qu'une analyse tourne pour lui.
-  const postes = allPostes.filter((p) => p.done + p.enCours > 0 || analysingKeys.has(p.key));
+  // Seuls les agents connectés sont listés (un agent en pause reste affiché tant qu'il est connecté).
+  const postes = allPostes.filter((p) => isPosteVisible(p, analysingKeys, now));
+  const postesByKey = useMemo(() => new Map(postes.map((p) => [p.key, p])), [postes]);
   const affaires = useMemo(() => resolveAffaires(data), [data]);
   const totals = affaireTotals(affaires);
   const analysesOf = (poste: LivePoste) => analyses.filter((analysis) => analysis.posteKey === poste.key);
-  const posteLabel = (key: string) => {
-    const poste = allPostes.find((p) => p.key === key);
-    return poste ? posteTitle(poste) : 'Poste inconnu';
-  };
 
   const startedAtMs = data?.serverStartedAt ? new Date(data.serverStartedAt).getTime() : null;
   const restartedRecently = startedAtMs != null && now - startedAtMs < SERVER_RESTART_NOTICE_MS;
@@ -330,9 +358,12 @@ function AnalysesEnCours() {
             <Text style={styles.label}>Avancement global</Text>
             <ProgressLabel done={totals.done} total={totals.total} />
           </View>
-          <LiveProgressBar done={totals.done} active={analyses.length > 0 ? Math.min(analyses.length, totals.enCours) : 0} total={totals.total} height={12} />
+          <LiveProgressBar done={totals.done} active={totals.enCours} total={totals.total} height={12} />
           <Text style={styles.meta}>
-            {`${postes.length} agent${postes.length > 1 ? 's' : ''} · ${analyses.length} analyse${analyses.length > 1 ? 's' : ''} en cours`}
+            {`${formatInt(totals.done)} analysées · ${formatInt(totals.enCours)} en cours · ${formatInt(totals.enAttente)} en attente · reste ${formatInt(totals.enCours + totals.enAttente)}`}
+          </Text>
+          <Text style={styles.meta}>
+            {`${postes.length} agent${postes.length > 1 ? 's' : ''} connecté${postes.length > 1 ? 's' : ''} · ${analyses.length} analyse${analyses.length > 1 ? 's' : ''} en cours`}
           </Text>
         </Card>
       ) : null}
@@ -350,14 +381,14 @@ function AnalysesEnCours() {
       {data && view === 'agents' && postes.length === 0 ? (
         <EmptyState
           icon={<Activity size={24} color={t.textMuted} />}
-          title="Aucun agent actif"
-          text="Un agent apparaît ici dès qu'il lance des analyses sur la réserve."
+          title="Aucun agent connecté"
+          text="Un agent apparaît ici dès qu'il se connecte pour analyser la réserve."
         />
       ) : null}
 
       {view === 'affaires'
         ? affaires.map((affaire) => (
-            <AffaireCard key={affaireKey(affaire)} affaire={affaire} posteLabel={posteLabel} />
+            <AffaireCard key={affaireKey(affaire)} affaire={affaire} postesByKey={postesByKey} />
           ))
         : postes.map((poste) => (
             <PosteCard
