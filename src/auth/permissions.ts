@@ -307,3 +307,17 @@ export function partnerLandingTab(user: PartnerAccessUser): PartnerTab | null {
   if (isDepOnlyUser(user) && tabs.includes('opportunites')) return 'opportunites';
   return tabs[0] ?? null;
 }
+
+/**
+ * Quotas surveillés (emails, API, scraping) : SUPERADMIN, comme la vue « Quotas » du menu
+ * utilisateur du web. Pendant une impersonation, `role` est celui du compte emprunté : un
+ * profil non SUPERADMIN n'y voit donc pas ces vues.
+ */
+export function canViewHubQuotas(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
+
+/** « Analyses en cours » des postes (suivi, arrêt et relance à distance) : SUPERADMIN. */
+export function canViewHubAnalysesLive(role: AppUserRole): boolean {
+  return role === 'SUPERADMIN';
+}
