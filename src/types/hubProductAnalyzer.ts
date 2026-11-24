@@ -24,7 +24,8 @@ export type ViabilityStatus = 'VIABLE' | 'NEGOTIABLE' | 'NOT_VIABLE';
 export type ProductViabilityDegree = 'TOP_1' | 'TOP_2' | 'TOP_3' | 'TOP_4' | 'TOP_5' | 'TOP_6' | 'TOP_7';
 export type StagingSourceMode = 'EBATPRO' | 'EAN_DIRECT';
 export type ViabilityTab = 'viable' | 'negotiable' | 'not_viable' | 'all';
-export type WeightMode = '' | 'pending' | 'filled';
+/** `heavy` : > 30 kg ; `light` : poids connu et ≤ 30 kg (seuil « trop lourd »). */
+export type WeightMode = '' | 'pending' | 'filled' | 'heavy' | 'light';
 export type ConditioningFilter = '' | 'multiple' | 'simple';
 export type TriState = '' | 'true' | 'false';
 export type AnalyzerView = 'analyze' | 'staging';
