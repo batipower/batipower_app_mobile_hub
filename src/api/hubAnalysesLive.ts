@@ -60,10 +60,48 @@ export interface LivePoste {
   linesTruncated: boolean;
 }
 
+/** Contribution d'un poste à l'avancement d'une affaire. */
+export interface LiveAffairePoste {
+  key: string;
+  done: number;
+  enCours: number;
+}
+
+/** Avancement d'une affaire : lignes de réserve prises en charge par les postes, regroupées par affaire. */
+export interface LiveAffaire {
+  /** `null` : lignes sans affaire. */
+  id: string | null;
+  name: string;
+  /** Rang dans le classement de la réserve, `null` si non classée. */
+  rank: number | null;
+  done: number;
+  enCours: number;
+  total: number;
+  percent: number;
+  /** Une analyse tourne actuellement sur une ligne de cette affaire. */
+  analysing: boolean;
+  postes: LiveAffairePoste[];
+}
+
 export interface LiveSnapshot {
   generatedAt: string;
   analyses: LiveAnalysis[];
   postes: LivePoste[];
+  /** Avancement par affaire (absent des anciennes versions du back : reconstitué depuis les lignes des postes). */
+  affaires?: LiveAffaire[];
+  /** Identité du process API : un changement = l'API a redémarré. */
+  serverBootId?: string;
+  serverStartedAt?: string;
+  /** Numéro d'ordre des snapshots poussés par le temps réel (absent de la lecture HTTP). */
+  seq?: number;
+}
+
+/** Ticket de 2 min pour le canal temps réel `/analyses-live` (SUPERADMIN). */
+export interface LiveWsTicket {
+  wsUrl: string;
+  token: string;
+  expiresIn?: number;
+  status: string;
 }
 
 type ControlResult = { ok: boolean; control: PosteControl };
@@ -73,6 +111,10 @@ type ControlResult = { ok: boolean; control: PosteControl };
  * poste. Pendant mobile de `hub-analyses-live.ts` du web ; routes réservées au SUPERADMIN.
  */
 export const hubAnalysesLiveApi = {
+  getWsTicket() {
+    return apiClient.get<LiveWsTicket>('hub-app/product-analyzer/live/ws-ticket');
+  },
+
   get({ signal }: { signal?: AbortSignal } = {}) {
     return apiClient.get<LiveSnapshot>('hub-app/product-analyzer/live', { signal });
   },
