@@ -35,7 +35,12 @@ export function AnalyzerSocketProvider({ children }: { children: ReactNode }) {
     return () => subscription.remove();
   }, [engine]);
 
-  useReserveHeartbeat({ getUuids: engine.getReserveUuids, onLost: engine.handleReserveLost });
+  useReserveHeartbeat({
+    getUuids: engine.getReserveUuids,
+    onLost: engine.handleReserveLost,
+    onControl: engine.handleHeartbeatControl,
+    getRemotePaused: engine.isRemotePaused,
+  });
 
   return <EngineContext.Provider value={engine}>{children}</EngineContext.Provider>;
 }

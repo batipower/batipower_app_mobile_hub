@@ -29,6 +29,9 @@ import type {
 
 const BASE = 'hub-app/product-analyzer';
 
+/** Ordre du super admin vers le poste : `PAUSED` = arrêté à distance. */
+export type PosteControl = 'RUNNING' | 'PAUSED';
+
 export interface CancelNegotiationsResult {
   cancelled: { stagingUuid: string; opportunityUuid: string }[];
   skipped: { stagingUuid: string; reason: string }[];
@@ -345,10 +348,11 @@ export const hubProductAnalyzerApi = {
     apiClient.post(`${BASE}/reserve/mark-failed`, { uuids, ...(claimToken ? { claimToken } : {}) }),
 
   /** Heartbeat du poste : prolonge ses lignes EN_COURS ; `lost` = lignes de `uuids` reprises par un autre poste. */
-  heartbeatReserve: (claimToken: string, uuids?: string[]) =>
-    apiClient.post<{ renewed: number; lost: string[] }>(`${BASE}/reserve/heartbeat`, {
+  heartbeatReserve: (claimToken: string, uuids?: string[], options?: { remotePaused?: boolean }) =>
+    apiClient.post<{ renewed: number; lost: string[]; control?: PosteControl }>(`${BASE}/reserve/heartbeat`, {
       claimToken,
       ...(uuids?.length ? { uuids } : {}),
+      ...(options?.remotePaused ? { remotePaused: true } : {}),
     }),
 
   /** État du coupe-circuit des crédits API (`states` vide : tout va bien). */

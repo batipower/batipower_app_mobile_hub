@@ -145,6 +145,8 @@ export type QueueState = {
   reserveReleased: boolean;
   /** File en pause : une API d'analyse n'a plus de crédit (le produit en cours reprendra à son retour). */
   pausedForQuota: boolean;
+  /** File arrêtée à distance par le super admin : le produit en cours reprendra à sa relance. */
+  pausedByAdmin: boolean;
   /** Message du coupe-circuit : pendant la pause, ou après l'arrêt de la file (phase STOPPED). */
   quotaMessage: string | null;
 };

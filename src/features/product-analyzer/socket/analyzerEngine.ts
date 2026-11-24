@@ -69,6 +69,7 @@ const INITIAL_QUEUE: QueueState = {
   startedAt: null,
   reserveReleased: false,
   pausedForQuota: false,
+  pausedByAdmin: false,
   quotaMessage: null,
 };
 
@@ -85,6 +86,9 @@ type Listener = () => void;
  */
 export class AnalyzerEngine {
   private socket: Socket | null = null;
+  /** Jeton du poste, chargé au premier lancement (suivi « Analyses en cours » du super admin). */
+  private claimToken: string | null = null;
+  private identifying = false;
   private listeners = new Set<Listener>();
   private state: EngineState = {
     connection: { connected: false, error: null },
@@ -105,6 +109,9 @@ export class AnalyzerEngine {
   private lostDuringJob = false;
   private itemStartedAt = 0;
   private cancelledBeforeStart = false;
+  /** Poste arrêté à distance par le super admin : la file attend l'ordre « Relancer ». */
+  private remotePaused = false;
+  private remoteChangedAt = 0;
 
   // ─── Store ────────────────────────────────────────────────────────────────
 
@@ -149,6 +156,8 @@ export class AnalyzerEngine {
       const ticket = await hubProductAnalyzerApi.getWsTicket();
       if (this.disposed) return;
       if (!ticket.wsUrl) throw new Error('Ticket WS sans url');
+      // Jeton du poste prêt avant le premier lancement.
+      this.identifyPoste();
       const socket = io(ticket.wsUrl, {
         transports: ['websocket'],
         reconnection: true,
@@ -205,6 +214,10 @@ export class AnalyzerEngine {
   private bind(socket: Socket) {
     socket.on('connect', () => {
       this.set({ connection: { connected: true, error: null } });
+      // Rejoint la room du poste : le super admin peut l'arrêter / le relancer à distance.
+      void getReserveClaimToken()
+        .then((token) => socket.emit('poste:hello', { claimToken: token }))
+        .catch(() => undefined);
       if (this.lostDuringJob) {
         this.lostDuringJob = false;
         this.onReconnectedDuringJob();
@@ -250,7 +263,10 @@ export class AnalyzerEngine {
         errors: [...this.state.single.errors, 'Délai de saisie du poids dépassé — 0 g utilisé'],
       });
     });
-    socket.on('analysis:cancelled', () => this.handleCancelled());
+    socket.on('poste:control', (d: { action?: string }) => {
+      if (d?.action === 'PAUSE' || d?.action === 'RESUME') this.applyRemoteControl(d.action);
+    });
+    socket.on('analysis:cancelled', (d?: { reason?: string }) => this.handleCancelled(d));
     socket.on('analysis:blocked', (d: BlockedData) => this.handleBlocked(d));
     socket.on('analysis:already_analyzed', (d: AlreadyAnalyzedData) => this.handleAlreadyAnalyzed(d));
     socket.on('analysis:reused', (d: AnalysisReusedData) => this.handleReused(d));
@@ -293,12 +309,35 @@ export class AnalyzerEngine {
     void queryClient.invalidateQueries({ queryKey: PA_ROOT });
   }
 
-  private emitStart(start: AnalyzeRequest['start'], skipWeight: boolean): boolean {
+  /**
+   * Charge le jeton du poste et l'identifie auprès du serveur (une fois par moteur) : le super admin voit
+   * alors « qui » analyse dans « Analyses en cours ». Sans effet sur la réserve (heartbeat sans liste).
+   */
+  private identifyPoste() {
+    if (this.claimToken || this.identifying) return;
+    this.identifying = true;
+    void getReserveClaimToken()
+      .then((token) => {
+        this.claimToken = token;
+        return hubProductAnalyzerApi.heartbeatReserve(token);
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.identifying = false;
+      });
+  }
+
+  private emitStart(start: AnalyzeRequest['start'], skipWeight: boolean, reserveUuid?: string | null): boolean {
     const socket = this.socket;
     if (!socket?.connected) return false;
     this.jobId = null;
-    if (start.type === 'ean') socket.emit('analyze:start-by-ean', { ...start.payload, skipWeight });
-    else socket.emit('analyze:start', { ...start.payload, skipWeight });
+    this.identifyPoste();
+    const tracking = {
+      ...(this.claimToken ? { claimToken: this.claimToken } : {}),
+      ...(reserveUuid ? { reserveUuid } : {}),
+    };
+    if (start.type === 'ean') socket.emit('analyze:start-by-ean', { ...start.payload, skipWeight, ...tracking });
+    else socket.emit('analyze:start', { ...start.payload, skipWeight, ...tracking });
     return true;
   }
 
@@ -415,6 +454,7 @@ export class AnalyzerEngine {
         startedAt: Date.now(),
         reserveReleased: false,
         pausedForQuota: false,
+        pausedByAdmin: this.remotePaused,
         quotaMessage: null,
       },
     });
@@ -520,7 +560,12 @@ export class AnalyzerEngine {
     this.setQueue({ items, reserveReleased: false });
     const current = items[this.state.queue.currentIdx];
     // En pause crédits API, rien à relancer : la reprise vient du retour des crédits.
-    if (this.state.queue.running && !this.state.queue.pausedForQuota && (!current || current.status !== 'analyzing')) {
+    if (
+      this.state.queue.running &&
+      !this.state.queue.pausedForQuota &&
+      !this.remotePaused &&
+      (!current || current.status !== 'analyzing')
+    ) {
       this.advanceQueue(this.state.queue.currentIdx);
     }
   }
@@ -555,6 +600,8 @@ export class AnalyzerEngine {
     }
     const item = items[next] as QueueItem;
     this.setQueue({ currentIdx: next });
+    // Poste arrêté par un admin : on se place sur le prochain produit sans le lancer ; la relance le démarre.
+    if (this.remotePaused) return;
     this.itemStartedAt = Date.now();
     this.resetLive();
     // Première réponse attendue : sinon on abandonne l'élément et on passe au suivant.
@@ -575,6 +622,7 @@ export class AnalyzerEngine {
               },
             },
             true,
+            item.reserveUuid,
           )
         : this.emitStart(
             {
@@ -589,6 +637,7 @@ export class AnalyzerEngine {
               },
             },
             true,
+            item.reserveUuid,
           );
     if (!ok) {
       this.failQueueItem(next, SOCKET_DOWN_MESSAGE, false);
@@ -636,6 +685,8 @@ export class AnalyzerEngine {
     }
     if (this.mode === 'queue' && this.state.queue.running) {
       this.clearWatchdog();
+      // Arrêté par un admin : aucun job à relancer, la file attend « Relancer ».
+      if (this.remotePaused) return;
       if (this.state.queue.pausedForQuota) {
         // Aucun job en cours : on relit l'état du coupe-circuit, qui a pu changer pendant la coupure.
         void this.refreshApiQuota();
@@ -855,9 +906,54 @@ export class AnalyzerEngine {
     });
   }
 
-  private handleCancelled() {
+  // ─── Arrêt / relance à distance (super admin) ─────────────────────────────
+
+  isRemotePaused = (): boolean => this.remotePaused;
+
+  /** Ordre lu dans la réponse du heartbeat (filet de sécurité de la socket). Réponse périmée écartée. */
+  handleHeartbeatControl = (control: 'RUNNING' | 'PAUSED', requestedAt: number) => {
+    if (requestedAt < this.remoteChangedAt) return;
+    if (control === 'PAUSED') this.applyRemoteControl('PAUSE');
+    else if (this.remotePaused) this.applyRemoteControl('RESUME');
+  };
+
+  /**
+   * Pause : le serveur a déjà coupé l'analyse en vol ; le produit courant est remis « à traiter » (aucun
+   * `markFailed`), les lignes de réserve restent détenues (heartbeat actif). Relance : reprise au même produit.
+   */
+  private applyRemoteControl(action: 'PAUSE' | 'RESUME') {
+    if (action === 'PAUSE') {
+      if (this.remotePaused) return;
+      this.remotePaused = true;
+      this.remoteChangedAt = Date.now();
+      this.clearStartTimer();
+      this.clearWatchdog();
+      const queue = this.state.queue;
+      if (this.mode === 'queue' && queue.running) {
+        this.jobId = null;
+        this.resetLive();
+        const current = queue.items[queue.currentIdx];
+        if (current?.status === 'analyzing') this.patchItem(queue.currentIdx, { status: 'pending', errorMsg: null });
+      }
+      this.setQueue({ pausedByAdmin: true });
+      return;
+    }
+    if (!this.remotePaused) return;
+    this.remotePaused = false;
+    this.remoteChangedAt = Date.now();
+    this.setQueue({ pausedByAdmin: false });
+    const queue = this.state.queue;
+    // Pause crédits API encore active : c'est le retour des crédits qui relancera la file.
+    if (this.mode === 'queue' && queue.running && !queue.pausedForQuota && !queue.reserveReleased) {
+      this.startQueueItem(queue.currentIdx);
+    }
+  }
+
+  private handleCancelled(d?: { reason?: string }) {
     this.clearStartTimer();
     this.jobId = null;
+    // Pause admin en mode file : déjà gérée par `applyRemoteControl` (file gelée, pas annulée).
+    if (d?.reason === 'REMOTE_PAUSE' && this.mode === 'queue') return;
     if (this.mode === 'single' && this.state.single.phase !== 'cancelled') {
       this.setSingle({ phase: 'cancelled', weight: null });
     }
