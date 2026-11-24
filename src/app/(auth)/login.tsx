@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Info, Lock, Mail } from 'lucide-react-native';
+import { ArrowRight, Info, Lock, Mail, ScanFace } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner-native';
 import { z } from 'zod';
@@ -26,12 +26,43 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, biometricAvailable, biometricPreference, loginWithBiometrics } = useAuth();
   const styles = useStyles();
   const t = useTheme();
   const passwordRef = useRef<TextInputHandle>(null);
   const [submitting, setSubmitting] = useState(false);
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const biometricBusy = useRef(false);
+  const autoTriggered = useRef(false);
+  const showBiometric = biometricAvailable && biometricPreference !== null;
+
+  // Reconnexion par Face ID : l'invite iOS s'affiche ici. `authenticated` : le garde de
+  // navigation de la racine prend le relais.
+  const signInWithBiometrics = useCallback(async () => {
+    if (biometricBusy.current) return;
+    biometricBusy.current = true;
+    setBiometricLoading(true);
+    try {
+      const outcome = await loginWithBiometrics();
+      if (outcome === 'unavailable') {
+        toast.error("Face ID n'est plus disponible : connectez-vous avec votre mot de passe.");
+      }
+    } catch (error) {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
+      toast.error(error instanceof ApiError ? error.message : 'Erreur de connexion');
+    } finally {
+      biometricBusy.current = false;
+      setBiometricLoading(false);
+    }
+  }, [loginWithBiometrics]);
+
+  // Lancé une seule fois à l'arrivée sur l'écran ; après une annulation, le bouton prend le relais.
+  useEffect(() => {
+    if (!showBiometric || autoTriggered.current) return;
+    autoTriggered.current = true;
+    void signInWithBiometrics();
+  }, [showBiometric, signInWithBiometrics]);
 
   const {
     control,
@@ -72,6 +103,16 @@ export default function LoginScreen() {
         </View>
         <Text style={styles.subtitle}>Connectez-vous à votre espace professionnel</Text>
       </View>
+
+      {showBiometric ? (
+        <Button
+          label="Se connecter avec Face ID"
+          loading={biometricLoading}
+          onPress={() => void signInWithBiometrics()}
+          leadingIcon={<ScanFace size={18} color={t.onAccent} />}
+          testID="login-biometric"
+        />
+      ) : null}
 
       <Card variant="glass">
         <View style={styles.form}>
