@@ -19,7 +19,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Batipower Pro utilise Face ID pour vous reconnecter rapidement et en toute sécurité."
+        }
+      ],
       "expo-image",
       "expo-web-browser",
       "expo-maps",

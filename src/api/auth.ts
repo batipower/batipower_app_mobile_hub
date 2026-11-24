@@ -121,6 +121,40 @@ export const authApi = {
     );
   },
 
+  // ─── Face ID (jeton d'appareil de confiance) ──────────────────────────────
+
+  /** Après une connexion complète : le back émet un jeton d'appareil, renvoyé une seule fois. */
+  async enrollBiometric(deviceName: string): Promise<string> {
+    const res = await apiClient.post<{ deviceToken: string }>(
+      '/buyer-app/auth/biometric/enroll',
+      { deviceName },
+      { asAdmin: true },
+    );
+    return res.deviceToken;
+  },
+
+  /** Échange le jeton d'appareil (déverrouillé par Face ID) contre une session neuve + un nouveau jeton. */
+  async biometricLogin(
+    deviceToken: string,
+  ): Promise<{ tokens: StoredTokens; user: CurrentUser; deviceToken: string }> {
+    const res = await apiClient.post<{
+      accessToken: string;
+      refreshToken: string;
+      deviceToken: string;
+      user: CurrentUser;
+    }>('/buyer-app/auth/biometric/login', { deviceToken }, { auth: false });
+    return {
+      tokens: { accessToken: res.accessToken, refreshToken: res.refreshToken },
+      user: res.user,
+      deviceToken: res.deviceToken,
+    };
+  },
+
+  /** Révoque l'appareil côté back (par nom : pas besoin de relire le jeton, donc pas de Face ID). */
+  revokeBiometric(deviceName: string) {
+    return apiClient.post('/buyer-app/auth/biometric/revoke', { deviceName }, { asAdmin: true });
+  },
+
   // ─── Impersonation (SUPERADMIN) ────────────────────────────────────────────
 
   /** Comptes actifs que le SUPERADMIN peut usurper (`GET /buyer-app/impersonate/users`). */

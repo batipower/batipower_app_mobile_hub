@@ -19,6 +19,18 @@ import {
   setSessionExpiredHandler,
 } from '@/api/client';
 import {
+  clearBiometricCredentials,
+  dismissActivationPrompt,
+  getBiometricPreference,
+  getDeviceName,
+  isActivationPromptDismissed,
+  isBiometricAvailable,
+  readDeviceToken,
+  saveDeviceToken,
+  savePreference,
+  type BiometricPreference,
+} from '@/auth/biometrics';
+import {
   clearImpersonation,
   clearTokens,
   getTokens,
@@ -48,6 +60,14 @@ export type AuthStatus = 'loading' | 'signedOut' | 'signedIn' | 'unreachable';
 
 export type LoginOutcome = 'two_factor_required' | 'authenticated' | 'password_change_required';
 
+/**
+ * - `authenticated` : session ouverte.
+ * - `cancelled`     : invite Face ID annulée ou échouée, on peut réessayer.
+ * - `unavailable`   : Face ID n'est plus utilisable (visage modifié, appareil refusé ou expiré) :
+ *                     la fonction est désactivée, il faut se connecter avec le mot de passe.
+ */
+export type BiometricLoginOutcome = 'authenticated' | 'cancelled' | 'unavailable';
+
 interface AuthContextValue {
   status: AuthStatus;
   user: CurrentUser | null;
@@ -59,6 +79,19 @@ interface AuthContextValue {
   /** Abandonne la vérification 2FA en cours (retour à la connexion). */
   cancelTwoFactor: () => void;
   logout: () => Promise<void>;
+  /** Face ID est utilisable sur cet appareil (configuré dans les réglages iOS). */
+  biometricAvailable: boolean;
+  /** Reconnexion par Face ID activée sur cet appareil (compte concerné), sinon `null`. */
+  biometricPreference: BiometricPreference | null;
+  /** Se reconnecte avec Face ID (sans mot de passe ni code 2FA). L'invite iOS s'affiche. */
+  loginWithBiometrics: () => Promise<BiometricLoginOutcome>;
+  /** Active Face ID pour le compte connecté. Lève une erreur si l'activation échoue. */
+  enableBiometrics: () => Promise<void>;
+  disableBiometrics: () => Promise<void>;
+  /** Une connexion par mot de passe vient d'avoir lieu : proposer d'activer Face ID. */
+  biometricOfferPending: boolean;
+  /** Ferme la proposition ; `forever` ne la refait plus. */
+  dismissBiometricOffer: (options?: { forever?: boolean }) => Promise<void>;
   retryBootstrap: () => Promise<void>;
   /**
    * Une impersonation est en cours : `user` est alors le compte usurpé, et non celui du
@@ -107,6 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [hasPendingTwoFactor, setHasPendingTwoFactor] = useState(false);
+  const [biometricPreference, setBiometricPreference] = useState<BiometricPreference | null>(null);
+  const [biometricOfferPending, setBiometricOfferPending] = useState(false);
+  const [biometricAvailable] = useState(() => isBiometricAvailable());
   // Le tempToken 2FA (valable 5 min) ne sort jamais de la mémoire : ni disque, ni état React.
   const tempTokenRef = useRef<string | null>(null);
 
@@ -115,8 +151,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHasPendingTwoFactor(token !== null);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    void getBiometricPreference().then((preference) => {
+      if (!cancelled) setBiometricPreference(preference);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const resetToSignedOut = useCallback(() => {
     setTempToken(null);
+    setBiometricOfferPending(false);
     setUser(null);
     setStatus('signedOut');
     queryClient.clear();
@@ -166,7 +213,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * jetons sont révoqués immédiatement plutôt que laissés actifs 24 h sans usage.
    */
   const completeSignIn = useCallback(
-    async (tokens: StoredTokens, signedInUser: CurrentUser | null): Promise<LoginOutcome> => {
+    async (
+      tokens: StoredTokens,
+      signedInUser: CurrentUser | null,
+      options: { offerBiometric?: boolean } = {},
+    ): Promise<LoginOutcome> => {
       if (!signedInUser || signedInUser.mustChangePassword) {
         await authApi.revokeSession(tokens).catch(() => undefined);
         return 'password_change_required';
@@ -176,11 +227,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await clearImpersonation();
       await setTokens(tokens);
       setTempToken(null);
+      if (options.offerBiometric && biometricAvailable) {
+        // Proposé si Face ID n'est pas déjà actif pour ce compte et qu'il n'a pas été refusé.
+        const preference = await getBiometricPreference();
+        const alreadyActive = preference?.email === signedInUser.email;
+        setBiometricOfferPending(!alreadyActive && !(await isActivationPromptDismissed()));
+      }
       setUser(signedInUser);
       setStatus('signedIn');
       return 'authenticated';
     },
-    [setTempToken],
+    [biometricAvailable, setTempToken],
   );
 
   const login = useCallback<AuthContextValue['login']>(
@@ -193,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         case 'password_change_required':
           return completeSignIn(result.tokens, null);
         case 'authenticated':
-          return completeSignIn(result.tokens, result.user);
+          return completeSignIn(result.tokens, result.user, { offerBiometric: true });
       }
     },
     [completeSignIn, setTempToken],
@@ -206,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new ApiError(401, 'Session de vérification expirée. Reconnectez-vous.');
       }
       const { tokens, user: verifiedUser } = await authApi.verifyCode(tempToken, code);
-      return completeSignIn(tokens, verifiedUser);
+      return completeSignIn(tokens, verifiedUser, { offerBiometric: true });
     },
     [completeSignIn],
   );
@@ -226,6 +283,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Le token push est retiré tant que le jeton de session est valide. Au mieux et borné dans
     // le temps (hors ligne, serveur en panne) : la déconnexion ne dépend jamais de cet appel.
     await unregisterStoredPushToken().catch(() => undefined);
+    // Face ID : une déconnexion volontaire révoque l'appareil (par nom, sans relire le jeton :
+    // pas d'invite Face ID). Elle ne dépend pas non plus de cet appel.
+    const preference = await getBiometricPreference();
+    if (preference) {
+      await authApi.revokeBiometric(preference.deviceName).catch(() => undefined);
+      await clearBiometricCredentials();
+      setBiometricPreference(null);
+    }
     try {
       await authApi.logout();
     } catch {
@@ -235,6 +300,85 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearTokens();
     resetToSignedOut();
   }, [resetToSignedOut]);
+
+  // ─── Face ID ───────────────────────────────────────────────────────────────
+
+  const forgetBiometrics = useCallback(async () => {
+    await clearBiometricCredentials();
+    setBiometricPreference(null);
+  }, []);
+
+  const loginWithBiometrics = useCallback<AuthContextValue['loginWithBiometrics']>(async () => {
+    const stored = await readDeviceToken();
+    if (stored.status === 'failed') return 'cancelled';
+    if (stored.status === 'invalidated') {
+      await forgetBiometrics();
+      return 'unavailable';
+    }
+
+    let result: Awaited<ReturnType<typeof authApi.biometricLogin>>;
+    try {
+      result = await authApi.biometricLogin(stored.token);
+    } catch (error) {
+      // Appareil refusé par le back (expiré, révoqué, mot de passe changé, compte désactivé) :
+      // Face ID ne peut plus servir. Une panne réseau ou serveur laisse le jeton intact.
+      if (error instanceof ApiError && !error.isNetworkError && error.status < 500) {
+        await forgetBiometrics();
+        return 'unavailable';
+      }
+      throw error;
+    }
+
+    // Le jeton d'appareil est à usage unique : le nouveau remplace l'ancien. S'il ne peut pas
+    // être enregistré, la session s'ouvre quand même mais Face ID est à réactiver.
+    try {
+      await saveDeviceToken(result.deviceToken);
+    } catch {
+      await forgetBiometrics();
+    }
+    const outcome = await completeSignIn(result.tokens, result.user);
+    return outcome === 'authenticated' ? 'authenticated' : 'unavailable';
+  }, [completeSignIn, forgetBiometrics]);
+
+  const enableBiometrics = useCallback(async () => {
+    if (!user || user.impersonatedBy) {
+      throw new Error("Face ID n'est pas disponible pendant une impersonation.");
+    }
+    if (!isBiometricAvailable()) {
+      throw new Error("Face ID n'est pas configuré sur cet iPhone.");
+    }
+    const deviceName = await getDeviceName();
+    const deviceToken = await authApi.enrollBiometric(deviceName);
+    try {
+      await saveDeviceToken(deviceToken);
+      // Relecture immédiate : confirme que Face ID fonctionne avant d'annoncer l'activation.
+      const check = await readDeviceToken();
+      if (check.status !== 'ok') throw new Error('Face ID non confirmé.');
+      await savePreference({ email: user.email, deviceName });
+      setBiometricPreference({ email: user.email, deviceName });
+      setBiometricOfferPending(false);
+    } catch (error) {
+      await clearBiometricCredentials();
+      await authApi.revokeBiometric(deviceName).catch(() => undefined);
+      throw error instanceof Error && error.message === 'Face ID non confirmé.'
+        ? new Error("Face ID n'a pas été confirmé : l'activation est annulée.")
+        : new Error("Impossible d'activer Face ID sur cet appareil.");
+    }
+  }, [user]);
+
+  const disableBiometrics = useCallback(async () => {
+    const preference = await getBiometricPreference();
+    if (preference) await authApi.revokeBiometric(preference.deviceName).catch(() => undefined);
+    await forgetBiometrics();
+  }, [forgetBiometrics]);
+
+  const dismissBiometricOffer = useCallback<AuthContextValue['dismissBiometricOffer']>(
+    async (options) => {
+      setBiometricOfferPending(false);
+      if (options?.forever) await dismissActivationPrompt();
+    },
+    [],
+  );
 
   // ─── Impersonation (SUPERADMIN) ────────────────────────────────────────────
 
@@ -315,6 +459,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resendTwoFactorCode,
       cancelTwoFactor,
       logout,
+      biometricAvailable,
+      biometricPreference,
+      loginWithBiometrics,
+      enableBiometrics,
+      disableBiometrics,
+      biometricOfferPending,
+      dismissBiometricOffer,
       retryBootstrap,
       isImpersonating,
       startImpersonation,
@@ -329,6 +480,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       resendTwoFactorCode,
       cancelTwoFactor,
       logout,
+      biometricAvailable,
+      biometricPreference,
+      loginWithBiometrics,
+      enableBiometrics,
+      disableBiometrics,
+      biometricOfferPending,
+      dismissBiometricOffer,
       retryBootstrap,
       isImpersonating,
       startImpersonation,

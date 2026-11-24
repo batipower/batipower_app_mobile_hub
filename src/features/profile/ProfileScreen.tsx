@@ -11,6 +11,7 @@ import { ModuleBadge } from '@/components/modules/ModuleBadge';
 import { Button, Card } from '@/components/ui';
 import { openImpersonation } from '@/features/impersonation/navigation';
 import { AppearanceSection } from '@/features/profile/components/AppearanceSection';
+import { BiometricSection } from '@/features/profile/components/BiometricSection';
 import { SaleNotificationsSection } from '@/features/profile/components/SaleNotificationsSection';
 import { accessibleModules } from '@/modules/registry';
 import { roleLabel } from '@/modules/roles';
@@ -135,6 +136,8 @@ export function ProfileScreen({ module }: { module: BatipowerModule }) {
       </Card>
 
       <AppearanceSection />
+
+      <BiometricSection />
 
       {isImpersonating || canAccessHubCockpit(user.role) ? <SaleNotificationsSection /> : null}
 

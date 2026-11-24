@@ -2,6 +2,7 @@ import { View, useWindowDimensions } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { BiometricOfferPrompt } from '@/components/auth/BiometricOfferPrompt';
 import { ImpersonationBanner } from '@/components/auth/ImpersonationBanner';
 import { accessibleModules } from '@/modules/registry';
 import { moduleSheetDetent } from '@/modules/switchModule';
@@ -34,16 +35,11 @@ export default function AppLayout() {
           contentStyle: { backgroundColor: t.bg },
         }}
       >
-        <Stack.Screen
-          name="switch-module"
-          options={sheetOptions(t, [detent])}
-        />
-        <Stack.Screen
-          name="impersonate"
-          options={sheetOptions(t, [0.85, 1])}
-        />
+        <Stack.Screen name="switch-module" options={sheetOptions(t, [detent])} />
+        <Stack.Screen name="impersonate" options={sheetOptions(t, [0.85, 1])} />
       </Stack>
       <ImpersonationBanner />
+      <BiometricOfferPrompt />
     </View>
   );
 }
