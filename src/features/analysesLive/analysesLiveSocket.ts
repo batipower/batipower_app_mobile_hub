@@ -6,7 +6,7 @@ import { hubAnalysesLiveApi, type LiveSnapshot } from '@/api/hubAnalysesLive';
 /**
  * Connexion temps réel unique (`/analyses-live`) partagée par tous les consommateurs de « Analyses en cours »
  * (pastille du cockpit, écran de suivi). Un compteur de références ouvre la socket au premier abonné et la
- * ferme au dernier ; l'app passée en arrière-plan la coupe (économie de batterie), le retour au premier plan
+ * ferme au dernier ; l'app passée en arrière-plan (`background`) la coupe (économie de batterie), le retour au premier plan
  * la rouvre avec un ticket neuf.
  *
  * - `connected` : la socket pousse les snapshots, la lecture périodique n'est plus nécessaire ;
@@ -132,14 +132,15 @@ function closeSocket(reset: boolean) {
 
 function watchAppState() {
   if (appStateSub) return;
-  inBackground = AppState.currentState !== 'active';
+  inBackground = AppState.currentState === 'background';
   appStateSub = AppState.addEventListener('change', (next) => {
     if (subscribers.size === 0) return;
+    // `inactive` (iOS : centre de contrôle, appel entrant, multitâche) est transitoire : on ne coupe pas.
     if (next === 'active') {
       if (!inBackground) return;
       inBackground = false;
       void start();
-    } else if (!inBackground) {
+    } else if (next === 'background' && !inBackground) {
       inBackground = true;
       closeSocket(false);
       // La lecture périodique est déjà suspendue par React Query en arrière-plan.
