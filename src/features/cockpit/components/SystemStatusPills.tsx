@@ -1,7 +1,14 @@
 import { Pressable, Text, View } from 'react-native';
-import { Printer, Radar, ShoppingCart } from 'lucide-react-native';
+import { Activity, Gauge, Printer, Radar, ShoppingCart } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
+import { useAuth } from '@/auth/AuthProvider';
+import { canViewHubAnalysesLive, canViewHubQuotas } from '@/auth/permissions';
+import { useAnalysesLive } from '@/features/analysesLive/hooks/useAnalysesLive';
+import { openAnalysesEnCours } from '@/features/analysesLive/navigation';
+import { posteHealth } from '@/features/analysesLive/liveFormat';
+import { useQuotasSummary } from '@/features/quotas/hooks/useQuotasSummary';
+import { openQuotas } from '@/features/quotas/navigation';
 import { openPrintSupervision } from '@/features/printSupervision/navigation';
 import { formatInteger, formatPercent } from '@/lib/format';
 import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
@@ -106,6 +113,11 @@ export function SystemStatusPills() {
   const fleet = useScrapingFleetTarget();
   const printers = usePrintServers();
   const orders = useOrdersMonthTrend();
+  const { user } = useAuth();
+  const quotasAllowed = user ? canViewHubQuotas(user.role) : false;
+  const analysesAllowed = user ? canViewHubAnalysesLive(user.role) : false;
+  const quotas = useQuotasSummary({ enabled: quotasAllowed });
+  const analyses = useAnalysesLive({ watching: false, enabled: analysesAllowed });
 
   const agentsData = agents.isError || agents.data?.status === 'error' ? null : agents.data;
   const fleetData = fleet.isError || fleet.data?.status === 'error' ? null : fleet.data;
@@ -203,13 +215,84 @@ export function SystemStatusPills() {
     }
   }
 
-  if (!scraperPill && !printerPill && !ordersPill) return null;
+  let quotasPill: PillProps | null = null;
+  if (quotasAllowed && !quotas.isPending) {
+    const summary = quotas.isError ? null : quotas.data;
+    if (summary) {
+      const attention = summary.items.filter(
+        (item) => item.status === 'warn' || item.status === 'critical',
+      ).length;
+      quotasPill = {
+        Icon: Gauge,
+        value: attention > 0 ? String(attention) : 'OK',
+        tone:
+          summary.overall === 'critical'
+            ? 'alert'
+            : summary.overall === 'warn'
+              ? 'warning'
+              : summary.overall === 'ok'
+                ? 'ok'
+                : 'unknown',
+        accessibilityLabel:
+          attention > 0
+            ? `Quotas : ${plural(attention, 'quota')} à surveiller`
+            : 'Quotas : tous dans les limites',
+        onPress: openQuotas,
+        accessibilityHint: 'Ouvre le détail des quotas',
+      };
+    } else {
+      quotasPill = {
+        Icon: Gauge,
+        value: '—',
+        tone: 'unknown',
+        accessibilityLabel: 'Quotas : état indisponible',
+        onPress: openQuotas,
+      };
+    }
+  }
+
+  let analysesPill: PillProps | null = null;
+  if (analysesAllowed && !analyses.isPending) {
+    const snapshot = analyses.isError ? null : analyses.data;
+    if (snapshot) {
+      // Horloge du serveur : pure, et cohérente avec les battements du snapshot.
+      const now = new Date(snapshot.generatedAt).getTime();
+      const busy = snapshot.postes.filter(
+        (poste) =>
+          poste.control === 'PAUSED' ||
+          poste.enCours > 0 ||
+          snapshot.analyses.some((analysis) => analysis.posteKey === poste.key),
+      );
+      const paused = busy.filter((poste) => poste.control === 'PAUSED').length;
+      const unhealthy = busy.filter((poste) => posteHealth(poste, now) !== 'ok').length;
+      analysesPill = {
+        Icon: Activity,
+        value: String(busy.length),
+        tone: paused > 0 || unhealthy > 0 ? 'warning' : busy.length > 0 ? 'ok' : 'unknown',
+        accessibilityLabel: `Analyses en cours : ${plural(busy.length, 'poste')} actif${busy.length > 1 ? 's' : ''}${paused > 0 ? `, ${plural(paused, 'poste')} en pause` : ''}${unhealthy > 0 ? `, ${plural(unhealthy, 'poste')} au signal faible` : ''}`,
+        onPress: openAnalysesEnCours,
+        accessibilityHint: 'Ouvre les analyses en cours',
+      };
+    } else {
+      analysesPill = {
+        Icon: Activity,
+        value: '—',
+        tone: 'unknown',
+        accessibilityLabel: 'Analyses en cours : état indisponible',
+        onPress: openAnalysesEnCours,
+      };
+    }
+  }
+
+  if (!scraperPill && !printerPill && !ordersPill && !quotasPill && !analysesPill) return null;
 
   return (
     <View style={styles.row}>
       {scraperPill ? <StatusPill {...scraperPill} /> : null}
       {printerPill ? <StatusPill {...printerPill} /> : null}
       {ordersPill ? <StatusPill {...ordersPill} /> : null}
+      {quotasPill ? <StatusPill {...quotasPill} /> : null}
+      {analysesPill ? <StatusPill {...analysesPill} /> : null}
     </View>
   );
 }

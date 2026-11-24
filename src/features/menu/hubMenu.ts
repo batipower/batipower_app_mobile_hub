@@ -1,7 +1,9 @@
 import type { Href } from 'expo-router';
 import {
+  Activity,
   BadgeEuro,
   FileCheck2,
+  Gauge,
   PackageCheck,
   Percent,
   Printer,
@@ -25,6 +27,8 @@ import {
   canAccessHubProductAnalyzer,
   canAccessHubReturns,
   canAccessHubStudioQueue,
+  canViewHubAnalysesLive,
+  canViewHubQuotas,
 } from '@/auth/permissions';
 import type { AppUserRole } from '@/types/user';
 
@@ -127,12 +131,28 @@ export const HUB_MENU_ENTRIES: readonly HubMenuEntry[] = [
     visible: canAccessHubProductAnalyzer,
   },
   {
+    id: 'analyses-en-cours',
+    section: 'Pilotage',
+    label: 'Analyses en cours',
+    icon: Activity,
+    href: '/hub/analyses-en-cours',
+    visible: canViewHubAnalysesLive,
+  },
+  {
     id: 'supervision-impression',
     section: 'Pilotage',
     label: 'Supervision impression',
     icon: Printer,
     href: '/hub/supervision-impression',
     visible: canAccessHubPrintSupervision,
+  },
+  {
+    id: 'quotas',
+    section: 'Pilotage',
+    label: 'Quotas',
+    icon: Gauge,
+    href: '/hub/quotas',
+    visible: canViewHubQuotas,
   },
   {
     id: 'profil',

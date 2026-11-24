@@ -20,7 +20,7 @@ export const unstable_settings = { anchor: '(tabs)' };
  *   Recherche, et le bouton éclair central qui ouvre le menu).
  * - `menu` : feuille native à mi-écran ouverte par le bouton central (lignes de navigation).
  * - `scraping-fleet` : feuille à mi-écran ouverte par la pastille des scrapers du cockpit.
- * - `retours`, `controle-annulations`, `collecte-entrepot`, `candidats-palette`, `pricing`, `fiches-produit`, `marges-marques`, `product-analyzer`, `supervision-impression`, `profil` : pages secondaires lancées depuis le menu,
+ * - `retours`, `controle-annulations`, `collecte-entrepot`, `candidats-palette`, `pricing`, `fiches-produit`, `marges-marques`, `product-analyzer`, `supervision-impression`, `quotas`, `analyses-en-cours`, `profil` : pages secondaires lancées depuis le menu,
  *   poussées par-dessus les onglets avec le bouton retour natif. Le profil est une page à part, pas
  *   un bloc du menu.
  */
@@ -58,6 +58,8 @@ export default function HubLayout() {
       <Stack.Screen name="fiches-produit" options={{ headerShown: false }} />
       <Stack.Screen name="marges-marques" options={{ headerShown: false }} />
       <Stack.Screen name="product-analyzer" options={{ headerShown: false }} />
+      <Stack.Screen name="quotas" options={{ title: 'Quotas' }} />
+      <Stack.Screen name="analyses-en-cours" options={{ title: 'Analyses en cours' }} />
       <Stack.Screen name="supervision-impression" options={{ headerShown: false }} />
       <Stack.Screen name="deploiement/[reference]" options={{ title: 'Déploiement' }} />
       <Stack.Screen name="profil" options={{ title: 'Profil' }} />
