@@ -142,7 +142,12 @@ export function QueueScreen() {
       <View style={styles.summary}>
         <View style={styles.summaryTop}>
           <Text style={styles.summaryTitle}>
-            {finished ? 'File terminée' : queue.pausedForQuota ? "File d'analyses en pause" : "File d'analyses en cours"} ·{' '}
+            {finished
+              ? 'File terminée'
+              : queue.pausedForQuota || queue.pausedByAdmin
+                ? "File d'analyses en pause"
+                : "File d'analyses en cours"}{' '}
+            ·{' '}
             {counts.processed}/{counts.total}
           </Text>
           <Text style={styles.timer}>{fmtClock(totalElapsed)}</Text>
@@ -162,6 +167,16 @@ export function QueueScreen() {
       {!connection.connected && queue.running ? (
         <View style={[styles.banner, { borderColor: withAlpha(t.warning, 0.4), backgroundColor: withAlpha(t.warning, 0.1) }]}>
           <Text style={[styles.bannerText, { color: t.warning }]}>Reconnexion au serveur d’analyse…</Text>
+        </View>
+      ) : null}
+
+      {queue.running && queue.pausedByAdmin ? (
+        <View style={[styles.banner, { borderColor: withAlpha(t.warning, 0.4), backgroundColor: withAlpha(t.warning, 0.1) }]}>
+          <PauseCircle size={16} color={t.warning} />
+          <Text style={[styles.bannerText, { color: t.warning }]}>
+            Mis en pause par un administrateur : le produit en cours reprendra à sa relance ; vos lignes restent
+            réservées.
+          </Text>
         </View>
       ) : null}
 
