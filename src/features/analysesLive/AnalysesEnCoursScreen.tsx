@@ -1,23 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Activity, Pause, Play } from 'lucide-react-native';
 
-import type { LiveAnalysis, LivePoste } from '@/api/hubAnalysesLive';
+import type { LiveAffaire, LiveAnalysis, LivePoste } from '@/api/hubAnalysesLive';
 import { useAuth } from '@/auth/AuthProvider';
 import { canViewHubAnalysesLive } from '@/auth/permissions';
 import { Badge, Button, Card } from '@/components/ui';
 import { AccessDenied } from '@/features/preparation/components/AccessDenied';
 import { EmptyState, ErrorBanner, ListSkeleton } from '@/features/preparation/components/ListState';
+import { SegmentedControl, type Segment } from '@/features/preparation/components/SegmentedControl';
 import { usePullToRefresh } from '@/features/preparation/hooks/usePullToRefresh';
 import { fontSize, makeStyles, radius, spacing, useTheme, withAlpha } from '@/theme';
 
 import { useAnalysesLive, usePosteControlActions } from './hooks/useAnalysesLive';
+import { LiveProgressBar, ProgressLabel } from './LiveProgressBar';
+import {
+  affaireKey,
+  affairesOfPoste,
+  affaireTotals,
+  resolveAffaires,
+  SERVER_RESTART_NOTICE_MS,
+} from './liveAffaires';
 import {
   analysisProgress,
   formatAgo,
   posteHealth,
   posteTitle,
-  reserveProgress,
   type PosteHealth,
 } from './liveFormat';
 
@@ -31,15 +39,6 @@ function useNow(intervalMs: number): number {
   return now;
 }
 
-function ProgressBar({ percent, color }: { percent: number; color: string }) {
-  const styles = useStyles();
-  return (
-    <View style={styles.track}>
-      <View style={[styles.fill, { width: `${Math.min(Math.max(percent, 0), 100)}%`, backgroundColor: color }]} />
-    </View>
-  );
-}
-
 const HEALTH_TEXT: Record<PosteHealth, string | null> = {
   ok: null,
   slow: 'Signal lent',
@@ -49,18 +48,20 @@ const HEALTH_TEXT: Record<PosteHealth, string | null> = {
 type PosteCardProps = {
   poste: LivePoste;
   analyses: LiveAnalysis[];
+  affaires: LiveAffaire[];
   now: number;
   busy: boolean;
   onPause: (poste: LivePoste) => void;
   onResume: (poste: LivePoste) => void;
 };
 
-function PosteCard({ poste, analyses, now, busy, onPause, onResume }: PosteCardProps) {
+function PosteCard({ poste, analyses, affaires, now, busy, onPause, onResume }: PosteCardProps) {
   const styles = useStyles();
   const t = useTheme();
   const paused = poste.control === 'PAUSED';
   const health = posteHealth(poste, now);
-  const reserve = reserveProgress(poste);
+  const reserveTotal = poste.done + poste.enCours;
+  const posteAffaires = affairesOfPoste(affaires, poste.key);
   const healthText = HEALTH_TEXT[health];
   const device = poste.device?.label;
   // Un poste non identifié ne peut être piloté : le back refuse `unidentified`.
@@ -91,14 +92,21 @@ function PosteCard({ poste, analyses, now, busy, onPause, onResume }: PosteCardP
         </Text>
       ) : null}
 
-      {reserve.total > 0 ? (
+      {reserveTotal > 0 ? (
         <View style={styles.block}>
           <View style={styles.line}>
             <Text style={styles.label}>Réserve</Text>
-            <Text style={styles.value}>{`${reserve.fraction} · ${reserve.percent} %`}</Text>
+            <ProgressLabel done={poste.done} total={reserveTotal} />
           </View>
-          <ProgressBar percent={reserve.percent} color={paused ? t.warning : t.success} />
-          {reserve.position ? <Text style={styles.meta}>{`Ligne ${reserve.position} en cours`}</Text> : null}
+          <LiveProgressBar
+            done={poste.done}
+            active={analyses.length > 0 ? Math.min(analyses.length, poste.enCours) : 0}
+            total={reserveTotal}
+            doneColor={paused ? t.warning : undefined}
+          />
+          {poste.currentPosition ? (
+            <Text style={styles.meta}>{`Ligne ${poste.currentPosition} en cours`}</Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -117,10 +125,27 @@ function PosteCard({ poste, analyses, now, busy, onPause, onResume }: PosteCardP
                 ? `Étape ${progress.position}/${progress.total} · ${progress.label}`
                 : progress.label}
             </Text>
-            <ProgressBar percent={progress.percent} color={t.accent} />
+            <LiveProgressBar done={progress.position > 0 ? progress.position - 1 : 0} active={progress.position > 0 ? 1 : 0} total={progress.total} height={6} />
           </View>
         );
       })}
+
+      {posteAffaires.length > 0 ? (
+        <View style={styles.block}>
+          <Text style={styles.label}>Par affaire</Text>
+          {posteAffaires.map(({ affaire, done, enCours }) => (
+            <View key={affaireKey(affaire)} style={styles.miniAffaire}>
+              <View style={styles.line}>
+                <Text style={styles.miniName} numberOfLines={1}>
+                  {affaire.name}
+                </Text>
+                <Text style={styles.meta}>{`${done} / ${done + enCours}`}</Text>
+              </View>
+              <LiveProgressBar done={done} total={done + enCours} height={4} />
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {analyses.length === 0 && !paused ? (
         <Text style={styles.meta}>Aucune analyse en cours sur ce poste.</Text>
@@ -152,6 +177,59 @@ function PosteCard({ poste, analyses, now, busy, onPause, onResume }: PosteCardP
   );
 }
 
+type AffaireCardProps = {
+  affaire: LiveAffaire;
+  posteLabel: (key: string) => string;
+};
+
+/** Avancement d'une affaire : lignes prises en charge par les postes, part de chaque agent. */
+function AffaireCard({ affaire, posteLabel }: AffaireCardProps) {
+  const styles = useStyles();
+  const total = affaire.done + affaire.enCours;
+  return (
+    <Card contentStyle={styles.card}>
+      <View style={styles.cardHeader}>
+        <View style={styles.cardTitleBlock}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {affaire.name}
+          </Text>
+          <Text style={styles.meta}>
+            {affaire.rank != null ? `Classement n° ${affaire.rank}` : 'Hors classement'}
+          </Text>
+        </View>
+        {affaire.analysing ? <Badge label="Analyse en cours" tone="blue" /> : null}
+      </View>
+
+      <View style={styles.block}>
+        <View style={styles.line}>
+          <Text style={styles.label}>Analysées</Text>
+          <ProgressLabel done={affaire.done} total={total} />
+        </View>
+        <LiveProgressBar done={affaire.done} active={affaire.analysing ? 1 : 0} total={total} height={10} />
+        <Text style={styles.meta}>{`${affaire.enCours} ligne${affaire.enCours > 1 ? 's' : ''} encore détenue${affaire.enCours > 1 ? 's' : ''} par les agents`}</Text>
+      </View>
+
+      {affaire.postes.length > 0 ? (
+        <View style={styles.block}>
+          {affaire.postes.map((part) => (
+            <View key={part.key} style={styles.miniAffaire}>
+              <View style={styles.line}>
+                <Text style={styles.miniName} numberOfLines={1}>
+                  {posteLabel(part.key)}
+                </Text>
+                <Text style={styles.meta}>{`${part.done} / ${part.done + part.enCours}`}</Text>
+              </View>
+              <LiveProgressBar done={part.done} total={part.done + part.enCours} height={4} />
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+type ViewKey = 'affaires' | 'agents';
+
 /** « Analyses en cours » du HUB (SUPERADMIN) : suivi des postes et arrêt / relance à distance. */
 export function AnalysesEnCoursScreen() {
   const { user } = useAuth();
@@ -170,6 +248,7 @@ function AnalysesEnCours() {
   const styles = useStyles();
   const t = useTheme();
   const query = useAnalysesLive({ watching: true });
+  const [view, setView] = useState<ViewKey>('affaires');
   const { pause, resume } = usePosteControlActions();
   const { refreshing, onRefresh } = usePullToRefresh(query.refetch);
   const now = useNow(1000);
@@ -187,9 +266,26 @@ function AnalysesEnCours() {
   };
 
   const pendingKey = pause.isPending ? pause.variables : resume.isPending ? resume.variables : null;
-  const postes = data?.postes ?? [];
-  const analysesOf = (poste: LivePoste) =>
-    (data?.analyses ?? []).filter((analysis) => analysis.posteKey === poste.key);
+  const analyses = useMemo(() => data?.analyses ?? [], [data]);
+  const analysingKeys = useMemo(() => new Set(analyses.map((a) => a.posteKey)), [analyses]);
+  const allPostes = data?.postes ?? [];
+  // Un agent apparaît dès qu'il détient / a analysé des lignes, ou qu'une analyse tourne pour lui.
+  const postes = allPostes.filter((p) => p.done + p.enCours > 0 || analysingKeys.has(p.key));
+  const affaires = useMemo(() => resolveAffaires(data), [data]);
+  const totals = affaireTotals(affaires);
+  const analysesOf = (poste: LivePoste) => analyses.filter((analysis) => analysis.posteKey === poste.key);
+  const posteLabel = (key: string) => {
+    const poste = allPostes.find((p) => p.key === key);
+    return poste ? posteTitle(poste) : 'Poste inconnu';
+  };
+
+  const startedAtMs = data?.serverStartedAt ? new Date(data.serverStartedAt).getTime() : null;
+  const restartedRecently = startedAtMs != null && now - startedAtMs < SERVER_RESTART_NOTICE_MS;
+
+  const segments: Segment<ViewKey>[] = [
+    { key: 'affaires', label: 'Par affaire', count: affaires.length },
+    { key: 'agents', label: 'Par agent', count: postes.length },
+  ];
 
   return (
     <ScrollView
@@ -205,9 +301,18 @@ function AnalysesEnCours() {
         />
       }
     >
-      <Text style={styles.intro}>
-        Postes qui analysent la réserve du Product Analyzer. Actualisation automatique toutes les 3 secondes.
-      </Text>
+      <View style={styles.introRow}>
+        <Text style={styles.intro}>
+          Avancement de la réserve du Product Analyzer, par affaire et par agent.
+        </Text>
+        <Badge label={query.realtime ? 'Temps réel' : 'Toutes les 3 s'} tone={query.realtime ? 'green' : 'amber'} />
+      </View>
+
+      {restartedRecently ? (
+        <Text style={styles.restartBanner}>
+          {`Le serveur a redémarré ${formatAgo(data?.serverStartedAt ?? null, now)}. Les agents se réannoncent et relancent leurs analyses : l'avancement se remet à jour tout seul.`}
+        </Text>
+      ) : null}
 
       {query.isError ? (
         <ErrorBanner
@@ -219,25 +324,53 @@ function AnalysesEnCours() {
 
       {query.isPending ? <ListSkeleton rows={3} height={150} /> : null}
 
-      {data && postes.length === 0 ? (
+      {data && totals.total > 0 ? (
+        <Card contentStyle={styles.card}>
+          <View style={styles.line}>
+            <Text style={styles.label}>Avancement global</Text>
+            <ProgressLabel done={totals.done} total={totals.total} />
+          </View>
+          <LiveProgressBar done={totals.done} active={analyses.length > 0 ? Math.min(analyses.length, totals.enCours) : 0} total={totals.total} height={12} />
+          <Text style={styles.meta}>
+            {`${postes.length} agent${postes.length > 1 ? 's' : ''} · ${analyses.length} analyse${analyses.length > 1 ? 's' : ''} en cours`}
+          </Text>
+        </Card>
+      ) : null}
+
+      {data ? <SegmentedControl segments={segments} value={view} onChange={setView} /> : null}
+
+      {data && view === 'affaires' && affaires.length === 0 ? (
         <EmptyState
           icon={<Activity size={24} color={t.textMuted} />}
-          title="Aucun poste actif"
-          text="Un poste apparaît ici dès qu'il lance des analyses sur la réserve."
+          title="Aucune affaire en cours"
+          text="Une affaire apparaît ici dès qu'un agent prend en charge des lignes de la réserve."
         />
       ) : null}
 
-      {postes.map((poste) => (
-        <PosteCard
-          key={poste.key}
-          poste={poste}
-          analyses={analysesOf(poste)}
-          now={now}
-          busy={pendingKey === poste.key}
-          onPause={confirmPause}
-          onResume={(item) => resume.mutate(item.key)}
+      {data && view === 'agents' && postes.length === 0 ? (
+        <EmptyState
+          icon={<Activity size={24} color={t.textMuted} />}
+          title="Aucun agent actif"
+          text="Un agent apparaît ici dès qu'il lance des analyses sur la réserve."
         />
-      ))}
+      ) : null}
+
+      {view === 'affaires'
+        ? affaires.map((affaire) => (
+            <AffaireCard key={affaireKey(affaire)} affaire={affaire} posteLabel={posteLabel} />
+          ))
+        : postes.map((poste) => (
+            <PosteCard
+              key={poste.key}
+              poste={poste}
+              analyses={analysesOf(poste)}
+              affaires={affaires}
+              now={now}
+              busy={pendingKey === poste.key}
+              onPause={confirmPause}
+              onResume={(item) => resume.mutate(item.key)}
+            />
+          ))}
     </ScrollView>
   );
 }
@@ -245,7 +378,18 @@ function AnalysesEnCours() {
 const useStyles = makeStyles((t) => ({
   scroll: { flex: 1, backgroundColor: t.bg },
   content: { padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing['4xl'] },
-  intro: { fontSize: fontSize.xs, lineHeight: 17, color: t.textMuted },
+  introRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
+  intro: { flex: 1, fontSize: fontSize.xs, lineHeight: 17, color: t.textMuted },
+  restartBanner: {
+    fontSize: fontSize.xs,
+    lineHeight: 17,
+    color: t.warning,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: withAlpha(t.warning, 0.1),
+  },
+  miniAffaire: { gap: 3 },
+  miniName: { flex: 1, fontSize: fontSize.xs, fontWeight: '600', color: t.textSubtle },
   card: { padding: spacing.lg, gap: spacing.md },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   cardTitleBlock: { flex: 1, gap: 2 },
@@ -271,12 +415,5 @@ const useStyles = makeStyles((t) => ({
     backgroundColor: withAlpha(t.neutral, 0.08),
   },
   analysisRef: { flex: 1, fontSize: fontSize.sm, fontWeight: '600', color: t.text },
-  track: {
-    height: 6,
-    borderRadius: radius.full,
-    overflow: 'hidden',
-    backgroundColor: withAlpha(t.neutral, 0.2),
-  },
-  fill: { height: '100%', borderRadius: radius.full },
   stopButton: { borderWidth: 1, borderColor: withAlpha(t.danger, 0.3) },
 }));

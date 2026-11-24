@@ -40,20 +40,19 @@ export function useAnalysesLive({
 }) {
   const focused = useIsFocused();
   const queryClient = useQueryClient();
-  const [realtime, setRealtime] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
+  // Désactivé : la socket est fermée, un « connecté » résiduel ne compte plus.
+  const realtime = enabled && socketConnected;
 
   useEffect(() => {
-    if (!enabled) {
-      setRealtime(false);
-      return;
-    }
+    if (!enabled) return;
     return subscribeAnalysesLive({
       onSnapshot: (snapshot) => {
         const cached = queryClient.getQueryData<LiveSnapshot>(ANALYSES_LIVE_KEY);
         if (isStale(snapshot, cached)) return;
         queryClient.setQueryData(ANALYSES_LIVE_KEY, snapshot);
       },
-      onStatus: (status) => setRealtime(status === 'connected'),
+      onStatus: (status) => setSocketConnected(status === 'connected'),
     });
   }, [enabled, queryClient]);
 
