@@ -62,6 +62,7 @@ export function toStagingApiQuery(
   if (filters.search.trim()) p.search = filters.search.trim();
   if (filters.weight === 'pending') p.weightPending = 'true';
   else if (filters.weight === 'filled') p.hasWeight = 'true';
+  else if (filters.weight === 'heavy' || filters.weight === 'light') p.weightRange = filters.weight;
   if (filters.hasNego) p.hasOpenNegotiation = 'true';
   else if (filters.needsNego) p.hasOpenNegotiation = 'false';
   if (filters.country) {

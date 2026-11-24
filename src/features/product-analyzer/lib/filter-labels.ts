@@ -1,5 +1,12 @@
-import type { StagingFilters } from '@/types/hubProductAnalyzer';
+import type { StagingFilters, WeightMode } from '@/types/hubProductAnalyzer';
 import { SR_CFG } from './constants';
+
+const WEIGHT_LABEL: Record<Exclude<WeightMode, ''>, string> = {
+  pending: 'Poids manquant',
+  filled: 'Poids renseigné',
+  heavy: 'Poids > 30 kg',
+  light: 'Poids ≤ 30 kg',
+};
 
 export interface StagingChipDescriptor {
   key: string;
@@ -95,7 +102,7 @@ export function buildStagingFilterChips(
   if (f.weight !== '') {
     chips.push({
       key: 'weight',
-      label: f.weight === 'pending' ? 'Poids manquant' : 'Poids renseigné',
+      label: WEIGHT_LABEL[f.weight],
       clearPatch: { weight: '' },
     });
   }

@@ -48,6 +48,8 @@ const WEIGHT_OPTIONS: { value: WeightMode; label: string }[] = [
   { value: '', label: 'Tous' },
   { value: 'pending', label: 'Manquant' },
   { value: 'filled', label: 'Renseigné' },
+  { value: 'heavy', label: '> 30 kg' },
+  { value: 'light', label: '≤ 30 kg' },
 ];
 type NegoMode = 'all' | 'has' | 'needs';
 const NEGO_OPTIONS: { value: NegoMode; label: string }[] = [
