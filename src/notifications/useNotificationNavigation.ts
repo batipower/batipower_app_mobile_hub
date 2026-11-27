@@ -6,11 +6,13 @@ import { deployedPricesFromPush, openDeployment } from '@/features/deployment/na
 import { openPalletCandidate } from '@/features/palletFlow/navigation';
 import { openOpportunityFromLink } from '@/features/partner/navigation';
 import { openQuoteFromLink } from '@/features/quotes/navigation';
+import { openQuotas } from '@/features/quotas/navigation';
 
 import {
   HUB_DEPLOYMENT_TYPE,
   HUB_OPPORTUNITY_EVENT_TYPE,
   HUB_PALLET_PUSH_TYPES,
+  HUB_QUOTA_PUSH_TYPES,
   HUB_QUOTE_EVENT_TYPE,
   HUB_QUOTE_REQUEST_TYPE,
   HUB_SALE_TYPE,
@@ -37,7 +39,7 @@ type NotificationAccess = { cockpit: boolean; quotes: boolean };
 /**
  * Ouvre l'écran cible d'une notification, selon son `data.type` : la fiche de la commande d'une
  * vente (Cockpit ; repli sur les commandes du jour sans référence), la fiche d'une opportunité acceptée ou
- * refusée, la page Déploiement d'un produit, la page d'arbitrage d'un candidat palette,
+ * refusée, la page Déploiement d'un produit, la page d'arbitrage d'un candidat palette, la page Quotas,
  * la fiche d'une nouvelle demande de devis
  * ou l'éditeur d'un devis dont le statut a changé. Un type inconnu, ou un compte sans le droit
  * correspondant, n'ouvre rien.
@@ -88,6 +90,12 @@ function openFromNotification(response: Notifications.NotificationResponse, acce
     if (typeof data?.orderReference === 'string' && data.orderReference) {
       openPalletCandidate(data.orderReference);
     }
+    return;
+  }
+
+  // Quota d'une API (ASIN Data, Jungle Scout) ou de Gemini épuisé : page Quotas, SUPERADMIN uniquement.
+  if (HUB_QUOTA_PUSH_TYPES.includes(type) && access.cockpit) {
+    openQuotas();
     return;
   }
 

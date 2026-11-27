@@ -43,3 +43,12 @@ export const HUB_PALLET_PUSH_TYPES: readonly unknown[] = [
   HUB_PALLET_QUOTE_ANSWERED_TYPE,
   HUB_PALLET_QUOTE_EXPIRED_TYPE,
 ];
+
+/** `data.type` du push du coupe-circuit des crédits API (ASIN Data, Jungle Scout) : cf. `api-quota.service.ts` du back. */
+export const HUB_API_QUOTA_TYPE = 'HUB_API_QUOTA';
+
+/** `data.type` du push « Gemini à sec » / « Gemini revenu » : cf. `gemini-quota-alert.service.ts` du back. */
+export const HUB_GEMINI_QUOTA_TYPE = 'HUB_GEMINI_QUOTA';
+
+/** Pushs de quota qui ouvrent la page Quotas du HUB. */
+export const HUB_QUOTA_PUSH_TYPES: readonly unknown[] = [HUB_API_QUOTA_TYPE, HUB_GEMINI_QUOTA_TYPE];
